@@ -753,7 +753,7 @@ public class ImageWallpaper extends WallpaperService {
 
             mEglConfig = chooseEglConfig();
             if (mEglConfig == null) {
-                throw new RuntimeException("eglConfig not initialized");
+                return false;
             }
 
             mEglContext = createContext(mEgl, mEglDisplay, mEglConfig);
