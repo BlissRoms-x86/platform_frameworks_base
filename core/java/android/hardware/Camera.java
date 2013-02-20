@@ -4343,6 +4343,8 @@ public class Camera {
                 return Float.parseFloat(mMap.get(key));
             } catch (NumberFormatException ex) {
                 return defaultValue;
+            } catch (NullPointerException ex) {
+                return defaultValue;
             }
         }
 
@@ -4351,6 +4353,8 @@ public class Camera {
             try {
                 return Integer.parseInt(mMap.get(key));
             } catch (NumberFormatException ex) {
+                return defaultValue;
+            } catch (NullPointerException ex) {
                 return defaultValue;
             }
         }
