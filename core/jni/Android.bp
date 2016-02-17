@@ -12,6 +12,7 @@ cc_library_shared {
         "-DEGL_EGLEXT_PROTOTYPES",
 
         "-DU_USING_ICU_NAMESPACE=0",
+        "-D_PRC_COMPATIBILITY_PACKAGE_",
 
         "-Wall",
         "-Werror",
@@ -67,6 +68,7 @@ cc_library_shared {
                 "com_android_internal_content_NativeLibraryHelper.cpp",
                 "com_google_android_gles_jni_EGLImpl.cpp",
                 "com_google_android_gles_jni_GLImpl.cpp", // TODO: .arm
+                "abipicker/ABIPicker.cpp",
                 "android_app_Activity.cpp",
                 "android_app_ActivityThread.cpp",
                 "android_app_NativeActivity.cpp",
