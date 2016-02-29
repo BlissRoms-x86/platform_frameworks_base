@@ -401,9 +401,4 @@ interface INetworkManagementService
     void setAllowOnlyVpnForUids(boolean enable, in UidRange[] uidRanges);
 
     boolean isNetworkRestricted(int uid);
-
-    /**
-     * Restrict UID from accessing a network interface
-     */
-    void restrictAppOnInterface(String key, int uid, boolean restrict);
 }
