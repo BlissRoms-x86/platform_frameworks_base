@@ -40,11 +40,12 @@ static bool thirdload = false;
 static bool whiteload = false;
 static bool blackload = false;
 
-static const char* iaRelated[] = {"intel", "atom", "x86", "x64"};
+static const char* iaRelated[] = {"intel", "intl", "atom", "x86", "x64"};
 
 //////////////////////////////////////////////////////////////////////
 void getConfig(const char* cfgFile , Vector<char*>& cfgVec) {
     FILE* fp = fopen(cfgFile, "r");
+    assert(fp != NULL);
     int read = -1;
     char *line = NULL;
     size_t len = 0;
@@ -132,8 +133,14 @@ bool isReliableLib(Vector<char*>& libList) {
     int len = ARR_SIZE(iaRelated);
     for (unsigned i = 0; i < sz; i++) {
         for (int j=0; j < len; j++) {
-            if (NULL != strstr(libList[i], iaRelated[j])) {
-                return true;
+            char* p = NULL;
+            if (NULL != (p = strcasestr(libList[i], iaRelated[j]))) {
+                int lenIA = strlen(iaRelated[j]);
+                if (!isalpha(*(p+lenIA))) {
+                    if (!isalpha(*(p-1)) || (p == (libList[i] + 3))) {
+                        return true;
+                    }
+                }
             }
         }
     }
@@ -168,21 +175,47 @@ static bool isMixedLib(char* libCur, char* buffer) {
     return mixed;
 }
 
-static bool isInThirdPartySOList(char* libName) {
-    if (!libName) return false;
-    size_t libLen = strlen(libName);
-    bool ret = false;
-    size_t sz = thirdPartySO.size();
-    for (size_t i = 0; i < sz; i++) {
-        size_t n = strlen(thirdPartySO[i]);
-        // three for prefix "lib", and 3 for suffix ".so"
-        if ((libLen == (n+6))&&(0 == strncmp(libName + 3, thirdPartySO[i], n))) {
-            ret = true;
-            break;
+// compare the given string with the length, igonre upper and lower
+// len must be less than the length of two string
+static bool ignoreCmp(const char* str1, const char* str2, int len){
+    assert (str1 != NULL && str2 != NULL);
+    assert ((len <= strlen(str1)) && (len <= strlen(str2)));
+    for (int i = 0 ; i < len; i++) {
+        if (str1[i] != str2[i]) {
+            if(isalpha(str1[i]) && isalpha(str2[i])
+                    && (abs((str1[i]-str2[i])) == 32)) {
+                continue;
+            }
+            return false;
         }
     }
-    P_LOG("ABIpicker libName %s,In Third %d", libName, ret);
-    return ret;
+    return true;
+}
+
+static bool isInThirdPartySOList(char* libName) {
+    assert (libName != NULL);
+    size_t libLen = strlen(libName);
+    size_t sz = thirdPartySO.size();
+    for (size_t i = 0; i < sz; i++) {
+        // thirdPartySO[i] won't be NULL
+        size_t n = strlen(thirdPartySO[i]);
+        // three char for ".so"
+        int j = libLen - 4;
+        // now only '-' '-' and '.'found
+        while((j >= 0) && (isdigit(libName[j]) || (libName[j] == '-')
+              || (libName[j] == '_') || (libName[j] == '.'))) {
+            j--;
+        }
+        // three char for "lib" and include the name with no letters
+        if ((j == 2) || ((size_t)j == (n+2))) {
+            if (ignoreCmp(libName+3, thirdPartySO[i], n)) {
+                P_LOG("ABIpicker libName %s,In Third", libName);
+                return true;
+            }
+        }
+
+    }
+    return false;
 }
 
 static void insertionSort(Vector<char*>& list) {
@@ -205,9 +238,9 @@ static void insertionSort(Vector<char*>& list) {
 
 //////////////////////////////////////////////////////////////////////
 // Use armRef as a reference, compare all libraries of iaRef with all
-// libraries of armRef. If both are match, iaRef will be returned with
-// *result and true is return value. Or else, *result is rawResult and
-// false is return value
+// libraries of armRef.If the two are match or iaRef is more, iaRef
+// will be returned with *result and true is return value. Or else,
+// *result is rawResult and false is return value
 bool ABIPicker::compare(char* armRef, char* iaRef,
                         char* rawResult, char** result) {
     bool ret = true;
@@ -231,6 +264,8 @@ bool ABIPicker::compare(char* armRef, char* iaRef,
         Vector<char*>* armRefList = getLibList(armRef);
 
         // if contains the key words in iaRelated, just return true
+        assert(iaRefList != NULL);
+        assert(armRefList != NULL);
         if (isReliableLib(*iaRefList)) {
             *result = iaRef;
             break;
@@ -257,7 +292,7 @@ bool ABIPicker::compare(char* armRef, char* iaRef,
 
         *result = armRef;
         ret = false;
-    } while (false);
+    } while (0);
 
     ALOGV("%s Vs. %s, return %s\n",
             iaRef ? iaRef : "NULL",
@@ -267,28 +302,48 @@ bool ABIPicker::compare(char* armRef, char* iaRef,
 
 bool ABIPicker::compareLibList(Vector<char*>& iaRefList,
         Vector<char*>& armRefList) {
-    if (iaRefList.size() != armRefList.size()) {
+
+    unsigned iaSize = iaRefList.size();
+    unsigned armSize = armRefList.size();
+    if (iaSize < armSize) {
         return false;
+    } else if (iaSize == 0 && armSize == 0) {
+        return true;
     }
 
+    int iaNum = 0;
+    int armNum = 0;
     Vector<char*>::iterator itIa = iaRefList.begin();
     Vector<char*>::iterator itArm = armRefList.begin();
+    bool isEqual = false;
     while (itIa != iaRefList.end() && itArm != armRefList.end()) {
-        char* iaLibName = *itIa;
-        char* armLibName = *itArm;
-
-        // NOTE:
-        // WIN treats file names in-case-sensitive,
-        // but LINUX  treats them case-sensitive.
-        if (0 != strcmp(iaLibName, armLibName)) {
+        if ((iaSize-iaNum) < (armSize-armNum)) {
             return false;
         }
+        isEqual = false ;
+        char* armLibName = *itArm;
+        int armLen = strlen (armLibName);
+        armNum++;
 
-        itIa++;
+        while (itIa != iaRefList.end() && !isEqual) {
+            char* iaLibName = *itIa;
+            iaNum++;
+            int iaLen = strlen (iaLibName);
+            if (iaLen == armLen) {
+                if (ignoreCmp(iaLibName, armLibName, iaLen)) {
+                    isEqual = true;
+                }
+            }
+            itIa++;
+        }
         itArm++;
     }
-
-    return true;
+    // till the end, and the last result is equal
+    if (itArm == armRefList.end() && isEqual){
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool ABIPicker::compare3rdPartyLibList(
@@ -296,6 +351,8 @@ bool ABIPicker::compare3rdPartyLibList(
                 size_t* iaIsvLibCount, size_t* armIsvLibCount) {
     Vector<char*>* iaRefList = getLibList(iaRef);
     Vector<char*>* armRefList = getLibList(armRef);
+    assert(iaRefList != NULL);
+    assert(armRefList != NULL);
 
     Vector<char*>* armRef3rdPartyLibList = new Vector<char*>();
     Vector<char*>::iterator itArm = armRefList->begin();
@@ -328,7 +385,12 @@ bool ABIPicker::compare3rdPartyLibList(
 
         itIa++;
     }
-    return compareLibList(*iaRef3rdPartyLibList, *armRef3rdPartyLibList);
+    bool result = compareLibList(*iaRef3rdPartyLibList, *armRef3rdPartyLibList);
+
+    //release the memory
+    free(armRef3rdPartyLibList);
+    free(iaRef3rdPartyLibList);
+    return result;
 }
 
 char* ABIPicker::getAbiName(int abi) {
@@ -414,7 +476,7 @@ ABIPicker::ABIPicker(const char* pkgName, Vector<ScopedUtfChars*> abiList) {
     if (!mpkgName) {
         P_LOG("ABIPicker Construct Allocated space fails");
     } else {
-        strcpy(mpkgName, pkgName);
+        snprintf(mpkgName, strlen(pkgName)+1, "%s", pkgName);
     }
     Vector<ScopedUtfChars*>::iterator it = abiList.begin();
     while (it != abiList.end()) {
@@ -453,6 +515,7 @@ ABIPicker::~ABIPicker(void) {
         it++;
     }
     mLibList->clear();
+    delete(mLibList);
 }
 
 bool ABIPicker::buildNativeLibList(void* apkHandle) {
@@ -510,7 +573,7 @@ bool ABIPicker::buildNativeLibList(void* apkHandle) {
             ret = false;
             break;
         }
-
+        memset(unCompBuff, 0, unCompLen);
         // THE MOST TIME COST OPERATION
         if (!zipFile->uncompressEntry(next, unCompBuff, unCompLen)) {
             ALOGE("%s: uncompress failed\n", fileName);
@@ -572,7 +635,7 @@ bool ABIPicker::buildNativeLibList(void* apkHandle) {
                     ret = false;
                     break;
                 }
-                strcpy(mixedLib, (char*)IMPOSSIBLE_LIB_NAME);
+                snprintf(mixedLib, (IMPOSSIBLE_LIB_LEN+1), "%s", IMPOSSIBLE_LIB_NAME);
                 mixedLib[IMPOSSIBLE_LIB_LEN] ='\0';
                 libListOfCurAbi->push_back(mixedLib);
                 continue;
@@ -588,7 +651,7 @@ bool ABIPicker::buildNativeLibList(void* apkHandle) {
             ret = false;
             break;
         }
-        strcpy(curLibName, lastSlash);
+        snprintf(curLibName,libNameSize+1, "%s", lastSlash);
         curLibName[libNameSize] = '\0';
 
         libListOfCurAbi->push_back(curLibName);
@@ -679,13 +742,13 @@ int ABIPicker::pickupRightABI(int sysPrefer) {
         if (is64BitPrefer) {
             if (!compare(arm64Ref, ia64Ref, sysPreferAbiName, &retAbiName)) {
                 char rawRes[ABI_NAME_MAX_LENGTH];
-                strcpy(rawRes, retAbiName);
+                snprintf(rawRes, ABI_NAME_MAX_LENGTH, "%s", retAbiName);
                 compare(arm32Ref, ia32Ref, rawRes, &retAbiName);
             }
         } else {
             compare(arm32Ref, ia32Ref, sysPreferAbiName, &retAbiName);
         }
-    } while (false);
+    } while (0);
     int ret = getAbiIndex(retAbiName);
     ALOGI("selected abi %s(%d) for %s", retAbiName, ret, mpkgName);
     return ret;
