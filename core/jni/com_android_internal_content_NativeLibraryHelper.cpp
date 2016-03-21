@@ -514,53 +514,82 @@ com_android_internal_content_NativeLibraryHelper_sumNativeBinaries(JNIEnv *env, 
 }
 
 static jint
-com_android_internal_content_NativeLibraryHelper_findSupportedAbi(JNIEnv *env, jclass clazz,
-        jlong apkHandle, jobjectArray javaCpuAbisToSearch, jboolean debuggable)
-{
-    return (jint) findSupportedAbi(env, apkHandle, javaCpuAbisToSearch, debuggable);
-}
-
-static jint
 com_android_internal_content_NativeLibraryHelper_findSupportedAbi_replace(
         JNIEnv *env,
         jclass clazz,
         jlong apkHandle,
         jobjectArray javaCpuAbisToSearch,
         jboolean debuggable,
-        jstring apkPkgName)
+        jstring apkPkgName,
+        jstring apkDir)
 {
 #ifdef _PRC_COMPATIBILITY_PACKAGE_
+
+    int abiType = findSupportedAbi(env, apkHandle, javaCpuAbisToSearch, debuggable);
+    if (apkDir == NULL) {
+        return (jint)abiType;
+    }
+
+    char abiFlag[256] = {'\0'};
+    ScopedUtfChars apkdir(env, apkDir);
+    size_t apkdir_size = apkdir.size();
     const int numAbis = env->GetArrayLength(javaCpuAbisToSearch);
     Vector<ScopedUtfChars*> supportedAbis;
+
+    assert(apkdir_size < 256 - 15);
+    strcpy(abiFlag, apkdir.c_str());
+    abiFlag[apkdir_size] = '/';
+    abiFlag[apkdir_size + 1] = '.';
     for (int i = 0; i < numAbis; i++) {
         ScopedUtfChars* abiName = new ScopedUtfChars(env,
-                 (jstring)env->GetObjectArrayElement(
-                     javaCpuAbisToSearch, i));
+                 (jstring)env->GetObjectArrayElement(javaCpuAbisToSearch, i));
+        if (strlcpy(abiFlag + apkdir_size + 2, abiName->c_str(), 256 - apkdir_size - 2)
+                == abiName->size()) {
+            if (access(abiFlag, F_OK) == 0) {
+                abiType = i;
+                for (int j = 0; j < i; ++j) {
+                    delete supportedAbis[j];
+                }
+                delete abiName;
+                return (jint)abiType;
+            }
+        }
+
         supportedAbis.push_back(abiName);
     }
 
-    int abiType = findSupportedAbi(env, apkHandle, javaCpuAbisToSearch, debuggable);
     do {
-
-        if (abiType < 0 || abiType >= numAbis ) break ;
-       // if one package's name is on OEM's specific white list, then the
-        // package should be installed as default
-        ScopedUtfChars name(env, apkPkgName);
-         if (isInOEMWhiteList(name.c_str())) {
+        if (abiType < 0 || abiType >= numAbis ) {
             break;
         }
 
         if (0 != strcmp(supportedAbis[abiType]->c_str(), X86ABI) &&
-            0 != strcmp(supportedAbis[abiType]->c_str(), X8664ABI)){
+                0 != strcmp(supportedAbis[abiType]->c_str(), X8664ABI)) {
             break;
         }
+
+        ScopedUtfChars name(env, apkPkgName);
+        if (NULL == name.c_str()) {
+            break;
+        }
+
+        if (isInOEMWhiteList(name.c_str())) {
+            break;
+        }
+
         ABIPicker picker(name.c_str(),supportedAbis);
         if (!picker.buildNativeLibList((void*)apkHandle)) {
             break;
         }
 
         abiType = picker.pickupRightABI(abiType);
-    } while (false);
+        if (abiType >= 0 && abiType < numAbis &&
+                (strlcpy(abiFlag + apkdir_size + 2, supportedAbis[abiType]->c_str(),
+                         256 - apkdir_size - 2) == supportedAbis[abiType]->size())) {
+            creat(abiFlag, 0644);
+        }
+
+    } while(0);
 
     for (int i = 0; i < numAbis; ++i) {
         delete supportedAbis[i];
@@ -659,11 +688,8 @@ static const JNINativeMethod gMethods[] = {
     {"nativeSumNativeBinaries",
             "(JLjava/lang/String;Z)J",
             (void *)com_android_internal_content_NativeLibraryHelper_sumNativeBinaries},
-    {"nativeFindSupportedAbi",
-            "(J[Ljava/lang/String;Z)I",
-            (void *)com_android_internal_content_NativeLibraryHelper_findSupportedAbi},
     {"nativeFindSupportedAbiReplace",
-            "(J[Ljava/lang/String;ZLjava/lang/String;)I",
+            "(J[Ljava/lang/String;ZLjava/lang/String;Ljava/lang/String;)I",
             (void *)com_android_internal_content_NativeLibraryHelper_findSupportedAbi_replace},
     {"hasRenderscriptBitcode", "(J)I",
             (void *)com_android_internal_content_NativeLibraryHelper_hasRenderscriptBitcode},
