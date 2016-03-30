@@ -537,12 +537,17 @@ com_android_internal_content_NativeLibraryHelper_findSupportedAbi_replace(
     Vector<ScopedUtfChars*> supportedAbis;
 
     assert(apkdir_size < 256 - 15);
-    strcpy(abiFlag, apkdir.c_str());
+    if (strlcpy(abiFlag, apkdir.c_str(), 256) != apkdir.size()) {
+        return (jint)abiType;
+    }
+
     abiFlag[apkdir_size] = '/';
     abiFlag[apkdir_size + 1] = '.';
     for (int i = 0; i < numAbis; i++) {
         ScopedUtfChars* abiName = new ScopedUtfChars(env,
                  (jstring)env->GetObjectArrayElement(javaCpuAbisToSearch, i));
+        assert(abiName != NULL);
+        assert(abiName->c_str() != NULL);
         if (strlcpy(abiFlag + apkdir_size + 2, abiName->c_str(), 256 - apkdir_size - 2)
                 == abiName->size()) {
             if (access(abiFlag, F_OK) == 0) {
