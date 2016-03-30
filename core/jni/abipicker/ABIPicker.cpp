@@ -44,11 +44,14 @@ static const char* iaRelated[] = {"intel", "intl", "atom", "x86", "x64"};
 
 //////////////////////////////////////////////////////////////////////
 void getConfig(const char* cfgFile , Vector<char*>& cfgVec) {
-    FILE* fp = fopen(cfgFile, "r");
-    assert(fp != NULL);
     int read = -1;
     char *line = NULL;
     size_t len = 0;
+
+    FILE* fp = fopen(cfgFile, "r");
+    if (fp == NULL) {
+        return;
+    }
 
     while ((read = getline(&line, &len, fp)) != -1) {
         int i = 0 , j = 0;
@@ -262,10 +265,10 @@ bool ABIPicker::compare(char* armRef, char* iaRef,
 
         Vector<char*>* iaRefList = getLibList(iaRef);
         Vector<char*>* armRefList = getLibList(armRef);
+        if (iaRefList == NULL || armRefList == NULL) {
+            break;
+        }
 
-        // if contains the key words in iaRelated, just return true
-        assert(iaRefList != NULL);
-        assert(armRefList != NULL);
         if (isReliableLib(*iaRefList)) {
             *result = iaRef;
             break;
@@ -341,27 +344,29 @@ bool ABIPicker::compareLibList(Vector<char*>& iaRefList,
     // till the end, and the last result is equal
     if (itArm == armRefList.end() && isEqual){
         return true;
-    } else {
-        return false;
     }
+
+    return false;
 }
 
 bool ABIPicker::compare3rdPartyLibList(
                 char* iaRef, char* armRef,
                 size_t* iaIsvLibCount, size_t* armIsvLibCount) {
+    bool result = true;
+
     Vector<char*>* iaRefList = getLibList(iaRef);
     Vector<char*>* armRefList = getLibList(armRef);
-    assert(iaRefList != NULL);
-    assert(armRefList != NULL);
+    if (iaRefList == NULL || armRefList == NULL) {
+        return result;
+    }
 
-    Vector<char*>* armRef3rdPartyLibList = new Vector<char*>();
-    Vector<char*>::iterator itArm = armRefList->begin();
-
-    // Load thirdPartyso
     if (!thirdload) {
         getConfig(THIRDPARTY, thirdPartySO);
         thirdload = true;
     }
+
+    Vector<char*>* armRef3rdPartyLibList = new Vector<char*>();
+    Vector<char*>::iterator itArm = armRefList->begin();
     while (itArm != armRefList->end()) {
         char* armLibName = *itArm;
         if (isInThirdPartySOList(armLibName)) {
@@ -385,11 +390,10 @@ bool ABIPicker::compare3rdPartyLibList(
 
         itIa++;
     }
-    bool result = compareLibList(*iaRef3rdPartyLibList, *armRef3rdPartyLibList);
+    result = compareLibList(*iaRef3rdPartyLibList, *armRef3rdPartyLibList);
 
-    //release the memory
-    free(armRef3rdPartyLibList);
-    free(iaRef3rdPartyLibList);
+    delete armRef3rdPartyLibList;
+    delete iaRef3rdPartyLibList;
     return result;
 }
 
@@ -472,11 +476,9 @@ bool ABIPicker::foundMixedELF(const char* abiName) {
 //////////////////////////////////////////////////////////////////////
 ABIPicker::ABIPicker(const char* pkgName, Vector<ScopedUtfChars*> abiList) {
     mLibList = new Vector<struct libInfo*>();
-    mpkgName = (char*)malloc(strlen(pkgName)+1);
+    mpkgName = strdup(pkgName);
     if (!mpkgName) {
         P_LOG("ABIPicker Construct Allocated space fails");
-    } else {
-        snprintf(mpkgName, strlen(pkgName)+1, "%s", pkgName);
     }
     Vector<ScopedUtfChars*>::iterator it = abiList.begin();
     while (it != abiList.end()) {
