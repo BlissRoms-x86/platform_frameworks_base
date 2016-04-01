@@ -541,30 +541,34 @@ com_android_internal_content_NativeLibraryHelper_findSupportedAbi_replace(
         return (jint)abiType;
     }
 
+    int abiIndex = 0;
     abiFlag[apkdir_size] = '/';
     abiFlag[apkdir_size + 1] = '.';
-    for (int i = 0; i < numAbis; i++) {
+    for (abiIndex = 0; abiIndex < numAbis; abiIndex++) {
         ScopedUtfChars* abiName = new ScopedUtfChars(env,
-                 (jstring)env->GetObjectArrayElement(javaCpuAbisToSearch, i));
-        assert(abiName != NULL);
-        assert(abiName->c_str() != NULL);
-        if (strlcpy(abiFlag + apkdir_size + 2, abiName->c_str(), 256 - apkdir_size - 2)
-                == abiName->size()) {
-            if (access(abiFlag, F_OK) == 0) {
-                abiType = i;
-                for (int j = 0; j < i; ++j) {
-                    delete supportedAbis[j];
-                }
-                delete abiName;
-                return (jint)abiType;
+                 (jstring)env->GetObjectArrayElement(javaCpuAbisToSearch, abiIndex));
+        supportedAbis.push_back(abiName);
+        if (abiName == NULL || abiName->c_str() == NULL || abiName->size() <= 0) {
+            break;
+        }
+        if ((strlcpy(abiFlag + apkdir_size + 2, abiName->c_str(), 256 - apkdir_size - 2)
+                    == abiName->size()) && (access(abiFlag, F_OK) == 0)) {
+            abiType = abiIndex;
+            break;
+        }
+    }
+
+    if (abiIndex < numAbis) {
+        for (int j = 0; j < abiIndex; ++j) {
+            if (supportedAbis[j] != NULL) {
+                delete supportedAbis[j];
             }
         }
-
-        supportedAbis.push_back(abiName);
+        return (jint)abiType;
     }
 
     do {
-        if (abiType < 0 || abiType >= numAbis ) {
+        if (abiType < 0 || abiType >= numAbis) {
             break;
         }
 
@@ -591,7 +595,10 @@ com_android_internal_content_NativeLibraryHelper_findSupportedAbi_replace(
         if (abiType >= 0 && abiType < numAbis &&
                 (strlcpy(abiFlag + apkdir_size + 2, supportedAbis[abiType]->c_str(),
                          256 - apkdir_size - 2) == supportedAbis[abiType]->size())) {
-            creat(abiFlag, 0644);
+            int flagFp = creat(abiFlag, 0644);
+            if (flagFp != -1) {
+                close(flagFp);
+            }
         }
 
     } while(0);
