@@ -12,17 +12,6 @@ namespace android {
 //  assumption: the length of name of any abi type in abi list,
 //  like armeabi-v7a, armeabi, x86, is not longer than 64
 #define ABI_NAME_MAX_LENGTH     (64)
-/*
-class LibInfo {
- public:
-    LibInfo(char* s, List<char*> list);
-    ~LibInfo(void);
-
- private:
-    char abiName[ABI_NAME_MAX_LENGTH];
-    List<char*> libNameList;
-};
-*/
 
 class ABIPicker {
  public:
@@ -46,7 +35,7 @@ class ABIPicker {
             size_t* iaIsvLibCount, size_t* armIsvLibCount);
     char*  getAbiName(int abi);
     int    getAbiIndex(const char* abiName);
-    size_t getSpecficABILibCount(const char* abiName);
+    bool isABILibValid(const char* abiName);
     Vector<char*>* getLibList(const char* abiName);
 };
 
