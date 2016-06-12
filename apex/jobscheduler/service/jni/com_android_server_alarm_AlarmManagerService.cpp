@@ -39,6 +39,7 @@
 #include <unistd.h>
 #include <linux/ioctl.h>
 #include <linux/rtc.h>
+#include <cutils/properties.h>
 
 #include <array>
 #include <limits>
@@ -145,9 +146,20 @@ int AlarmImpl::setTime(struct timeval *tv)
     }
 
     struct tm tm;
-    if (!gmtime_r(&tv->tv_sec, &tm)) {
-        ALOGV("gmtime_r() failed: %s", strerror(errno));
-        return -1;
+
+    // @jide when persist.rtc_local_time is set to 1, we store the localtime to rtc
+    //
+    bool rtc_local_time = property_get_bool("persist.rtc_local_time", false);
+    if (rtc_local_time) {
+        if (!localtime_r(&tv->tv_sec, &tm)) {
+            ALOGV("localtime_r() failed: %s", strerror(errno));
+            return -1;
+        }
+    } else {
+        if (!gmtime_r(&tv->tv_sec, &tm)) {
+            ALOGV("gmtime_r() failed: %s", strerror(errno));
+            return -1;
+        }
     }
 
     struct rtc_time rtc = {};

@@ -26,6 +26,7 @@ cc_library_shared {
     shared_libs: [
         "libnativehelper",
         "liblog",
+        "libcutils",
         "libbase",
     ],
 }
