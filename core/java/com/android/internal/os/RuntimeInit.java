@@ -37,6 +37,8 @@ import java.util.TimeZone;
 import java.util.logging.LogManager;
 import org.apache.harmony.luni.internal.util.TimezoneGetter;
 
+import org.android_x86.analytics.AnalyticsHelper;
+
 /**
  * Main entry point for runtime initialization.  Not for
  * public consumption.
@@ -60,6 +62,12 @@ public class RuntimeInit {
     private static int Clog_e(String tag, String msg, Throwable tr) {
         return Log.printlns(Log.LOG_ID_CRASH, Log.ERROR, tag, msg, tr);
     }
+
+    // region @android-x86-analytics
+    // delay 120 seconds if Analytics failed to capture exception
+    private static final long ANDROID_X86_ANALYTICS_FAILED_DELAY = 120 * 1000;
+    private static long mAnalyticsEnableTime = 0;
+    // endregion
 
     /**
      * Use this to log a message when a thread exits due to an uncaught
@@ -85,6 +93,22 @@ public class RuntimeInit {
                     message.append("PID: ").append(Process.myPid());
                     Clog_e(TAG, message.toString(), e);
                 }
+                // region @android-x86-analytics
+                if (System.currentTimeMillis() > mAnalyticsEnableTime &&
+                        SystemProperties.getBoolean("persist.sys.apps_statistics", false)) {
+                    try {
+                        AnalyticsHelper.captureException(
+                                ActivityThread.currentActivityThread().getSystemContext(),
+                                e,
+                                t.getName(),
+                                ActivityThread.currentPackageName());
+                    } catch (Throwable ex) {
+                        // delay some time to avoid endless loop exception
+                        mAnalyticsEnableTime =
+                                System.currentTimeMillis() + ANDROID_X86_ANALYTICS_FAILED_DELAY;
+                    }
+                }
+                // endregion
 
                 // Try to end profiling. If a profiler is running at this point, and we kill the
                 // process (below), the in-memory buffer will be lost. So try to stop, which will
