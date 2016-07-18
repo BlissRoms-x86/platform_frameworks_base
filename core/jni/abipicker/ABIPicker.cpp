@@ -5,6 +5,7 @@
 
 #include <androidfw/ZipFileRO.h>
 #include <androidfw/ZipUtils.h>
+#include <fnmatch.h>
 
 namespace android {
 #define ARR_SIZE(x)     (sizeof(x)/sizeof(x[0]))
@@ -103,8 +104,8 @@ bool isInOEMWhiteList(const char* pkgName) {
     Vector<char*>::iterator it = cfgWhite.begin();
     for (; it != cfgWhite.end(); it++) {
        P_LOG("whitelist : %s", *it);
-       if (0 == strcmp(pkgName, *it)) {
-          ALOGI("found %s in whitelist", pkgName);
+       if (0 == fnmatch(*it, pkgName, 0)) {
+          ALOGI("whitelist %s by %s", pkgName, *it);
           result = true;
           break;
        }
@@ -125,8 +126,8 @@ bool isInOEMBlackList(const char* pkgName) {
 
     Vector<char*>::iterator it = cfgBlack.begin();
     for (; it != cfgBlack.end(); it++) {
-       if (0 == strcmp(pkgName, *it)) {
-          ALOGI("found %s in blacklist", pkgName);
+       if (0 == fnmatch(*it, pkgName, 0)) {
+          ALOGI("blacklist %s by %s", pkgName, *it);
           result = true;
           break;
        }
