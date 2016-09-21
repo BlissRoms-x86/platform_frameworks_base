@@ -1177,7 +1177,7 @@
     <string name="ext_media_badremoval_notification_message" msgid="380176703346946313">"請先卸載「<xliff:g id="NAME">%s</xliff:g>」，再將其移除，以免資料遺失。"</string>
     <string name="ext_media_nomedia_notification_title" msgid="1704840188641749091">"已移除「<xliff:g id="NAME">%s</xliff:g>」"</string>
     <string name="ext_media_nomedia_notification_message" msgid="6471542972147056586">"已移除「<xliff:g id="NAME">%s</xliff:g>」；請插入新的媒體"</string>
-    <string name="ext_media_unmounting_notification_title" msgid="640674168454809372">"依然退出「<xliff:g id="NAME">%s</xliff:g>」..."</string>
+    <string name="ext_media_unmounting_notification_title" msgid="640674168454809372">"正在退出「<xliff:g id="NAME">%s</xliff:g>」..."</string>
     <string name="ext_media_unmounting_notification_message" msgid="4182843895023357756">"請勿移除"</string>
     <string name="ext_media_init_action" msgid="7952885510091978278">"設定"</string>
     <string name="ext_media_unmount_action" msgid="1121883233103278199">"退出"</string>
