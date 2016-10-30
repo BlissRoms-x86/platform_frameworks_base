@@ -2737,6 +2737,7 @@ class AlarmManagerService extends SystemService {
                     // now trigger the alarms without the lock held
                     for (int i=0; i<triggerList.size(); i++) {
                         Alarm alarm = triggerList.get(i);
+                        if (alarm.operation == null) continue;
                         try {
                             alarm.operation.send();
                         } catch (PendingIntent.CanceledException e) {
