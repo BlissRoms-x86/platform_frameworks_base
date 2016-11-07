@@ -505,7 +505,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     // During wakeup by volume keys, we still need to capture subsequent events
     // until the key is released. This is required since the beep sound is produced
     // post keypressed.
-    boolean mVolumeWakeTriggered;
+    boolean mVolumeDownWakeTriggered;
+    boolean mVolumeUpWakeTriggered;
+    boolean mVolumeMuteWakeTriggered;
 
     int mPointerLocationMode = 0; // guarded by mLock
 
@@ -1868,13 +1870,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                                 mNavigationBarLeftInLandscape) {
                             requestTransientBars(mNavigationBar);
                         }
-                        boolean focusedWindowIsExternalKeyguard = false;
-                        if (mFocusedWindow != null) {
-                            focusedWindowIsExternalKeyguard = (mFocusedWindow.getAttrs().type
-                                    & WindowManager.LayoutParams.TYPE_KEYGUARD_PANEL) != 0;
-                        }
                         if (mShowKeyguardOnLeftSwipe && isKeyguardShowingOrOccluded()
-                                && focusedWindowIsExternalKeyguard) {
+                                && mKeyguardDelegate.isKeyguardPanelFocused()) {
                             // Show keyguard
                             mKeyguardDelegate.showKeyguard();
                         }
@@ -5284,7 +5281,15 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             if ((attrs.privateFlags & PRIVATE_FLAG_FORCE_STATUS_BAR_VISIBLE_TRANSPARENT) != 0) {
                 mForceStatusBarTransparent = true;
             }
-        }
+        } else if (attrs.type == TYPE_KEYGUARD_PANEL) {
+            if (mKeyguardDelegate.isKeyguardPanelFocused()) {
+                attrs.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+                attrs.flags |= WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM;
+            } else {
+                attrs.flags |= WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+                attrs.flags &= ~WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM;
+            }
+       }
 
         boolean appWindow = attrs.type >= FIRST_APPLICATION_WINDOW
                 && attrs.type < FIRST_SYSTEM_WINDOW;
@@ -5787,6 +5792,36 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         }
     }
 
+    private void setVolumeWakeTriggered(final int keyCode, boolean triggered) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                mVolumeDownWakeTriggered = triggered;
+                break;
+            case KeyEvent.KEYCODE_VOLUME_UP:
+                mVolumeUpWakeTriggered = triggered;
+                break;
+            case KeyEvent.KEYCODE_VOLUME_MUTE:
+                mVolumeMuteWakeTriggered = triggered;
+                break;
+            default:
+                Log.w(TAG, "setVolumeWakeTriggered: unexpected keyCode=" + keyCode);
+        }
+    }
+
+    private boolean getVolumeWakeTriggered(final int keyCode) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_VOLUME_DOWN:
+                return mVolumeDownWakeTriggered;
+            case KeyEvent.KEYCODE_VOLUME_UP:
+                return mVolumeUpWakeTriggered;
+            case KeyEvent.KEYCODE_VOLUME_MUTE:
+                return mVolumeMuteWakeTriggered;
+            default:
+                Log.w(TAG, "getVolumeWakeTriggered: unexpected keyCode=" + keyCode);
+                return false;
+        }
+    }
+
     /** {@inheritDoc} */
     @Override
     public int interceptKeyBeforeQueueing(KeyEvent event, int policyFlags) {
@@ -5882,11 +5917,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 // Eat all down & up keys when using volume wake.
                 // This disables volume control, music control, and "beep" on key up.
                 if (isWakeKey && mVolumeWakeScreen) {
-                    mVolumeWakeTriggered = true;
+                    setVolumeWakeTriggered(keyCode, true);
                     break;
-                } else if (mVolumeWakeTriggered && !down) {
+                } else if (getVolumeWakeTriggered(keyCode) && !down) {
                     result &= ~ACTION_PASS_TO_USER;
-                    mVolumeWakeTriggered = false;
+                    setVolumeWakeTriggered(keyCode, false);
                     break;
                 }
 
