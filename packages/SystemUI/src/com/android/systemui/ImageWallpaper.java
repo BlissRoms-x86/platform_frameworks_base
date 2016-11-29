@@ -198,7 +198,10 @@ public class ImageWallpaper extends WallpaperService {
         @Override
         public void onDestroy() {
             super.onDestroy();
-            mBackground = null;
+            if (mBackground != null) {
+                mBackground.recycle();
+                mBackground = null;
+            }
             mWallpaperManager.forgetLoadedWallpaper();
         }
 
@@ -750,7 +753,7 @@ public class ImageWallpaper extends WallpaperService {
 
             mEglConfig = chooseEglConfig();
             if (mEglConfig == null) {
-                throw new RuntimeException("eglConfig not initialized");
+                return false;
             }
 
             mEglContext = createContext(mEgl, mEglDisplay, mEglConfig);
