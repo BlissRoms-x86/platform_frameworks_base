@@ -547,6 +547,10 @@ class WindowStateAnimator {
             return;
         }
 
+        if (mWin.mReplacingRemoveRequested) {
+            return;
+        }
+
         if (WindowManagerService.localLOGV || DEBUG_ADD_REMOVE) Slog.v(TAG,
                 "Exit animation finished in " + this + ": remove=" + mWin.mRemoveOnExit);
 
@@ -1013,15 +1017,10 @@ class WindowStateAnimator {
             if (attachedTransformation != null) {
                 tmpMatrix.postConcat(attachedTransformation.getMatrix());
             }
+            tmpMatrix.postTranslate(frame.left + mWin.mXOffset, frame.top + mWin.mYOffset);
             if (appTransformation != null) {
                 tmpMatrix.postConcat(appTransformation.getMatrix());
             }
-
-            // The translation that applies the position of the window needs to be applied at the
-            // end in case that other translations include scaling. Otherwise the scaling will
-            // affect this translation. But it needs to be set before the screen rotation animation
-            // so the pivot point is at the center of the screen for all windows.
-            tmpMatrix.postTranslate(frame.left + mWin.mXOffset, frame.top + mWin.mYOffset);
             if (screenAnimation) {
                 tmpMatrix.postConcat(screenRotationAnimation.getEnterTransformation().getMatrix());
             }
@@ -1047,7 +1046,7 @@ class WindowStateAnimator {
             mDtDy = tmpFloats[Matrix.MSCALE_Y];
             float x = tmpFloats[Matrix.MTRANS_X];
             float y = tmpFloats[Matrix.MTRANS_Y];
-            mWin.mShownPosition.set((int) x, (int) y);
+            mWin.mShownPosition.set(Math.round(x), Math.round(y));
 
             // Now set the alpha...  but because our current hardware
             // can't do alpha transformation on a non-opaque surface,
@@ -1140,7 +1139,7 @@ class WindowStateAnimator {
             mDtDy = tmpFloats[Matrix.MSCALE_Y];
             float x = tmpFloats[Matrix.MTRANS_X];
             float y = tmpFloats[Matrix.MTRANS_Y];
-            mWin.mShownPosition.set((int) x, (int) y);
+            mWin.mShownPosition.set(Math.round(x), Math.round(y));
 
             mShownAlpha = mAlpha;
         } else {
