@@ -25,4 +25,39 @@
     <!-- NavBar Tuner -->
     <string name="menu_ime_always_show">Menu / Keyboard Switcher (always show)</string>
     <string name="search">Search</string>
+
+    <!-- Ambient Display QS tile -->
+    <string name="accessibility_quick_settings_ambient_display_off">Ambient Display off</string>
+    <string name="accessibility_quick_settings_ambient_display_on">Ambient Display on</string>
+    <string name="accessibility_quick_settings_ambient_display_changed_off">Ambient Display turned off</string>
+    <string name="accessibility_quick_settings_ambient_display_changed_on">Ambient Display turned on</string>
+    <string name="quick_settings_ambient_display_label">Ambient Display</string>
+
+    <!-- Sync QS tile -->
+    <string name="quick_settings_sync_label">Sync</string>
+    <string name="accessibility_quick_settings_sync_off">Sync off</string>
+    <string name="accessibility_quick_settings_sync_on">Sync on</string>
+    <string name="accessibility_quick_settings_sync_changed_off">Sync turned off</string>
+    <string name="accessibility_quick_settings_sync_changed_on">Sync turned on</string>
+
+    <!-- Screenshoty QS Tile -->
+    <string name="quick_settings_screenshot_label">Screenshot</string>
+
+    <!-- Brightness QS Tile -->
+    <string name="quick_settings_brightness">Brightness</string>
+
+    <!-- Reboot QS Tile -->
+    <string name="quick_settings_reboot_label">Reboot</string>
+    <string name="quick_settings_reboot_recovery_label">Reboot Recovery</string>
+
+    <!-- IME Tile -->
+    <string name="quick_settings_ime_label">Input Method</string>
+
+    <!-- NFC QS tile -->
+    <string name="quick_settings_nfc_label">NFC</string>
+    <string name="accessibility_quick_settings_nfc_off">NFC off.</string>
+    <string name="accessibility_quick_settings_nfc_on">NFC on.</string>
+    <string name="accessibility_quick_settings_nfc_changed_off">NFC turned off.</string>
+    <string name="accessibility_quick_settings_nfc_changed_on">NFC turned on.</string>
+
 </resources>
