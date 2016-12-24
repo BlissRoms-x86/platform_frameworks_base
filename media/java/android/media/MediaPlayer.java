@@ -1677,7 +1677,6 @@ public class MediaPlayer extends PlayerBase
     public void release() {
         baseRelease();
         stayAwake(false);
-        updateSurfaceScreenOn();
         mOnPreparedListener = null;
         mOnBufferingUpdateListener = null;
         mOnCompletionListener = null;
@@ -2855,6 +2854,7 @@ public class MediaPlayer extends PlayerBase
                 Log.w(TAG, "mediaplayer went away with unhandled events");
                 return;
             }
+            try {
             switch(msg.what) {
             case MEDIA_PREPARED:
                 try {
@@ -3032,6 +3032,13 @@ public class MediaPlayer extends PlayerBase
             default:
                 Log.e(TAG, "Unknown message type " + msg.what);
                 return;
+            }
+            } catch (NullPointerException e) {
+                /**
+                 * We may get an NPE even with the null checks above due
+                 * to threading issues.  Just ignore it.
+                 */
+                Log.e(TAG, "Unhandled NPE from message type " + msg.what);
             }
         }
     }

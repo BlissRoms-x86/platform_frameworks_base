@@ -165,6 +165,14 @@
     <!-- shortcut manager -->
     <uses-permission android:name="android.permission.RESET_SHORTCUT_MANAGER_THROTTLING" />
 
+    <!-- Sync tile -->
+    <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
+    <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+
+    <!-- Reboot -->
+    <uses-permission android:name="android.permission.REBOOT" />
+    <uses-permission android:name="android.permission.RECOVERY" />
+
     <application
         android:name=".SystemUIApplication"
         android:persistent="true"
@@ -436,7 +444,7 @@
             android:exported="true"
             android:label="@string/dessert_case"
             android:permission="android.permission.BIND_DREAM_SERVICE"
-            android:enabled="false"
+            android:enabled="true"
             android:process=":sweetsweetdesserts"
             >
             <intent-filter>
@@ -452,7 +460,7 @@
 
         <activity android:name=".Somnambulator"
             android:label="@string/start_dreams"
-            android:icon="@mipmap/ic_launcher_dreams"
+            android:icon="@drawable/icon"
             android:theme="@android:style/Theme.Wallpaper.NoTitleBar"
             android:exported="true"
             android:excludeFromRecents="true"

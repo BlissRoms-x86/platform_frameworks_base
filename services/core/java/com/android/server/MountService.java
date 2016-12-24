@@ -1867,6 +1867,8 @@ class MountService extends IMountService.Stub
         Preconditions.checkNotNull(fsUuid);
         synchronized (mLock) {
             final VolumeRecord rec = mRecords.get(fsUuid);
+            if (rec == null)
+                return;
             rec.nickname = nickname;
             mCallbacks.notifyVolumeRecordChanged(rec);
             writeSettingsLocked();
@@ -1881,6 +1883,8 @@ class MountService extends IMountService.Stub
         Preconditions.checkNotNull(fsUuid);
         synchronized (mLock) {
             final VolumeRecord rec = mRecords.get(fsUuid);
+            if (rec == null)
+                return;
             rec.userFlags = (rec.userFlags & ~mask) | (flags & mask);
             mCallbacks.notifyVolumeRecordChanged(rec);
             writeSettingsLocked();
@@ -2568,6 +2572,12 @@ class MountService extends IMountService.Stub
                 // to let the UI to clear itself
                 mHandler.postDelayed(new Runnable() {
                     public void run() {
+                        // unmount the internal emulated volume first
+                        try {
+                            mConnector.execute("volume", "unmount", "emulated");
+                        } catch (NativeDaemonConnectorException e) {
+                            Slog.e(TAG, "unable to shut down internal volume", e);
+                        }
                         try {
                             mCryptConnector.execute("cryptfs", "restart");
                         } catch (NativeDaemonConnectorException e) {
