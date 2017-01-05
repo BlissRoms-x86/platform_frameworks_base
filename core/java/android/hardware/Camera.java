@@ -237,7 +237,11 @@ public class Camera {
      * If {@link #getNumberOfCameras()} returns N, the valid id is 0 to N-1.
      */
     public static void getCameraInfo(int cameraId, CameraInfo cameraInfo) {
-        _getCameraInfo(cameraId, cameraInfo);
+        try {
+            _getCameraInfo(cameraId, cameraInfo);
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Lock screen is disabled, facelock can't get camera info");
+        }
         IBinder b = ServiceManager.getService(Context.AUDIO_SERVICE);
         IAudioService audioService = IAudioService.Stub.asInterface(b);
         try {
@@ -3482,7 +3486,12 @@ public class Camera {
          *         valid value.
          */
         public float getHorizontalViewAngle() {
-            return Float.parseFloat(get(KEY_HORIZONTAL_VIEW_ANGLE));
+            try {
+                return Float.parseFloat(get(KEY_HORIZONTAL_VIEW_ANGLE));
+            } catch (NumberFormatException e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
+            return 0;
         }
 
         /**
@@ -3492,7 +3501,12 @@ public class Camera {
          *         valid value.
          */
         public float getVerticalViewAngle() {
-            return Float.parseFloat(get(KEY_VERTICAL_VIEW_ANGLE));
+            try {
+                return Float.parseFloat(get(KEY_VERTICAL_VIEW_ANGLE));
+            } catch (NumberFormatException e) {
+                Log.e(TAG, e.getMessage(), e);
+            }
+            return 0;
         }
 
         /**

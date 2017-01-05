@@ -49,6 +49,7 @@ import com.android.systemui.statusbar.NotificationData;
 import com.android.systemui.statusbar.SignalClusterView;
 import com.android.systemui.statusbar.StatusBarIconView;
 import com.android.systemui.statusbar.policy.Clock;
+import com.android.systemui.statusbar.policy.NetworkTraffic;
 import com.android.systemui.tuner.TunerService;
 import com.android.systemui.tuner.TunerService.Tunable;
 
@@ -80,11 +81,13 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
 
     private BatteryMeterView mBatteryMeterView;
     private BatteryMeterView mBatteryMeterViewKeyguard;
-    private TextView mClock;
-    private TextView mCenterClock;
+    private Clock mClock;
+    private Clock mCenterClock;
+    private Clock mLeftClock;
     private boolean mShowClock;
     private int mClockLocation;
     private LinearLayout mCenterClockLayout;
+    private NetworkTraffic mNetworkTraffic;
 
     private int mIconSize;
     private int mIconHPadding;
@@ -142,13 +145,19 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
         mBatteryMeterViewKeyguard = (BatteryMeterView) keyguardStatusBar.findViewById(R.id.battery);
         scaleBatteryMeterViews(context);
 
-        mClock = (TextView) statusBar.findViewById(R.id.clock);
+        mClock = (Clock) statusBar.findViewById(R.id.clock);
         mCenterClockLayout = (LinearLayout)statusBar.findViewById(R.id.center_clock_layout);
-        mCenterClock = (TextView) statusBar.findViewById(R.id.center_clock);
+        mCenterClock = (Clock) statusBar.findViewById(R.id.center_clock);
+        mLeftClock = (Clock) statusBar.findViewById(R.id.left_clock);
+        mNetworkTraffic = (NetworkTraffic) statusBar.findViewById(R.id.networkTraffic);
         mDarkModeIconColorSingleTone = context.getColor(R.color.dark_mode_icon_color_single_tone);
         mLightModeIconColorSingleTone = context.getColor(R.color.light_mode_icon_color_single_tone);
         mHandler = new Handler();
         loadDimens();
+
+        mClock.setStatusBarIconController(this);
+        mCenterClock.setStatusBarIconController(this);
+        mLeftClock.setStatusBarIconController(this);
 
         TunerService.get(mContext).addTunable(this, ICON_BLACKLIST);
     }
@@ -354,6 +363,9 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
         }
         if (clockLocation == 1 && mCenterClock != null) {
             mCenterClock.setVisibility(visible ? (showClock ? View.VISIBLE : View.GONE) : View.GONE);
+        }
+        if (clockLocation == 2 && mLeftClock != null) {
+            mLeftClock.setVisibility(visible ? (showClock ? View.VISIBLE : View.GONE) : View.GONE);
         }
     }
 
@@ -561,6 +573,8 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
                 isInArea(mTintArea, mBatteryMeterView) ? mDarkIntensity : 0);
         mClock.setTextColor(getTint(mTintArea, mClock, mIconTint));
         mCenterClock.setTextColor(getTint(mTintArea, mCenterClock, mIconTint));
+        mLeftClock.setTextColor(getTint(mTintArea, mLeftClock, mIconTint));
+	mNetworkTraffic.setDarkIntensity(mDarkIntensity);
     }
 
     public void appTransitionPending() {
@@ -632,6 +646,7 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
     private void updateClock() {
         FontSizeUtils.updateFontSize(mClock, R.dimen.status_bar_clock_size);
         FontSizeUtils.updateFontSize(mCenterClock, R.dimen.status_bar_clock_size);
+        FontSizeUtils.updateFontSize(mLeftClock, R.dimen.status_bar_clock_size);
         mClock.setPaddingRelative(
                 mContext.getResources().getDimensionPixelSize(
                         R.dimen.status_bar_clock_starting_padding),
@@ -640,6 +655,13 @@ public class StatusBarIconController extends StatusBarIconList implements Tunabl
                         R.dimen.status_bar_clock_end_padding),
                 0);
         mCenterClock.setPaddingRelative(
+                mContext.getResources().getDimensionPixelSize(
+                        R.dimen.status_bar_clock_starting_padding),
+                0,
+                mContext.getResources().getDimensionPixelSize(
+                        R.dimen.status_bar_clock_end_padding),
+                0);
+        mLeftClock.setPaddingRelative(
                 mContext.getResources().getDimensionPixelSize(
                         R.dimen.status_bar_clock_starting_padding),
                 0,
