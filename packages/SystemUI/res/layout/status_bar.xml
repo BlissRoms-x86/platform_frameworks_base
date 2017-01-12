@@ -47,6 +47,17 @@
         android:orientation="horizontal"
         >
 
+              
+     	<ImageView
+              android:id="@+id/bliss_logo"
+              android:layout_width="wrap_content"
+              android:layout_height="wrap_content"
+              android:paddingEnd="4dip"
+              android:src="@drawable/ic_status_bar_bliss_logo"
+              android:scaleType="center"
+              android:visibility="gone"
+                    />
+
         <!-- The alpha of this area is controlled from both PhoneStatusBarTransitions and
              PhoneStatusBar (DISABLE_NOTIFICATION_ICONS). -->
         <com.android.systemui.statusbar.AlphaOptimizedFrameLayout
@@ -84,6 +95,13 @@
                 />
         </com.android.keyguard.AlphaOptimizedLinearLayout>
     </LinearLayout>
+    <ViewStub
+        android:id="@+id/ticker_stub"
+        android:inflatedId="@+id/ticker"
+        android:layout="@layout/status_bar_ticker"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        />
 
     <ViewStub
         android:id="@+id/emergency_cryptkeeper_text"
