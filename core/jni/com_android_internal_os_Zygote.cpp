@@ -437,8 +437,11 @@ static void SetForkLoad(bool boost) {
 }
 #endif
 
+#ifdef RUNTIMEABORT_ON_FDS_WHITELIST_VIOLATIONS
 // The list of open zygote file descriptors.
 static FileDescriptorTable* gOpenFdTable = NULL;
+
+#endif
 
 // Utility routine to fork zygote and specialize the child process.
 static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArray javaGids,
@@ -467,7 +470,7 @@ static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArra
     ALOGE("sigprocmask(SIG_SETMASK, { SIGCHLD }) failed: %s", strerror(errno));
     RuntimeAbort(env, __LINE__, "Call to sigprocmask(SIG_BLOCK, { SIGCHLD }) failed.");
   }
-
+#ifdef RUNTIMEABORT_ON_FDS_WHITELIST_VIOLATIONS
   // Close any logging related FDs before we start evaluating the list of
   // file descriptors.
   __android_log_close();
@@ -484,6 +487,7 @@ static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArra
     RuntimeAbort(env, __LINE__, "Unable to restat file descriptor table.");
   }
 
+#endif
   pid_t pid = fork();
 
   if (pid == 0) {
@@ -493,6 +497,7 @@ static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArra
     // Clean up any descriptors which must be closed immediately
     DetachDescriptors(env, fdsToClose);
 
+#ifdef RUNTIMEABORT_ON_FDS_WHITELIST_VIOLATIONS
     // Re-open all remaining open file descriptors so that they aren't shared
     // with the zygote across a fork.
     if (!gOpenFdTable->ReopenOrDetach()) {
@@ -503,6 +508,8 @@ static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArra
       ALOGE("sigprocmask(SIG_SETMASK, { SIGCHLD }) failed: %s", strerror(errno));
       RuntimeAbort(env, __LINE__, "Call to sigprocmask(SIG_UNBLOCK, { SIGCHLD }) failed.");
     }
+
+#endif
 
     // Keep capabilities across UID change, unless we're staying root.
     if (uid != 0) {
