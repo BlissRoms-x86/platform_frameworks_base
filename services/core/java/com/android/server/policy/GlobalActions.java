@@ -208,6 +208,7 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
         } else {
             WindowManager.LayoutParams attrs = mDialog.getWindow().getAttributes();
             attrs.setTitle("GlobalActions");
+            attrs.windowAnimations = R.style.Animation_PowermenuDialog;
             mDialog.getWindow().setAttributes(attrs);
             mDialog.show();
             mDialog.getWindow().getDecorView().setSystemUiVisibility(View.STATUS_BAR_DISABLE_EXPAND);
@@ -1214,7 +1215,7 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
 
         private static int getDialogTheme(Context context) {
             TypedValue outValue = new TypedValue();
-            context.getTheme().resolveAttribute(com.android.internal.R.attr.alertDialogTheme,
+            context.getTheme().resolveAttribute(com.android.internal.R.style.ThemeOverlay_Material_Dialog,
                     outValue, true);
             return outValue.resourceId;
         }

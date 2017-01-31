@@ -101,4 +101,7 @@
   
   <java-symbol type="bool" name="config_enableScreenrecordChord" />
 
+  <!-- Power menu dialog -->
+  <java-symbol type="style" name="Animation.PowermenuDialog" />
+
 </resources>
