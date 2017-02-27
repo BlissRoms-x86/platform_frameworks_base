@@ -325,6 +325,11 @@ public class SignalStrength implements Parcelable {
         ss.mLteRssnr = in.readInt();
         ss.mLteCqi = in.readInt();
         ss.mTdScdmaRscp = in.readInt();
+        /* Hack signal strength */
+        if (ss.mGsmSignalStrength < 27) ss.mGsmSignalStrength += 3;
+        if (ss.mLteSignalStrength < 91) ss.mLteSignalStrength += 5;
+        if (ss.mLteRsrp != ss.INVALID && ss.mLteRsrp > 49) ss.mLteRsrp -= 5;
+        if (ss.mLteRsrq != ss.INVALID && ss.mLteRsrq > 3) ss.mLteRsrq -= 2;
         return ss;
     }
 
@@ -398,7 +403,7 @@ public class SignalStrength implements Parcelable {
         mLteSignalStrength = (mLteSignalStrength >= 0) ? mLteSignalStrength : 99;
         mLteRsrp = ((mLteRsrp >= 44) && (mLteRsrp <= 140)) ? -mLteRsrp : SignalStrength.INVALID;
         mLteRsrq = ((mLteRsrq >= 3) && (mLteRsrq <= 20)) ? -mLteRsrq : SignalStrength.INVALID;
-        mLteRssnr = ((mLteRssnr >= -200) && (mLteRssnr <= 300)) ? mLteRssnr
+        mLteRssnr = ((mLteRssnr >= -200) && (mLteRssnr <= 300) && !(mLteRsrq == SignalStrength.INVALID && mLteRssnr == -1)) ? mLteRssnr
                 : SignalStrength.INVALID;
 
         mTdScdmaRscp = ((mTdScdmaRscp >= 25) && (mTdScdmaRscp <= 120))
@@ -619,19 +624,37 @@ public class SignalStrength implements Parcelable {
      * @hide
      */
     public int getGsmLevel() {
-        int level;
+        int level = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
+        if (Resources.getSystem().getBoolean(
+                com.android.internal.R.bool.config_regional_umts_singnal_threshold)) {
+            int dbm = getGsmDbm();
+            int[] threshGsm;
+            threshGsm = Resources.getSystem().getIntArray(
+                    com.android.internal.R.array.umts_signal_strength_threshold);;
+            if (threshGsm.length < 6)
+                return level;
+            if (dbm > threshGsm[5]) level = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
+            else if (dbm >= threshGsm[4]) level = SIGNAL_STRENGTH_GREAT;
+            else if (dbm >= threshGsm[3]) level = SIGNAL_STRENGTH_GOOD;
+            else if (dbm >= threshGsm[2]) level = SIGNAL_STRENGTH_MODERATE;
+            else if (dbm >= threshGsm[1]) level = SIGNAL_STRENGTH_POOR;
+            else if (dbm >= threshGsm[0]) level = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
+            if (DBG) log("getCustomizedGsmDbmLevel - dbm:" + dbm + " gsmLevel:"
+                    + level);
+        } else {
+            // ASU ranges from 0 to 31 - TS 27.007 Sec 8.5
+            // asu = 0 (-113dB or less) is very weak
+            // signal, its better to show 0 bars to the user in such cases.
+            // asu = 99 is a special case, where the signal strength is unknown.
+            int asu = getGsmSignalStrength();
+            if (asu <= 2 || asu == 99) level = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
+            else if (asu >= 12) level = SIGNAL_STRENGTH_GREAT;
+            else if (asu >= 8)  level = SIGNAL_STRENGTH_GOOD;
+            else if (asu >= 5)  level = SIGNAL_STRENGTH_MODERATE;
+            else level = SIGNAL_STRENGTH_POOR;
+            if (DBG) log("getGsmLevel=" + level);
+        }
 
-        // ASU ranges from 0 to 31 - TS 27.007 Sec 8.5
-        // asu = 0 (-113dB or less) is very weak
-        // signal, its better to show 0 bars to the user in such cases.
-        // asu = 99 is a special case, where the signal strength is unknown.
-        int asu = getGsmSignalStrength();
-        if (asu <= 2 || asu == 99) level = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
-        else if (asu >= 12) level = SIGNAL_STRENGTH_GREAT;
-        else if (asu >= 8)  level = SIGNAL_STRENGTH_GOOD;
-        else if (asu >= 5)  level = SIGNAL_STRENGTH_MODERATE;
-        else level = SIGNAL_STRENGTH_POOR;
-        if (DBG) log("getGsmLevel=" + level);
         return level;
     }
 
@@ -799,6 +822,11 @@ public class SignalStrength implements Parcelable {
         } else {
             threshRsrp = RSRP_THRESH_LENIENT;
         }
+        if (Resources.getSystem().getBoolean(
+                com.android.internal.R.bool.config_regional_lte_singnal_threshold)){
+            threshRsrp = Resources.getSystem().getIntArray(
+                    com.android.internal.R.array.lte_signal_strength_threshold);
+        }
 
         if (mLteRsrp > threshRsrp[5]) rsrpIconLevel = -1;
         else if (mLteRsrp >= threshRsrp[4]) rsrpIconLevel = SIGNAL_STRENGTH_GREAT;
@@ -806,6 +834,12 @@ public class SignalStrength implements Parcelable {
         else if (mLteRsrp >= threshRsrp[2]) rsrpIconLevel = SIGNAL_STRENGTH_MODERATE;
         else if (mLteRsrp >= threshRsrp[1]) rsrpIconLevel = SIGNAL_STRENGTH_POOR;
         else if (mLteRsrp >= threshRsrp[0]) rsrpIconLevel = SIGNAL_STRENGTH_NONE_OR_UNKNOWN;
+
+        if (Resources.getSystem().getBoolean(
+                com.android.internal.R.bool.config_regional_lte_singnal_threshold)){
+            log("getLTELevel - rsrp = " + rsrpIconLevel);
+            if (rsrpIconLevel != -1) return rsrpIconLevel;
+        }
 
         /*
          * Values are -200 dB to +300 (SNR*10dB) RS_SNR >= 13.0 dB =>4 bars 4.5

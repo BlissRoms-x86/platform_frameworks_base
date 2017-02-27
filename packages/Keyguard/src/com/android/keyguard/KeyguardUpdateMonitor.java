@@ -136,6 +136,7 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
     private static final int MSG_SERVICE_STATE_CHANGE = 330;
     private static final int MSG_SCREEN_TURNED_ON = 331;
     private static final int MSG_SCREEN_TURNED_OFF = 332;
+    private static final int MSG_LOCALE_CHANGED = 500;
     private static final int MSG_DREAMING_STATE_CHANGED = 333;
     private static final int MSG_USER_UNLOCKED = 334;
 
@@ -288,6 +289,8 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
                 case MSG_SCREEN_TURNED_OFF:
                     Trace.beginSection("KeyguardUpdateMonitor#handler MSG_SCREEN_TURNED_ON");
                     handleScreenTurnedOff();
+                case MSG_LOCALE_CHANGED:
+                    handleLocaleChanged();
                     Trace.endSection();
                     break;
                 case MSG_DREAMING_STATE_CHANGED:
@@ -401,6 +404,36 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
             mSubscriptionInfo = sil;
         }
         return mSubscriptionInfo;
+    }
+
+    public boolean isEmergencyOnly() {
+        boolean isEmerg = false;
+        ServiceState state;
+        for (int slotId = 0; slotId < TelephonyManager.getDefault().getPhoneCount(); slotId++) {
+            state = null;
+            int[] subId = mSubscriptionManager.getSubId(slotId);
+            if (subId != null && subId.length > 0) {
+                state = mServiceStates.get(subId[0]);
+            }
+            if (state != null) {
+                if (state.getVoiceRegState() == ServiceState.STATE_IN_SERVICE)
+                    return false;
+                else if (state.isEmergencyOnly()) {
+                    isEmerg = true;
+                }
+            }
+        }
+        return isEmerg;
+    }
+
+    public int getPresentSubId() {
+        for (int slotId = 0; slotId < TelephonyManager.getDefault().getPhoneCount(); slotId++) {
+            int[] subId = mSubscriptionManager.getSubId(slotId);
+            if (subId != null && subId.length > 0 && getSimState(subId[0]) != State.ABSENT) {
+                return subId[0];
+            }
+        }
+        return -1;
     }
 
     @Override
@@ -703,6 +736,8 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
                 }
                 mHandler.sendMessage(
                         mHandler.obtainMessage(MSG_SERVICE_STATE_CHANGE, subId, 0, serviceState));
+            } else if (Intent.ACTION_LOCALE_CHANGED.equals(action)) {
+                mHandler.sendEmptyMessage(MSG_LOCALE_CHANGED);
             }
         }
     };
@@ -837,6 +872,8 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
                 }
             } else if (IccCardConstants.INTENT_VALUE_LOCKED_NETWORK.equals(stateExtra)) {
                 state = IccCardConstants.State.NETWORK_LOCKED;
+            } else if (IccCardConstants.INTENT_VALUE_ICC_CARD_IO_ERROR.equals(stateExtra)) {
+                state = IccCardConstants.State.CARD_IO_ERROR;
             } else if (IccCardConstants.INTENT_VALUE_ICC_LOADED.equals(stateExtra)
                         || IccCardConstants.INTENT_VALUE_ICC_IMSI.equals(stateExtra)) {
                 // This is required because telephony doesn't return to "READY" after
@@ -1065,6 +1102,7 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
         filter.addAction(Intent.ACTION_BATTERY_CHANGED);
         filter.addAction(Intent.ACTION_TIMEZONE_CHANGED);
         filter.addAction(Intent.ACTION_AIRPLANE_MODE_CHANGED);
+        filter.addAction(Intent.ACTION_LOCALE_CHANGED);
         filter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
         filter.addAction(TelephonyIntents.ACTION_SERVICE_STATE_CHANGED);
         filter.addAction(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
@@ -1431,6 +1469,18 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
     }
 
     /**
+     * Handle {@link #MSG_LOCALE_CHANGED}
+     */
+    private void handleLocaleChanged() {
+        for (int j = 0; j < mCallbacks.size(); j++) {
+            KeyguardUpdateMonitorCallback cb = mCallbacks.get(j).get();
+            if (cb != null) {
+                cb.onRefreshCarrierInfo();
+            }
+        }
+    }
+
+    /**
      * Handle {@link #MSG_SERVICE_STATE_CHANGE}
      */
     private void handleServiceStateChange(int subId, ServiceState serviceState) {
@@ -1450,6 +1500,7 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
             KeyguardUpdateMonitorCallback cb = mCallbacks.get(j).get();
             if (cb != null) {
                 cb.onRefreshCarrierInfo();
+                cb.onServiceStateChanged(subId, serviceState);
             }
         }
     }
@@ -1688,6 +1739,36 @@ public class KeyguardUpdateMonitor implements TrustManager.TrustListener {
         } else {
             return State.UNKNOWN;
         }
+    }
+
+    public boolean isOOS()
+    {
+        boolean ret = true;
+        int phoneCount = TelephonyManager.getDefault().getPhoneCount();
+
+        for (int phoneId = 0; phoneId < phoneCount; phoneId++) {
+            int[] subId = SubscriptionManager.getSubId(phoneId);
+            if (subId != null && subId.length >= 1) {
+                if (DEBUG) Log.d(TAG, "slot id:" + phoneId + " subId:" + subId[0]);
+                ServiceState state = mServiceStates.get(subId[0]);
+                if (state != null) {
+                    if (state.isEmergencyOnly())
+                        ret = false;
+                    if ((state.getVoiceRegState() != ServiceState.STATE_OUT_OF_SERVICE)
+                            && (state.getVoiceRegState() != ServiceState.STATE_POWER_OFF))
+                        ret = false;
+                    if (DEBUG) {
+                        Log.d(TAG, "is emergency: " + state.isEmergencyOnly());
+                        Log.d(TAG, "voice state: " + state.getVoiceRegState());
+                    }
+                } else {
+                    if (DEBUG) Log.d(TAG, "state is NULL");
+                }
+            }
+        }
+
+        if (DEBUG) Log.d(TAG, "is Emergency supported: " + ret);
+        return ret;
     }
 
     /**

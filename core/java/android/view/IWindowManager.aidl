@@ -341,9 +341,19 @@ interface IWindowManager
     oneway void setTvPipVisibility(boolean visible);
 
     /**
+     * Device requires a software navigation bar.
+     */
+    boolean needsNavigationBar();
+
+    /**
      * Device has a software navigation bar (separate from the status bar).
      */
     boolean hasNavigationBar();
+
+    /**
+     * Simulate a hardware menu key
+     */
+    boolean hasPermanentMenuKey();
 
     /**
      * Lock the device immediately with the specified options (can be null).

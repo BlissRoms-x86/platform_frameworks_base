@@ -148,8 +148,10 @@ ifndef HWUI_COMPILE_SYMBOLS
 endif
 
 ifdef HWUI_COMPILE_FOR_PERF
-    # TODO: Non-arm?
-    hwui_cflags += -fno-omit-frame-pointer -marm -mapcs
+    hwui_cflags += -fno-omit-frame-pointer
+    ifeq ($(TARGET_ARCH),arm%)
+        hwui_cflags += -marm
+    endif
 endif
 
 # This has to be lazy-resolved because it depends on the LOCAL_MODULE_CLASS
@@ -186,6 +188,7 @@ endif
 
 include $(CLEAR_VARS)
 
+LOCAL_SDCLANG_LTO := true
 LOCAL_MODULE_CLASS := STATIC_LIBRARIES
 LOCAL_MODULE := libhwui_static
 LOCAL_CFLAGS := $(hwui_cflags)
@@ -229,6 +232,7 @@ include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 
+LOCAL_SDCLANG_LTO := true
 LOCAL_MODULE_CLASS := SHARED_LIBRARIES
 LOCAL_MODULE := libhwui
 LOCAL_WHOLE_STATIC_LIBRARIES := libhwui_static

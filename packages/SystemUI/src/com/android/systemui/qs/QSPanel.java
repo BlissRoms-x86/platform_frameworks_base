@@ -22,9 +22,13 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.os.Handler;
 import android.os.Message;
+import android.os.UserHandle;
+import android.os.Vibrator;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import com.android.internal.logging.MetricsLogger;
@@ -35,9 +39,11 @@ import com.android.systemui.qs.QSTile.Host.Callback;
 import com.android.systemui.qs.customize.QSCustomizer;
 import com.android.systemui.qs.external.CustomTile;
 import com.android.systemui.settings.BrightnessController;
+import com.android.systemui.settings.SimSwitchController;
 import com.android.systemui.settings.ToggleSlider;
 import com.android.systemui.statusbar.phone.QSTileHost;
 import com.android.systemui.statusbar.policy.BrightnessMirrorController;
+import com.android.systemui.statusbar.policy.MobileSignalController;
 import com.android.systemui.tuner.TunerService;
 import com.android.systemui.tuner.TunerService.Tunable;
 
@@ -52,6 +58,7 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
     protected final Context mContext;
     protected final ArrayList<TileRecord> mRecords = new ArrayList<TileRecord>();
     protected final View mBrightnessView;
+    protected View mSimSwitcherView = null;
     private final H mHandler = new H();
 
     private int mPanelPaddingBottom;
@@ -61,6 +68,7 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
 
     private Callback mCallback;
     private BrightnessController mBrightnessController;
+    private SimSwitchController mSimSwitchController;
     protected QSTileHost mHost;
 
     protected QSFooter mFooter;
@@ -73,6 +81,8 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
 
     private BrightnessMirrorController mBrightnessMirrorController;
 
+    protected Vibrator mVibrator;
+
     public QSPanel(Context context) {
         this(context, null);
     }
@@ -83,6 +93,13 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
 
         setOrientation(VERTICAL);
 
+        if(MobileSignalController.isCarrierOneSupported()) {
+            mSimSwitcherView = LayoutInflater.from(context).inflate(
+                R.layout.sim_switcher, this, false);
+            addView(mSimSwitcherView);
+            mSimSwitchController = new SimSwitchController(getContext(), mSimSwitcherView, this);
+        }
+
         mBrightnessView = LayoutInflater.from(context).inflate(
                 R.layout.quick_settings_brightness_dialog, this, false);
         addView(mBrightnessView);
@@ -91,12 +108,14 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
 
         mFooter = new QSFooter(this, context);
         addView(mFooter.getView());
+        mVibrator = (Vibrator) mContext.getSystemService(Context.VIBRATOR_SERVICE);
 
         updateResources();
 
         mBrightnessController = new BrightnessController(getContext(),
                 (ImageView) findViewById(R.id.brightness_icon),
-                (ToggleSlider) findViewById(R.id.brightness_slider));
+                (ToggleSlider) findViewById(R.id.brightness_slider),
+                (CheckBox) findViewById(R.id.brightness_auto));
 
     }
 
@@ -105,6 +124,9 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
                 R.layout.qs_paged_tile_layout, this, false);
         mTileLayout.setListening(mListening);
         addView((View) mTileLayout);
+        if (getResources().getBoolean(R.bool.config_show_auto_brightness)) {
+            ((CheckBox) findViewById(R.id.brightness_auto)).setVisibility(View.VISIBLE);
+        }
     }
 
     public boolean isShowingCustomize() {
@@ -117,6 +139,22 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
         TunerService.get(mContext).addTunable(this, QS_SHOW_BRIGHTNESS);
         if (mHost != null) {
             setTiles(mHost.getTiles());
+        }
+    }
+
+    public boolean isVibrationEnabled() {
+        return (Settings.Secure.getIntForUser(mContext.getContentResolver(),
+                Settings.Secure.QUICK_SETTINGS_TILES_VIBRATE, 0, UserHandle.USER_CURRENT) == 1);
+    }
+
+    public void setenabled() {
+      mCustomizePanel.setenabled();
+    }
+
+    public void vibrateTile(int duration) {
+        if (!isVibrationEnabled()) { return; }
+        if (mVibrator != null) {
+            if (mVibrator.hasVibrator()) { mVibrator.vibrate(duration); }
         }
     }
 
@@ -217,7 +255,7 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
     }
 
     public void onCollapse() {
-        if (mCustomizePanel != null && mCustomizePanel.isCustomizing()) {
+        if (mCustomizePanel != null && mCustomizePanel.isShown()) {
             mCustomizePanel.hide(mCustomizePanel.getWidth() / 2, mCustomizePanel.getHeight() / 2);
         }
     }
@@ -345,7 +383,10 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
 
             @Override
             public void onAnnouncementRequested(CharSequence announcement) {
-                announceForAccessibility(announcement);
+                if (announcement != null) {
+                    mHandler.obtainMessage(H.ANNOUNCE_FOR_ACCESSIBILITY, announcement)
+                            .sendToTarget();
+                }
             }
         };
         r.tile.addCallback(callback);
@@ -354,12 +395,14 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
             @Override
             public void onClick(View v) {
                 onTileClick(r.tile);
+                vibrateTile(45);
             }
         };
         final View.OnLongClickListener longClick = new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
                 r.tile.longClick();
+                vibrateTile(45);
                 return true;
             }
         };
@@ -396,7 +439,7 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
     }
 
     public void closeDetail() {
-        if (mCustomizePanel != null && mCustomizePanel.isCustomizing()) {
+        if (mCustomizePanel != null && mCustomizePanel.isShown()) {
             // Treat this as a detail panel for now, to make things easy.
             mCustomizePanel.hide(mCustomizePanel.getWidth() / 2, mCustomizePanel.getHeight() / 2);
             return;
@@ -514,10 +557,13 @@ public class QSPanel extends LinearLayout implements Tunable, Callback {
     private class H extends Handler {
         private static final int SHOW_DETAIL = 1;
         private static final int SET_TILE_VISIBILITY = 2;
+        private static final int ANNOUNCE_FOR_ACCESSIBILITY = 3;
         @Override
         public void handleMessage(Message msg) {
             if (msg.what == SHOW_DETAIL) {
                 handleShowDetail((Record)msg.obj, msg.arg1 != 0);
+            } else if (msg.what == ANNOUNCE_FOR_ACCESSIBILITY) {
+                announceForAccessibility((CharSequence)msg.obj);
             }
         }
     }

@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.PorterDuff.Mode;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Handler;
@@ -57,14 +58,18 @@ public class TileQueryHelper {
     }
 
     private void addSystemTiles(final QSTileHost host) {
-        String possible = mContext.getString(R.string.quick_settings_tiles_stock);
+        String possible = mContext.getString(R.string.quick_settings_tiles_default)
+                + "," + mContext.getString(R.string.quick_settings_tiles_extra);
         String[] possibleTiles = possible.split(",");
         final Handler qsHandler = new Handler(host.getLooper());
         final Handler mainHandler = new Handler(Looper.getMainLooper());
         for (int i = 0; i < possibleTiles.length; i++) {
             final String spec = possibleTiles[i];
             final QSTile<?> tile = host.createTile(spec);
-            if (tile == null || !tile.isAvailable()) {
+            if (tile == null) {
+                continue;
+            } else if (!tile.isAvailable()) {
+                tile.destroy();
                 continue;
             }
             tile.setListening(this, true);
@@ -78,6 +83,7 @@ public class TileQueryHelper {
                     tile.getState().copyTo(state);
                     // Ignore the current state and get the generic label instead.
                     state.label = tile.getTileLabel();
+                    tile.destroy();
                     mainHandler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -172,7 +178,8 @@ public class TileQueryHelper {
                     continue;
                 }
                 icon.mutate();
-                icon.setTint(mContext.getColor(android.R.color.white));
+                icon.setTint(mContext.getColor(R.color.external_qs_tile_tint_color));
+                icon.setTintMode(Mode.SRC_ATOP);
                 CharSequence label = info.serviceInfo.loadLabel(pm);
                 addTile(spec, icon, label != null ? label.toString() : "null", appLabel, mContext);
             }

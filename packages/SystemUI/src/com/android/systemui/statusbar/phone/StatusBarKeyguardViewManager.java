@@ -260,6 +260,7 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
         mOccluded = occluded;
         mPhoneStatusBar.updateMediaMetaData(false, animate && !occluded);
         mStatusBarWindowManager.setKeyguardOccluded(occluded);
+        mPhoneStatusBar.getVisualizer().setOccluded(occluded);
         reset();
         if (animate && !occluded) {
             mPhoneStatusBar.animateKeyguardUnoccluding();
@@ -457,7 +458,7 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
     private Runnable mMakeNavigationBarVisibleRunnable = new Runnable() {
         @Override
         public void run() {
-            mPhoneStatusBar.getNavigationBarView().setVisibility(View.VISIBLE);
+            mPhoneStatusBar.getNavigationBarView().getBaseView().setVisibility(View.VISIBLE);
         }
     };
 
@@ -493,7 +494,7 @@ public class StatusBarKeyguardViewManager implements RemoteInputController.Callb
                     }
                 } else {
                     mContainer.removeCallbacks(mMakeNavigationBarVisibleRunnable);
-                    mPhoneStatusBar.getNavigationBarView().setVisibility(View.GONE);
+                    mPhoneStatusBar.getNavigationBarView().getBaseView().setVisibility(View.GONE);
                 }
             }
         }

@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.telephony.Rlog;
+import android.text.TextUtils;
 
 /**
  * Contains phone state and service related information.
@@ -229,6 +230,7 @@ public class ServiceState implements Parcelable {
 
     private int mRilVoiceRadioTechnology;
     private int mRilDataRadioTechnology;
+    private int mRilImsRadioTechnology = RIL_RADIO_TECHNOLOGY_UNKNOWN;
 
     private boolean mCssIndicator;
     private int mNetworkId;
@@ -320,6 +322,7 @@ public class ServiceState implements Parcelable {
         mCdmaEriIconMode = s.mCdmaEriIconMode;
         mIsEmergencyOnly = s.mIsEmergencyOnly;
         mIsDataRoamingFromRegistration = s.mIsDataRoamingFromRegistration;
+        mRilImsRadioTechnology = s.mRilImsRadioTechnology;
         mIsUsingCarrierAggregation = s.mIsUsingCarrierAggregation;
     }
 
@@ -350,6 +353,7 @@ public class ServiceState implements Parcelable {
         mIsEmergencyOnly = in.readInt() != 0;
         mIsDataRoamingFromRegistration = in.readInt() != 0;
         mIsUsingCarrierAggregation = in.readInt() != 0;
+        mRilImsRadioTechnology = in.readInt();
     }
 
     public void writeToParcel(Parcel out, int flags) {
@@ -376,6 +380,7 @@ public class ServiceState implements Parcelable {
         out.writeInt(mIsEmergencyOnly ? 1 : 0);
         out.writeInt(mIsDataRoamingFromRegistration ? 1 : 0);
         out.writeInt(mIsUsingCarrierAggregation ? 1 : 0);
+        out.writeInt(mRilImsRadioTechnology);
     }
 
     public int describeContents() {
@@ -590,6 +595,24 @@ public class ServiceState implements Parcelable {
     }
 
     /**
+     * Get current registered operator name in long alphanumeric format if
+     * available or short otherwise.
+     *
+     * @see #getOperatorAlphaLong
+     * @see #getOperatorAlphaShort
+     *
+     * @return name of operator, null if unregistered or unknown
+     * @hide
+     */
+    public String getOperatorAlpha() {
+        if (TextUtils.isEmpty(mVoiceOperatorAlphaLong)) {
+            return mVoiceOperatorAlphaShort;
+        }
+
+        return mVoiceOperatorAlphaLong;
+    }
+
+    /**
      * Get current registered operator numeric id.
      *
      * In GSM/UMTS, numeric format is 3 digit country code plus 2 or 3 digit
@@ -686,7 +709,8 @@ public class ServiceState implements Parcelable {
                         s.mCdmaDefaultRoamingIndicator)
                 && mIsEmergencyOnly == s.mIsEmergencyOnly
                 && mIsDataRoamingFromRegistration == s.mIsDataRoamingFromRegistration
-                && mIsUsingCarrierAggregation == s.mIsUsingCarrierAggregation);
+                && mIsUsingCarrierAggregation == s.mIsUsingCarrierAggregation
+                && mRilImsRadioTechnology == s.mRilImsRadioTechnology);
     }
 
     /**
@@ -795,7 +819,8 @@ public class ServiceState implements Parcelable {
                 + " DefRoamInd=" + mCdmaDefaultRoamingIndicator
                 + " EmergOnly=" + mIsEmergencyOnly
                 + " IsDataRoamingFromRegistration=" + mIsDataRoamingFromRegistration
-                + " IsUsingCarrierAggregation=" + mIsUsingCarrierAggregation);
+                + " IsUsingCarrierAggregation=" + mIsUsingCarrierAggregation
+                + " mRilImsRadioTechnology=" + mRilImsRadioTechnology);
     }
 
     private void setNullState(int state) {
@@ -823,6 +848,7 @@ public class ServiceState implements Parcelable {
         mIsEmergencyOnly = false;
         mIsDataRoamingFromRegistration = false;
         mIsUsingCarrierAggregation = false;
+        mRilImsRadioTechnology = RIL_RADIO_TECHNOLOGY_UNKNOWN;
     }
 
     public void setStateOutOfService() {
@@ -1027,6 +1053,7 @@ public class ServiceState implements Parcelable {
         m.putBoolean("emergencyOnly", Boolean.valueOf(mIsEmergencyOnly));
         m.putBoolean("isDataRoamingFromRegistration", Boolean.valueOf(mIsDataRoamingFromRegistration));
         m.putBoolean("isUsingCarrierAggregation", Boolean.valueOf(mIsUsingCarrierAggregation));
+        m.putInt("imsRadioTechnology", mRilImsRadioTechnology);
     }
 
     /** @hide */
@@ -1260,8 +1287,19 @@ public class ServiceState implements Parcelable {
 
         // voice overrides
         newSs.mVoiceRegState = voiceSs.mVoiceRegState;
+        newSs.mRilVoiceRadioTechnology = voiceSs.mRilVoiceRadioTechnology;
         newSs.mIsEmergencyOnly = false; // only get here if voice is IN_SERVICE
 
         return newSs;
+    }
+
+    /** @hide */
+    public int getRilImsRadioTechnology() {
+        return mRilImsRadioTechnology;
+    }
+
+    /** @hide */
+    public void setRilImsRadioTechnology(int imsRadioTechnology) {
+        mRilImsRadioTechnology = imsRadioTechnology;
     }
 }

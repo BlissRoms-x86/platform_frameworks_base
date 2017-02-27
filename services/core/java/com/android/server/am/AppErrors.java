@@ -47,7 +47,8 @@ import android.util.Log;
 import android.util.Slog;
 import android.util.SparseArray;
 import android.util.TimeUtils;
-
+import java.util.Date;
+import java.text.SimpleDateFormat;
 import java.io.File;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -72,7 +73,7 @@ class AppErrors {
 
     private final ActivityManagerService mService;
     private final Context mContext;
-
+    SimpleDateFormat mTraceDateFormat = new SimpleDateFormat("dd_MMM_HH_mm_ss.SSS");
     private ArraySet<String> mAppsNotReportingCrashes;
 
     /**
@@ -300,15 +301,19 @@ class AppErrors {
      * @param crashInfo describing the failure
      */
     void crashApplication(ProcessRecord r, ApplicationErrorReport.CrashInfo crashInfo) {
+        final int callingPid = Binder.getCallingPid();
+        final int callingUid = Binder.getCallingUid();
+
         final long origId = Binder.clearCallingIdentity();
         try {
-            crashApplicationInner(r, crashInfo);
+            crashApplicationInner(r, crashInfo, callingPid, callingUid);
         } finally {
             Binder.restoreCallingIdentity(origId);
         }
     }
 
-    void crashApplicationInner(ProcessRecord r, ApplicationErrorReport.CrashInfo crashInfo) {
+    void crashApplicationInner(ProcessRecord r, ApplicationErrorReport.CrashInfo crashInfo,
+            int callingPid, int callingUid) {
         long timeMillis = System.currentTimeMillis();
         String shortMsg = crashInfo.exceptionClassName;
         String longMsg = crashInfo.exceptionMessage;
@@ -327,7 +332,7 @@ class AppErrors {
              * finish now and don't show the app error dialog.
              */
             if (handleAppCrashInActivityController(r, crashInfo, shortMsg, longMsg, stackTrace,
-                    timeMillis)) {
+                    timeMillis, callingPid, callingUid)) {
                 return;
             }
 
@@ -429,15 +434,16 @@ class AppErrors {
     private boolean handleAppCrashInActivityController(ProcessRecord r,
                                                        ApplicationErrorReport.CrashInfo crashInfo,
                                                        String shortMsg, String longMsg,
-                                                       String stackTrace, long timeMillis) {
+                                                       String stackTrace, long timeMillis,
+                                                       int callingPid, int callingUid) {
         if (mService.mController == null) {
             return false;
         }
 
         try {
             String name = r != null ? r.processName : null;
-            int pid = r != null ? r.pid : Binder.getCallingPid();
-            int uid = r != null ? r.info.uid : Binder.getCallingUid();
+            int pid = r != null ? r.pid : callingPid;
+            int uid = r != null ? r.info.uid : callingUid;
             if (!mService.mController.appCrashed(name, pid,
                     shortMsg, longMsg, timeMillis, crashInfo.stackTrace)) {
                 if ("1".equals(SystemProperties.get(SYSTEM_DEBUGGABLE, "0"))
@@ -768,6 +774,12 @@ class AppErrors {
             } else if (app.crashing) {
                 Slog.i(TAG, "Crashing app skipping ANR: " + app + " " + annotation);
                 return;
+            } else if (app.killedByAm) {
+                Slog.i(TAG, "App already killed by AM skipping ANR: " + app + " " + annotation);
+                return;
+            } else if (app.killed) {
+                Slog.i(TAG, "Skipping died app ANR: " + app + " " + annotation);
+                return;
             }
 
             // In case we come through here for the same app before completing
@@ -895,6 +907,23 @@ class AppErrors {
                     annotation != null ? "ANR " + annotation : "ANR",
                     info.toString());
 
+            boolean enableTraceRename = SystemProperties.getBoolean("persist.sys.enableTraceRename", false);
+            //Set the trace file name to app name + current date format to avoid overrinding trace file based on debug flag
+            if(enableTraceRename) {
+                String tracesPath = SystemProperties.get("dalvik.vm.stack-trace-file", null);
+                if (tracesPath != null && tracesPath.length() != 0) {
+                    File traceRenameFile = new File(tracesPath);
+                    String newTracesPath;
+                    int lpos = tracesPath.lastIndexOf (".");
+                    if (-1 != lpos)
+                        newTracesPath = tracesPath.substring (0, lpos) + "_" + app.processName + "_" + mTraceDateFormat.format(new Date()) + tracesPath.substring (lpos);
+                    else
+                        newTracesPath = tracesPath + "_" + app.processName;
+
+                    traceRenameFile.renameTo(new File(newTracesPath));
+                    SystemClock.sleep(1000);
+                }
+            }
             // Bring up the infamous App Not Responding dialog
             Message msg = Message.obtain();
             HashMap<String, Object> map = new HashMap<String, Object>();

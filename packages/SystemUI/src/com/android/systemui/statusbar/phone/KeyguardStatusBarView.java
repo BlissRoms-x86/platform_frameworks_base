@@ -19,7 +19,12 @@ package com.android.systemui.statusbar.phone;
 import android.content.Context;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.database.ContentObserver;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
+import android.os.Handler;
+import android.os.UserHandle;
+import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
@@ -27,7 +32,9 @@ import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.provider.Settings;
 
+import com.android.systemui.BatteryMeterDrawable;
 import com.android.systemui.BatteryMeterView;
 import com.android.systemui.Interpolators;
 import com.android.systemui.R;
@@ -36,6 +43,7 @@ import com.android.systemui.statusbar.policy.BatteryController;
 import com.android.systemui.statusbar.policy.KeyguardUserSwitcher;
 import com.android.systemui.statusbar.policy.UserInfoController;
 import com.android.systemui.statusbar.policy.UserSwitcherController;
+import com.android.systemui.tuner.TunerService;
 
 import java.text.NumberFormat;
 
@@ -43,11 +51,18 @@ import java.text.NumberFormat;
  * The header group on Keyguard.
  */
 public class KeyguardStatusBarView extends RelativeLayout
-        implements BatteryController.BatteryStateChangeCallback {
+        implements BatteryController.BatteryStateChangeCallback, TunerService.Tunable {
+
+    private static final String STATUS_BAR_SHOW_BATTERY_PERCENT =
+            Settings.Secure.STATUS_BAR_SHOW_BATTERY_PERCENT;
+    private static final String STATUS_BAR_BATTERY_STYLE =
+            Settings.Secure.STATUS_BAR_BATTERY_STYLE;
 
     private boolean mBatteryCharging;
     private boolean mKeyguardUserSwitcherShowing;
     private boolean mBatteryListening;
+
+    private int mShowCarrierLabel;
 
     private TextView mCarrierLabel;
     private View mSystemIconsSuperContainer;
@@ -63,8 +78,24 @@ public class KeyguardStatusBarView extends RelativeLayout
     private int mSystemIconsBaseMargin;
     private View mSystemIconsContainer;
 
+    private boolean mShowBatteryText;
+    private Boolean mForceBatteryText;
+
+    private ContentObserver mObserver = new ContentObserver(new Handler()) {
+        public void onChange(boolean selfChange, Uri uri) {
+            showStatusBarCarrier();
+            updateVisibilities();
+        }
+    };
+
     public KeyguardStatusBarView(Context context, AttributeSet attrs) {
         super(context, attrs);
+        showStatusBarCarrier();
+    }
+
+    private void showStatusBarCarrier() {
+        mShowCarrierLabel = Settings.System.getIntForUser(getContext().getContentResolver(),
+                Settings.System.STATUS_BAR_SHOW_CARRIER, 1, UserHandle.USER_CURRENT);
     }
 
     @Override
@@ -78,6 +109,7 @@ public class KeyguardStatusBarView extends RelativeLayout
         mCarrierLabel = (TextView) findViewById(R.id.keyguard_carrier_text);
         loadDimens();
         updateUserSwitcher();
+        updateVisibilities();
     }
 
     @Override
@@ -155,6 +187,7 @@ public class KeyguardStatusBarView extends RelativeLayout
         } else if (mMultiUserSwitch.getParent() == this && mKeyguardUserSwitcherShowing) {
             removeView(mMultiUserSwitch);
         }
+
         if (mKeyguardUserSwitcher == null) {
             // If we have no keyguard switcher, the screen width is under 600dp. In this case,
             // we don't show the multi-user avatar unless there is more than 1 user on the device.
@@ -165,8 +198,23 @@ public class KeyguardStatusBarView extends RelativeLayout
                 mMultiUserSwitch.setVisibility(View.GONE);
             }
         }
-        mBatteryLevel.setVisibility(mBatteryCharging ? View.VISIBLE : View.GONE);
-    }
+        if (mForceBatteryText != null) {
+            mBatteryLevel.setVisibility(mForceBatteryText ? View.VISIBLE : View.GONE);
+        } else {
+            mBatteryLevel.setVisibility(
+                    mBatteryCharging || mShowBatteryText ? View.VISIBLE : View.GONE);
+        }
+
+        if (mCarrierLabel != null) {
+            if (mShowCarrierLabel == 1) {
+                mCarrierLabel.setVisibility(View.VISIBLE);
+            } else if (mShowCarrierLabel == 3) {
+                mCarrierLabel.setVisibility(View.VISIBLE);
+            } else {
+                mCarrierLabel.setVisibility(View.GONE);
+            }
+        }
+     }
 
     private void updateSystemIconsLayoutParams() {
         RelativeLayout.LayoutParams lp =
@@ -190,9 +238,12 @@ public class KeyguardStatusBarView extends RelativeLayout
         }
         mBatteryListening = listening;
         if (mBatteryListening) {
+            TunerService.get(getContext()).addTunable(this,
+                    STATUS_BAR_SHOW_BATTERY_PERCENT, STATUS_BAR_BATTERY_STYLE);
             mBatteryController.addStateChangedCallback(this);
         } else {
             mBatteryController.removeStateChangedCallback(this);
+            TunerService.get(getContext()).removeTunable(this);
         }
     }
 
@@ -320,5 +371,38 @@ public class KeyguardStatusBarView extends RelativeLayout
     @Override
     public boolean hasOverlappingRendering() {
         return false;
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case STATUS_BAR_SHOW_BATTERY_PERCENT:
+                mShowBatteryText = newValue != null && Integer.parseInt(newValue) == 2;
+                break;
+            case STATUS_BAR_BATTERY_STYLE:
+                if (newValue != null) {
+                    final int value = Integer.parseInt(newValue);
+                    if (value == BatteryMeterDrawable.BATTERY_STYLE_TEXT) {
+                        mForceBatteryText = true;
+                    } else if (value == BatteryMeterDrawable.BATTERY_STYLE_HIDDEN) {
+                        mForceBatteryText = false;
+                    } else {
+                        mForceBatteryText = null;
+                    }
+                }
+                break;
+        }
+        updateVisibilities();
+    }
+
+    public void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        getContext().getContentResolver().registerContentObserver(Settings.System.getUriFor(
+		        Settings.System.STATUS_BAR_SHOW_CARRIER), false, mObserver);
+    }
+
+    @Override
+    public void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
     }
 }

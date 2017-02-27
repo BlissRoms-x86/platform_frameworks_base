@@ -285,6 +285,17 @@ public class Process {
     public static final int THREAD_PRIORITY_URGENT_AUDIO = -19;
 
     /**
+     * Real-time priority used for critical UI tasks
+     * This gets converted to be lined into the SCHED_RR queue.
+     * Applications can not normally change to this priority.
+     * Use with {@link #setThreadPriority(int)} and
+     * {@link #setThreadPriority(int, int)}, <b>not</b> with the normal
+     * {@link java.lang.Thread} class.
+     * @hide
+     */
+    public static final int THREAD_PRIORITY_REALTIME = -21;
+
+    /**
      * Minimum increment to make a priority more favorable.
      */
     public static final int THREAD_PRIORITY_MORE_FAVORABLE = -1;
@@ -516,11 +527,12 @@ public class Process {
                                   String abi,
                                   String instructionSet,
                                   String appDataDir,
+                                  boolean refreshTheme,
                                   String[] zygoteArgs) {
         try {
             return startViaZygote(processClass, niceName, uid, gid, gids,
                     debugFlags, mountExternal, targetSdkVersion, seInfo,
-                    abi, instructionSet, appDataDir, zygoteArgs);
+                    abi, instructionSet, appDataDir, refreshTheme, zygoteArgs);
         } catch (ZygoteStartFailedEx ex) {
             Log.e(LOG_TAG,
                     "Starting VM process through Zygote failed");
@@ -648,6 +660,7 @@ public class Process {
                                   String abi,
                                   String instructionSet,
                                   String appDataDir,
+                                  boolean refreshTheme,
                                   String[] extraArgs)
                                   throws ZygoteStartFailedEx {
         synchronized(Process.class) {
@@ -688,6 +701,9 @@ public class Process {
                 argsForZygote.add("--mount-external-read");
             } else if (mountExternal == Zygote.MOUNT_EXTERNAL_WRITE) {
                 argsForZygote.add("--mount-external-write");
+            }
+            if (refreshTheme) {
+                argsForZygote.add("--refresh_theme");
             }
             argsForZygote.add("--target-sdk-version=" + targetSdkVersion);
 

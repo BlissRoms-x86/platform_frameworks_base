@@ -19,12 +19,14 @@ package com.android.systemui.qs;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.drawable.Animatable;
+import android.graphics.drawable.Animatable2;
 import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ImageView.ScaleType;
 import com.android.systemui.R;
+import com.android.systemui.statusbar.policy.MobileSignalController;
 
 import java.util.Objects;
 
@@ -35,9 +37,19 @@ public class QSIconView extends ViewGroup {
     protected final int mTilePaddingBelowIconPx;
     private boolean mAnimationEnabled = true;
 
+    private final int STATUS_BAR_STYLE_ANDROID_DEFAULT = 0;
+    protected final int STATUS_BAR_STYLE_EXTENDED = 4;
+
+    protected int mStyle = STATUS_BAR_STYLE_ANDROID_DEFAULT;
+
     public QSIconView(Context context) {
         super(context);
 
+        if (MobileSignalController.isCarrierOneSupported()) {
+            mStyle = STATUS_BAR_STYLE_EXTENDED;
+        } else {
+            mStyle = mContext.getResources().getInteger(R.integer.status_bar_style);
+        }
         final Resources res = context.getResources();
         mIconSizePx = res.getDimensionPixelSize(R.dimen.qs_tile_icon_size);
         mTilePaddingBelowIconPx =  res.getDimensionPixelSize(R.dimen.qs_tile_padding_below_icon);
@@ -84,12 +96,28 @@ public class QSIconView extends ViewGroup {
             if (d != null && state.autoMirrorDrawable) {
                 d.setAutoMirrored(true);
             }
+            if (d != null && iv.getImageAlpha() != d.getAlpha()) {
+                iv.setImageDrawable(null);
+                iv.setImageAlpha(d.getAlpha());
+            }
             iv.setImageDrawable(d);
             iv.setTag(R.id.qs_icon_tag, state.icon);
             iv.setPadding(0, padding, 0, padding);
             if (d instanceof Animatable && iv.isShown()) {
                 Animatable a = (Animatable) d;
                 a.start();
+                if (a instanceof Animatable2) {
+                    Animatable2 a2 = (Animatable2) a;
+                    a2.registerAnimationCallback(new Animatable2.AnimationCallback() {
+                        @Override
+                        public void onAnimationEnd(Drawable drawable) {
+                            if (iv.getDrawable() == drawable) {
+                                iv.setImageAlpha(drawable.getAlpha());
+                            }
+                            post(() -> a2.unregisterAnimationCallback(this));
+                        }
+                    });
+                }
                 if (!iv.isShown()) {
                     a.stop(); // skip directly to end state
                 }

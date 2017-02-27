@@ -59,7 +59,7 @@ namespace android {
 #endif
 
 #define IDMAP_MAGIC             0x504D4449
-#define IDMAP_CURRENT_VERSION   0x00000001
+#define IDMAP_CURRENT_VERSION   0x00000002
 
 #define APP_PACKAGE_ID      0x7f
 #define SYS_PACKAGE_ID      0x01
@@ -739,7 +739,7 @@ const char16_t* ResStringPool::stringAt(size_t idx, size_t* u16len) const
                         ALOGW("CREATING STRING CACHE OF %zu bytes",
                                 static_cast<size_t>(mHeader->stringCount*sizeof(char16_t**)));
 #endif
-                        mCache = (char16_t**)calloc(mHeader->stringCount, sizeof(char16_t**));
+                        mCache = (char16_t**)calloc(mHeader->stringCount, sizeof(char16_t*));
                         if (mCache == NULL) {
                             ALOGW("No memory trying to allocate decode cache table of %d bytes\n",
                                     (int)(mHeader->stringCount*sizeof(char16_t**)));
@@ -3146,6 +3146,8 @@ struct ResTable::Entry {
 
     StringPoolRef typeStr;
     StringPoolRef keyStr;
+
+    bool isFromOverlay;
 };
 
 struct ResTable::Type
@@ -4352,10 +4354,12 @@ ssize_t ResTable::getBagLocked(uint32_t resID, const bag_entry** outBag,
             if (set->numAttrs >= set->availAttrs) {
                 // Need to alloc more memory...
                 const size_t newAvail = set->availAttrs+N;
+                void *oldSet = set;
                 set = (bag_set*)realloc(set,
                                         sizeof(bag_set)
                                         + sizeof(bag_entry)*newAvail);
                 if (set == NULL) {
+                    free(oldSet);
                     return NO_MEMORY;
                 }
                 set->availAttrs = newAvail;
@@ -4402,10 +4406,66 @@ ssize_t ResTable::getBagLocked(uint32_t resID, const bag_entry** outBag,
         pos++;
         const size_t size = dtohs(map->value.size);
         curOff += size + sizeof(*map)-sizeof(map->value);
-    };
+    }
 
     if (curEntry > set->numAttrs) {
         set->numAttrs = curEntry;
+    }
+
+    // If this style was overridden by a theme then we need to compare our bag with
+    // the bag from the original and add any missing attributes to our bag
+    if (entry.isFromOverlay) {
+        const bag_entry* originalBag;
+        uint32_t originalTypeSpecFlags = 0;
+        const ssize_t NO = getBagLocked(resID, &originalBag,
+                &originalTypeSpecFlags);
+        if (NO <= 0) {
+            ALOGW("Failed to retrieve original bag for 0x%08x", resID);
+        }
+
+        // Now merge in the original attributes...
+        bag_entry* entries = (bag_entry*)(set+1);
+        size_t curEntry = 0;
+        for (int i = 0; i < NO; i++) {
+            const uint32_t newName = originalBag[i].map.name.ident;
+            bool isInside;
+            uint32_t oldName = 0;
+            curEntry = 0;
+
+            while ((isInside=(curEntry < set->numAttrs))
+                    && (oldName=entries[curEntry].map.name.ident) < newName) {
+                curEntry++;
+            }
+
+            if ((!isInside) || oldName != newName) {
+                // This is a new attribute...  figure out what to do with it.
+                // Need to alloc more memory...
+                size_t prevEntry = curEntry;
+                curEntry = set->availAttrs;
+                set->availAttrs++;
+                const size_t newAvail = set->availAttrs;
+                set = (bag_set*)realloc(set,
+                                        sizeof(bag_set)
+                                        + sizeof(bag_entry)*newAvail);
+                if (set == NULL) {
+                    return NO_MEMORY;
+                }
+                entries = (bag_entry*)(set+1);
+                if (isInside) {
+                    // Going in the middle, need to make space.
+                    memmove(entries+prevEntry+1, entries+prevEntry,
+                            sizeof(bag_entry)*(set->numAttrs-prevEntry));
+                }
+
+                bag_entry* cur = entries+curEntry;
+
+                cur->stringBlock = originalBag[i].stringBlock;
+                cur->map.name.ident = originalBag[i].map.name.ident;
+                cur->map.value = originalBag[i].map.value;
+                set->typeSpecFlags |= originalTypeSpecFlags;
+                set->numAttrs = set->availAttrs;
+            }
+        }
     }
 
     // And this is it...
@@ -5979,6 +6039,7 @@ status_t ResTable::getEntry(
     uint8_t actualTypeIndex = typeIndex;
     ResTable_config bestConfig;
     memset(&bestConfig, 0, sizeof(bestConfig));
+    bool currentTypeIsOverlay = false;
 
     // Iterate over the Types of each package.
     const size_t typeCount = typeList.size();
@@ -5987,7 +6048,6 @@ status_t ResTable::getEntry(
 
         int realEntryIndex = entryIndex;
         int realTypeIndex = typeIndex;
-        bool currentTypeIsOverlay = false;
 
         // Runtime overlay packages provide a mapping of app resource
         // ID to package resource ID.
@@ -6121,6 +6181,7 @@ status_t ResTable::getEntry(
         outEntry->package = bestPackage;
         outEntry->typeStr = StringPoolRef(&bestPackage->typeStrings, actualTypeIndex - bestPackage->typeIdOffset);
         outEntry->keyStr = StringPoolRef(&bestPackage->keyStrings, dtohl(entry->key.index));
+        outEntry->isFromOverlay = currentTypeIsOverlay;
     }
     return NO_ERROR;
 }
@@ -6593,6 +6654,7 @@ status_t ResTable::createIdmap(const ResTable& overlay,
         return UNKNOWN_ERROR;
     }
 
+    bool isDangerous = false;
     KeyedVector<uint8_t, IdmapTypeMap> map;
 
     // overlaid packages are assumed to contain only one package group
@@ -6667,6 +6729,13 @@ status_t ResTable::createIdmap(const ResTable& overlay,
                 }
             }
             typeMap.entryMap.add(Res_GETENTRY(overlayResID));
+
+            Entry entry;
+            if (getEntry(pg, typeIndex, entryIndex, NULL, &entry)) {
+                return UNKNOWN_ERROR;
+            }
+            isDangerous = isDangerous ||
+                ((dtohs(entry.entry->flags) & ResTable_entry::FLAG_OVERLAY) == 0);
         }
 
         if (!typeMap.entryMap.isEmpty()) {
@@ -6689,6 +6758,7 @@ status_t ResTable::createIdmap(const ResTable& overlay,
     uint32_t* data = (uint32_t*)*outData;
     *data++ = htodl(IDMAP_MAGIC);
     *data++ = htodl(IDMAP_CURRENT_VERSION);
+    *data++ = htodl(isDangerous ? 1 : 0);
     *data++ = htodl(targetCrc);
     *data++ = htodl(overlayCrc);
     const char* paths[] = { targetPath, overlayPath };
@@ -6729,7 +6799,7 @@ status_t ResTable::createIdmap(const ResTable& overlay,
 }
 
 bool ResTable::getIdmapInfo(const void* idmap, size_t sizeBytes,
-                            uint32_t* pVersion,
+                            uint32_t* pVersion, uint32_t* pDangerous,
                             uint32_t* pTargetCrc, uint32_t* pOverlayCrc,
                             String8* pTargetPath, String8* pOverlayPath)
 {
@@ -6740,17 +6810,20 @@ bool ResTable::getIdmapInfo(const void* idmap, size_t sizeBytes,
     if (pVersion) {
         *pVersion = dtohl(map[1]);
     }
+    if (pDangerous) {
+        *pDangerous = dtohl(map[2]);
+    }
     if (pTargetCrc) {
-        *pTargetCrc = dtohl(map[2]);
+        *pTargetCrc = dtohl(map[3]);
     }
     if (pOverlayCrc) {
-        *pOverlayCrc = dtohl(map[3]);
+        *pOverlayCrc = dtohl(map[4]);
     }
     if (pTargetPath) {
-        pTargetPath->setTo(reinterpret_cast<const char*>(map + 4));
+        pTargetPath->setTo(reinterpret_cast<const char*>(map + 5));
     }
     if (pOverlayPath) {
-        pOverlayPath->setTo(reinterpret_cast<const char*>(map + 4 + 256 / sizeof(uint32_t)));
+        pOverlayPath->setTo(reinterpret_cast<const char*>(map + 5 + 256 / sizeof(uint32_t)));
     }
     return true;
 }
@@ -7077,6 +7150,9 @@ void ResTable::print(bool inclValues) const
 
                     if ((dtohs(ent->flags)&ResTable_entry::FLAG_PUBLIC) != 0) {
                         printf(" (PUBLIC)");
+                    }
+                    if ((dtohs(ent->flags)&ResTable_entry::FLAG_OVERLAY) != 0) {
+                        printf(" (OVERLAY)");
                     }
                     printf("\n");
 

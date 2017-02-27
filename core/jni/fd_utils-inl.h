@@ -35,6 +35,8 @@
 #include "JNIHelp.h"
 #include "ScopedPrimitiveArray.h"
 
+#include <fd_utils-inl-extra.h>
+
 // Whitelist of open paths that the zygote is allowed to keep open.
 //
 // In addition to the paths listed here, all files ending with
@@ -50,11 +52,15 @@ static const char* kPathWhitelist[] = {
   "/dev/null",
   "/dev/socket/zygote",
   "/dev/socket/zygote_secondary",
+  "/system/etc/event-log-tags",
   "/sys/kernel/debug/tracing/trace_marker",
   "/system/framework/framework-res.apk",
   "/dev/urandom",
   "/dev/ion",
   "/dev/dri/renderD129", // Fixes b/31172436
+#ifdef PATH_WHITELIST_EXTRA_H
+PATH_WHITELIST_EXTRA_H
+#endif
 };
 
 static const char* kFdPath = "/proc/self/fd";
@@ -71,6 +77,11 @@ class FileDescriptorInfo {
     // of permissions required to stat all its open files.
     if (TEMP_FAILURE_RETRY(fstat(fd, &f_stat)) == -1) {
       ALOGE("Unable to stat fd %d : %s", fd, strerror(errno));
+      return NULL;
+    }
+
+    if (f_stat.st_nlink <= 0) {
+      ALOGE("The fd %d corresponding file has been deleted", fd);
       return NULL;
     }
 
@@ -158,11 +169,14 @@ class FileDescriptorInfo {
   // refers to the same description.
   bool Restat() const {
     struct stat f_stat;
+
     if (TEMP_FAILURE_RETRY(fstat(fd, &f_stat)) == -1) {
+      ALOGE("Failed stat fd %d, file path %s", fd, file_path.c_str());
       return false;
     }
 
-    return f_stat.st_ino == stat.st_ino && f_stat.st_dev == stat.st_dev;
+    return (f_stat.st_ino == file_stat.st_ino) && (f_stat.st_dev == file_stat.st_dev) &&
+           (f_stat.st_nlink > 0);
   }
 
   bool ReopenOrDetach() const {
@@ -210,7 +224,7 @@ class FileDescriptorInfo {
   }
 
   const int fd;
-  const struct stat stat;
+  const struct stat file_stat;
   const std::string file_path;
   const int open_flags;
   const int fd_flags;
@@ -221,7 +235,7 @@ class FileDescriptorInfo {
  private:
   FileDescriptorInfo(int fd) :
     fd(fd),
-    stat(),
+    file_stat(),
     open_flags(0),
     fd_flags(0),
     fs_flags(0),
@@ -229,10 +243,10 @@ class FileDescriptorInfo {
     is_sock(true) {
   }
 
-  FileDescriptorInfo(struct stat stat, const std::string& file_path, int fd, int open_flags,
+  FileDescriptorInfo(struct stat file_stat, const std::string& file_path, int fd, int open_flags,
                      int fd_flags, int fs_flags, off_t offset) :
     fd(fd),
-    stat(stat),
+    file_stat(file_stat),
     file_path(file_path),
     open_flags(open_flags),
     fd_flags(fd_flags),
@@ -257,6 +271,17 @@ class FileDescriptorInfo {
         path.compare(path.size() - kJarSuffix.size(), kJarSuffix.size(), kJarSuffix) == 0) {
       return true;
     }
+
+    if (access("/system/framework/XposedBridge.jar", F_OK ) != -1) {
+      // Xposed-powered Zygote might read from extensions other than .apk
+      // so skip extension check
+      ALOGW("Xposed detected, loosening up Zygote fd check!");
+      static const std::string kDataAppPrefix = "/data/app/";
+      if (path.compare(0, kDataAppPrefix.size(), kDataAppPrefix) == 0) {
+        return true;
+      }
+    }
+
     return false;
   }
 
@@ -358,7 +383,7 @@ class FileDescriptorTable {
   // Creates a new FileDescriptorTable. This function scans
   // /proc/self/fd for the list of open file descriptors and collects
   // information about them. Returns NULL if an error occurs.
-  static FileDescriptorTable* Create() {
+  static FileDescriptorTable* Create(bool permissive = false) {
     DIR* d = opendir(kFdPath);
     if (d == NULL) {
       ALOGE("Unable to open directory %s: %s", kFdPath, strerror(errno));
@@ -376,12 +401,15 @@ class FileDescriptorTable {
 
       FileDescriptorInfo* info = FileDescriptorInfo::createFromFd(fd);
       if (info == NULL) {
-        if (closedir(d) == -1) {
-          ALOGE("Unable to close directory : %s", strerror(errno));
+        if (!permissive) {
+          if (closedir(d) == -1) {
+            ALOGE("Unable to close directory : %s", strerror(errno));
+          }
+          return NULL;
         }
-        return NULL;
+      } else {
+        open_fd_map[fd] = info;
       }
-      open_fd_map[fd] = info;
     }
 
     if (closedir(d) == -1) {

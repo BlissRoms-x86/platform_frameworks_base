@@ -126,6 +126,7 @@ import android.view.animation.Animation;
 import android.view.inputmethod.InputMethodManagerInternal;
 
 import com.android.internal.R;
+import com.android.internal.app.ActivityTrigger;
 import com.android.internal.app.IAssistScreenshotReceiver;
 import com.android.internal.os.IResultReceiver;
 import com.android.internal.policy.IShortcutService;
@@ -143,6 +144,8 @@ import com.android.server.LocalServices;
 import com.android.server.UiThread;
 import com.android.server.Watchdog;
 import com.android.server.input.InputManagerService;
+import com.android.server.lights.Light;
+import com.android.server.lights.LightsManager;
 import com.android.server.policy.PhoneWindowManager;
 import com.android.server.power.ShutdownThread;
 
@@ -263,7 +266,10 @@ public class WindowManagerService extends IWindowManager.Stub
 
     static final boolean PROFILE_ORIENTATION = false;
     static final boolean localLOGV = DEBUG;
-
+    static final boolean mEnableAnimCheck = SystemProperties.getBoolean("persist.animcheck.enable", false);
+    static ActivityTrigger mActivityTrigger = new ActivityTrigger();
+    static WindowState mFocusingWindow;
+    String mFocusingActivity;
     /** How much to multiply the policy's type layer, to reserve room
      * for multiple windows of the same type and Z-ordering adjustment
      * with TYPE_LAYER_OFFSET. */
@@ -357,6 +363,8 @@ public class WindowManagerService extends IWindowManager.Stub
     private static final int ANIMATION_DURATION_SCALE = 2;
 
     final private KeyguardDisableHandler mKeyguardDisableHandler;
+
+    private final int mSfHwRotation;
 
     final BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -1064,6 +1072,9 @@ public class WindowManagerService extends IWindowManager.Stub
         } finally {
             SurfaceControl.closeTransaction();
         }
+
+        // Load hardware rotation from prop
+        mSfHwRotation = android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90;
 
         showEmulatorDisplayOverlayIfNeeded();
     }
@@ -1880,6 +1891,7 @@ public class WindowManagerService extends IWindowManager.Stub
         long origId;
         final int callingUid = Binder.getCallingUid();
         final int type = attrs.type;
+        mFocusingActivity = attrs.getTitle().toString();
 
         synchronized(mWindowMap) {
             if (!mDisplayReady) {
@@ -2448,6 +2460,7 @@ public class WindowManagerService extends IWindowManager.Stub
                 // animation.
                 win.mAnimatingExit = true;
                 win.mReplacingRemoveRequested = true;
+                updateFocusedWindowLocked(UPDATE_FOCUS_WILL_PLACE_SURFACES, true);
                 Binder.restoreCallingIdentity(origId);
                 return;
             }
@@ -5724,12 +5737,38 @@ public class WindowManagerService extends IWindowManager.Stub
         ValueAnimator.setDurationScale(scale);
     }
 
+    private float animationScalesCheck (int which) {
+        float value = -1.0f;
+        if (!mAnimationsDisabled) {
+            if (mEnableAnimCheck) {
+                if (mFocusingActivity != null) {
+                    if (mActivityTrigger == null) {
+                        mActivityTrigger = new ActivityTrigger();
+                    }
+                    if (mActivityTrigger != null) {
+                        value = mActivityTrigger.animationScalesCheck(mFocusingActivity, which);
+                    }
+               }
+            }
+            if (value == -1.0f) {
+                switch (which) {
+                    case WINDOW_ANIMATION_SCALE: value = mWindowAnimationScaleSetting; break;
+                    case TRANSITION_ANIMATION_SCALE: value = mTransitionAnimationScaleSetting; break;
+                    case ANIMATION_DURATION_SCALE: value = mAnimatorDurationScaleSetting; break;
+                }
+            }
+        } else {
+            value = 0;
+        }
+        return value;
+    }
+
     public float getWindowAnimationScaleLocked() {
-        return mAnimationsDisabled ? 0 : mWindowAnimationScaleSetting;
+        return animationScalesCheck(WINDOW_ANIMATION_SCALE);
     }
 
     public float getTransitionAnimationScaleLocked() {
-        return mAnimationsDisabled ? 0 : mTransitionAnimationScaleSetting;
+        return animationScalesCheck(TRANSITION_ANIMATION_SCALE);
     }
 
     @Override
@@ -5751,7 +5790,7 @@ public class WindowManagerService extends IWindowManager.Stub
     @Override
     public float getCurrentAnimatorScale() {
         synchronized(mWindowMap) {
-            return mAnimationsDisabled ? 0 : mAnimatorDurationScaleSetting;
+            return animationScalesCheck(ANIMATION_DURATION_SCALE);
         }
     }
 
@@ -5767,6 +5806,11 @@ public class WindowManagerService extends IWindowManager.Stub
     @Override
     public void unregisterPointerEventListener(PointerEventListener listener) {
         mPointerEventDispatcher.unregisterInputEventListener(listener);
+    }
+
+    @Override
+    public void addSystemUIVisibilityFlag(int flags) {
+        mLastStatusBarVisibility |= flags;
     }
 
     // Called by window manager policy. Not exposed externally.
@@ -5823,12 +5867,6 @@ public class WindowManagerService extends IWindowManager.Stub
     @Override
     public void shutdown(boolean confirm) {
         ShutdownThread.shutdown(mContext, PowerManager.SHUTDOWN_USER_REQUESTED, confirm);
-    }
-
-    // Called by window manager policy.  Not exposed externally.
-    @Override
-    public void reboot(boolean confirm) {
-        ShutdownThread.reboot(mContext, PowerManager.SHUTDOWN_USER_REQUESTED, confirm);
     }
 
     // Called by window manager policy.  Not exposed externally.
@@ -6085,6 +6123,17 @@ public class WindowManagerService extends IWindowManager.Stub
 
         mPolicy.enableScreenAfterBoot();
 
+        // clear any intrusive lighting which may still be on from the
+        // crypto landing ui
+        LightsManager lm = LocalServices.getService(LightsManager.class);
+        Light batteryLight = lm.getLight(LightsManager.LIGHT_ID_BATTERY);
+        Light notifLight = lm.getLight(LightsManager.LIGHT_ID_NOTIFICATIONS);
+        if (batteryLight != null) {
+            batteryLight.turnOff();
+        }
+        if (notifLight != null) {
+            notifLight.turnOff();
+        }
         // Make sure the last requested orientation has been applied.
         updateRotationUnchecked(false, false);
     }
@@ -6602,6 +6651,8 @@ public class WindowManagerService extends IWindowManager.Stub
 
             // The screenshot API does not apply the current screen rotation.
             int rot = getDefaultDisplayContentLocked().getDisplay().getRotation();
+            // Allow for abnormal hardware orientation
+            rot = (rot + mSfHwRotation) % 4;
 
             if (rot == Surface.ROTATION_90 || rot == Surface.ROTATION_270) {
                 rot = (rot == Surface.ROTATION_90) ? Surface.ROTATION_270 : Surface.ROTATION_90;
@@ -10021,6 +10072,12 @@ public class WindowManagerService extends IWindowManager.Stub
                             // No focus for you!!!
                             if (localLOGV || DEBUG_FOCUS_LIGHT) Slog.v(TAG_WM,
                                     "findFocusedWindow: Reached focused app=" + mFocusedApp);
+                            if (mFocusedApp.hasWindowsAlive()) {
+                                mFocusingWindow = mFocusedApp.findMainWindow();
+                                if (mFocusingWindow != null) {
+                                    mFocusingActivity = mFocusingWindow.mAttrs.getTitle().toString();
+                                }
+                            }
                             return null;
                         }
                     }
@@ -10416,8 +10473,18 @@ public class WindowManagerService extends IWindowManager.Stub
     }
 
     @Override
+    public boolean needsNavigationBar() {
+        return mPolicy.needsNavigationBar();
+    }
+
+    @Override
     public boolean hasNavigationBar() {
         return mPolicy.hasNavigationBar();
+    }
+
+    @Override
+    public boolean hasPermanentMenuKey() {
+        return mPolicy.hasPermanentMenuKey();
     }
 
     @Override

@@ -484,7 +484,6 @@ public interface WindowManagerPolicy {
         public void switchInputMethod(boolean forwardDirection);
 
         public void shutdown(boolean confirm);
-        public void reboot(boolean confirm);
         public void rebootSafeMode(boolean confirm);
 
         /**
@@ -507,6 +506,8 @@ public interface WindowManagerPolicy {
          * Retrieves the {@param outBounds} from the stack with id {@param stackId}.
          */
         void getStackBounds(int stackId, Rect outBounds);
+
+        void addSystemUIVisibilityFlag(int flags);
 
         /**
          * Overrides all currently playing app animations with {@param a}.
@@ -1319,6 +1320,12 @@ public interface WindowManagerPolicy {
      * Specifies whether there is an on-screen navigation bar separate from the status bar.
      */
     public boolean hasNavigationBar();
+    public boolean hasPermanentMenuKey();
+
+    /**
+     * Device requires a software navigation bar.
+     */
+    public boolean needsNavigationBar();
 
     /**
      * Lock the device now.

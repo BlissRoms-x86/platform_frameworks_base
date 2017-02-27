@@ -458,6 +458,9 @@
          This will disable all third party applications you have installed.
          They will be restored when you reboot again.</string>
 
+    <!-- Title of dialog to confirm rebooting. -->
+    <string name="reboot_title">Reboot</string>
+
     <!-- Recent Tasks dialog: title
      TODO: this should move to SystemUI.apk, but the code for the old
             recent dialog is still in the framework
@@ -481,10 +484,6 @@
 
     <!-- label for item that turns off power in phone options dialog -->
     <string name="global_action_power_off">Power off</string>
-
-    <!-- label for item that restarts phone in phone options dialog -->
-    <!-- TODO: promote to separate string-->
-    <string name="global_action_restart" translatable="false">@string/sim_restart_button</string>
 
     <!-- label for item that starts emergency call -->
     <string name="global_action_emergency">Emergency</string>
@@ -597,7 +596,7 @@
     <!-- Title of a category of application permissions, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permgrouplab_sms">SMS</string>
     <!-- Description of a category of application permissions, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permgroupdesc_sms">send and view SMS messages</string>
+    <string name="permgroupdesc_sms">SMS</string>
 
     <!-- Title of a category of application permissions, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permgrouplab_storage">Storage</string>
@@ -617,7 +616,7 @@
     <!-- Title of a category of application permissions, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permgrouplab_phone">Phone</string>
     <!-- Description of a category of application permissions, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permgroupdesc_phone">make and manage phone calls</string>
+    <string name="permgroupdesc_phone">Phone</string>
 
     <!-- Title of a category of application permissions, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permgrouplab_sensors">Body Sensors</string>
@@ -730,14 +729,14 @@
     <string name="permdesc_subscribedFeedsRead">Allows the app to get details about the currently synced feeds.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permlab_sendSms">send and view SMS messages</string>
+    <string name="permlab_sendSms">send SMS messages</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_sendSms">Allows the app to send SMS messages.
      This may result in unexpected charges. Malicious apps may cost you money by
      sending messages without your confirmation.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permlab_readSms">read your text messages (SMS or MMS)</string>
+    <string name="permlab_readSms">read your text messages (SMS/MMS)</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_readSms" product="tablet">Allows the app to read SMS
       messages stored on your tablet or SIM card. This allows the app to read all
@@ -879,7 +878,7 @@
       knowledge.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permlab_writeContacts">modify your contacts</string>
+    <string name="permlab_writeContacts">modify/delete your contacts</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_writeContacts" product="tablet">Allows the app to
       modify the data about your contacts stored on your tablet, including the
@@ -918,7 +917,7 @@
       may share call log data without your knowledge.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permlab_writeCallLog">write call log</string>
+    <string name="permlab_writeCallLog">write/delete call log</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_writeCallLog" product="tablet">Allows the app to modify your tablet\'s call log, including data about incoming and outgoing calls.
         Malicious apps may use this to erase or modify your call log.</string>
@@ -984,8 +983,7 @@
         with the operation of the GPS or other location sources.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permlab_accessFineLocation">access precise location (GPS and
-      network-based)</string>
+    <string name="permlab_accessFineLocation">access precise location (GPS)</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_accessFineLocation">Allows the app to get your
       precise location using the Global Positioning System (GPS) or network
@@ -1035,7 +1033,7 @@
     <string name="permdesc_vibrate">Allows the app to control the vibrator.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permlab_callPhone">directly call phone numbers</string>
+    <string name="permlab_callPhone">call phone</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_callPhone">Allows the app to call phone numbers
       without your intervention. This may result in unexpected charges or calls.
@@ -1145,7 +1143,7 @@
       connected Wi-Fi devices.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permlab_changeWifiState">connect and disconnect from Wi-Fi</string>
+    <string name="permlab_changeWifiState">enable WLAN</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_changeWifiState">Allows the app to connect to and
       disconnect from Wi-Fi access points and to make changes to device
@@ -1166,7 +1164,7 @@
       not just your phone.  It uses more power than the non-multicast mode.</string>
 
  <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
-    <string name="permlab_bluetoothAdmin">access Bluetooth settings</string>
+    <string name="permlab_bluetoothAdmin">enable Bluetooth</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_bluetoothAdmin" product="tablet">Allows the app to
       configure the local Bluetooth tablet, and to discover and pair with remote
@@ -1283,20 +1281,20 @@
     <string name="permdesc_readSyncStats">Allows an app to read the sync stats for an account, including the history of sync events and how much data is synced. </string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. [CHAR LIMIT=30] -->
-    <string name="permlab_sdcardRead" product="nosdcard">read the contents of your USB storage</string>
+    <string name="permlab_sdcardRead" product="nosdcard">read the contents of your internal storage</string>
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permlab_sdcardRead" product="default">read the contents of your SD card</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. [CHAR LIMIT=30] -->
-    <string name="permdesc_sdcardRead" product="nosdcard">Allows the app to read the contents of your USB storage.</string>
+    <string name="permdesc_sdcardRead" product="nosdcard">Allows the app to read the contents of your internal storage.</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_sdcardRead" product="default">Allows the app to read the contents of your SD card.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. [CHAR LIMIT=30] -->
-    <string name="permlab_sdcardWrite" product="nosdcard">modify or delete the contents of your USB storage</string>
+    <string name="permlab_sdcardWrite" product="nosdcard">write/delete internal storage</string>
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permlab_sdcardWrite" product="default">modify or delete the contents of your SD card</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. [CHAR LIMIT=30] -->
-    <string name="permdesc_sdcardWrite" product="nosdcard">Allows the app to write to the USB storage.</string>
+    <string name="permdesc_sdcardWrite" product="nosdcard">Allows the app to write to the internal storage.</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_sdcardWrite" product="default">Allows the app to write to the SD card.</string>
 
@@ -1411,6 +1409,11 @@
     <string name="permlab_access_notification_policy">access Do Not Disturb</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_access_notification_policy">Allows the app to read and write Do Not Disturb configuration.</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_modifyOverlays">modify theme overlays</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_modifyOverlays">Allows the app to make modifications to theme overlays using OverlayManagerService</string>
 
     <!-- Policy administration -->
 
@@ -3353,6 +3356,9 @@
     <!-- Shown when the device is tethered -->
     <string name="tethered_notification_title">Tethering or hotspot active</string>
     <string name="tethered_notification_message">Tap to set up.</string>
+    <string name="tethered_notification_no_device_message">No connected device</string>
+    <string name="tethered_notification_one_device_message"><xliff:g id="count">%1$s</xliff:g> connected device</string>
+    <string name="tethered_notification_multi_device_message"><xliff:g id="count">%1$s</xliff:g> connected devices</string>
 
     <!--  Strings for possible PreferenceActivity Back/Next buttons -->
     <string name="back_button_label">Back</string>
@@ -4434,6 +4440,15 @@
     <!-- Accessibilty string added to a widget that has been suspended [CHAR LIMIT=20] -->
     <string name="suspended_widget_accessibility">Disabled <xliff:g id="label" example="Calendar">%1$s</xliff:g></string>
 
+    <!-- Carrier Name -->
+    <string name="China_Mobile">China Mobile</string>
+    <string name="China_Unicom">China Unicom</string>
+    <string name="China_Telecom">China Telecom</string>
+    <string name="other_permissions">other permissions</string>
+    <string name="permission_remember_choice">Remember</string>
+    <string name="permission_title">Permission</string>
+    <string name="allow_button">Allow</string>
+    <string name="deny_button">Deny</string>
     <!-- Label used by Telephony code, assigned as the display name for conference calls [CHAR LIMIT=60] -->
     <string name="conference_call">Conference Call</string>
 </resources>

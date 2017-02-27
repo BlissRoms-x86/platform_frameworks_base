@@ -25,6 +25,7 @@ import android.view.MotionEvent;
 import android.view.WindowManagerPolicy.PointerEventListener;
 
 import com.android.server.wm.WindowManagerService.H;
+import com.android.server.am.ActivityManagerService;
 
 import static android.view.PointerIcon.TYPE_NOT_SPECIFIED;
 import static android.view.PointerIcon.TYPE_DEFAULT;
@@ -63,6 +64,17 @@ public class TaskTapPointerEventListener implements PointerEventListener {
     public void onPointerEvent(MotionEvent motionEvent) {
         doGestureDetection(motionEvent);
 
+        if (ActivityManagerService.sIsFreqAggrBoostSet) {
+            ActivityManagerService.sFreqAggr_init.perfLockRelease();
+            ActivityManagerService.sFreqAggr.perfLockRelease();
+            ActivityManagerService.sIsFreqAggrBoostSet = false;
+        }
+
+        if (ActivityManagerService.sIsLaunchBoostv2_set) {
+            ActivityManagerService.sPerfBoost_v2.perfLockRelease();
+            ActivityManagerService.sIsLaunchBoostv2_set = false;
+        }
+
         final int action = motionEvent.getAction();
         switch (action & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_DOWN: {
@@ -88,7 +100,10 @@ public class TaskTapPointerEventListener implements PointerEventListener {
             case MotionEvent.ACTION_HOVER_MOVE: {
                 final int x = (int) motionEvent.getX();
                 final int y = (int) motionEvent.getY();
-                final Task task = mDisplayContent.findTaskForControlPoint(x, y);
+                final Task task;
+                synchronized (mService.mWindowMap) {
+                    task = mDisplayContent.findTaskForControlPoint(x, y);
+                }
                 InputDevice inputDevice = motionEvent.getDevice();
                 if (task == null || inputDevice == null) {
                     mPointerIconType = TYPE_NOT_SPECIFIED;

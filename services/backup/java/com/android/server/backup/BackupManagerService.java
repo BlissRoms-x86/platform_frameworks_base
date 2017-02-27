@@ -2399,20 +2399,26 @@ public class BackupManagerService {
                         } catch (InterruptedException e) {
                             // just bail
                             Slog.w(TAG, "Interrupted: " + e);
-                            mActivityManager.clearPendingBackup();
-                            return null;
+                            mConnecting = false;
+                            mConnectedAgent = null;
                         }
                     }
 
                     // if we timed out with no connect, abort and move on
                     if (mConnecting == true) {
                         Slog.w(TAG, "Timeout waiting for agent " + app);
-                        mActivityManager.clearPendingBackup();
-                        return null;
+                        mConnectedAgent = null;
                     }
                     if (DEBUG) Slog.i(TAG, "got agent " + mConnectedAgent);
                     agent = mConnectedAgent;
                 }
+            } catch (RemoteException e) {
+                // can't happen - ActivityManager is local
+            }
+        }
+        if (agent == null) {
+            try {
+                mActivityManager.clearPendingBackup();
             } catch (RemoteException e) {
                 // can't happen - ActivityManager is local
             }
@@ -3231,6 +3237,12 @@ public class BackupManagerService {
 
             final String pkgName = mCurrentPackage.packageName;
             final long filepos = mBackupDataName.length();
+            if (mBackupDataName == null) {
+                failAgent(mAgentBinder, "Backup data was null: " + mBackupDataName);
+                addBackupTrace("backup data was null: " + mBackupDataName);
+                agentErrorCleanup();
+                return;
+            }
             FileDescriptor fd = mBackupData.getFileDescriptor();
             try {
                 // If it's a 3rd party app, see whether they wrote any protected keys

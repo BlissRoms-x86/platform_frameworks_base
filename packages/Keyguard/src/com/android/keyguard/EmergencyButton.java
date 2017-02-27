@@ -24,8 +24,10 @@ import android.content.res.Configuration;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.telecom.TelecomManager;
+import android.telephony.ServiceState;
 import android.util.AttributeSet;
 import android.util.Slog;
 import android.view.MotionEvent;
@@ -69,6 +71,11 @@ public class EmergencyButton extends Button {
         public void onPhoneStateChanged(int phoneState) {
             updateEmergencyCallButton();
         }
+
+        @Override
+        public void onServiceStateChanged(int subId, ServiceState state) {
+            updateEmergencyCallButton();
+        }
     };
     private boolean mLongPressWasDragged;
 
@@ -82,6 +89,10 @@ public class EmergencyButton extends Button {
 
     private final boolean mIsVoiceCapable;
     private final boolean mEnableEmergencyCallWhileSimLocked;
+    private final boolean mIsCarrierSupported = isCarrierOneSupported();
+
+    public static final String PROPERTY_RADIO_ATEL_CARRIER = "persist.radio.atel.carrier";
+    public static final String CARRIER_ONE_DEFAULT_MCC_MNC = "405854";
 
     public EmergencyButton(Context context) {
         this(context, null);
@@ -205,6 +216,11 @@ public class EmergencyButton extends Button {
                     // Only show if there is a secure screen (pin/pattern/SIM pin/SIM puk);
                     visible = mLockPatternUtils.isSecure(KeyguardUpdateMonitor.getCurrentUser());
                 }
+
+                if (mContext.getResources().getBoolean(R.bool.kg_hide_emgcy_btn_when_oos)) {
+                    KeyguardUpdateMonitor monitor = KeyguardUpdateMonitor.getInstance(mContext);
+                    visible = visible && !monitor.isOOS();
+                }
             }
         }
         if (visible) {
@@ -214,7 +230,12 @@ public class EmergencyButton extends Button {
             if (isInCall()) {
                 textId = com.android.internal.R.string.lockscreen_return_to_call;
             } else {
-                textId = com.android.internal.R.string.lockscreen_emergency_call;
+                if (mIsCarrierSupported) {
+                    // Text "Emergency call"
+                    textId = R.string.button_lockscreen_emergency_call;
+                } else {
+                    textId = com.android.internal.R.string.lockscreen_emergency_call;
+                }
             }
             setText(textId);
         } else {
@@ -242,5 +263,13 @@ public class EmergencyButton extends Button {
 
     private TelecomManager getTelecommManager() {
         return (TelecomManager) mContext.getSystemService(Context.TELECOM_SERVICE);
+    }
+
+    /**
+     * Check is carrier one supported or not
+     */
+    public static boolean isCarrierOneSupported() {
+        String property = SystemProperties.get(PROPERTY_RADIO_ATEL_CARRIER);
+        return CARRIER_ONE_DEFAULT_MCC_MNC.equals(property);
     }
 }

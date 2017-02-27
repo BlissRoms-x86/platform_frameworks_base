@@ -36,6 +36,7 @@
 #include <sys/prctl.h>
 #include <sys/resource.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/utsname.h>
 #include <sys/wait.h>
@@ -149,6 +150,24 @@ static void SetSigChldHandler() {
   int err = sigaction(SIGCHLD, &sa, NULL);
   if (err < 0) {
     ALOGW("Error setting SIGCHLD handler: %s", strerror(errno));
+  }
+}
+
+// Resets nice priority for zygote process. Zygote priority can be set
+// to high value during boot phase to speed it up. We want to ensure
+// zygote is running at normal priority before childs are forked from it.
+//
+// This ends up being called repeatedly before each fork(), but there's
+// no real harm in that.
+static void ResetNicePriority(JNIEnv* env) {
+  errno = 0;
+  int prio = getpriority(PRIO_PROCESS, 0);
+  if (prio == -1 && errno != 0) {
+    ALOGW("getpriority failed: %s\n", strerror(errno));
+  }
+  if (prio != 0 && setpriority(PRIO_PROCESS, 0, 0) != 0) {
+    ALOGE("setpriority(%d, 0, 0) failed: %s", PRIO_PROCESS, strerror(errno));
+    RuntimeAbort(env, __LINE__, "setpriority failed");
   }
 }
 
@@ -438,7 +457,60 @@ static void SetForkLoad(bool boost) {
 #endif
 
 // The list of open zygote file descriptors.
-static FileDescriptorTable* gOpenFdTable = NULL;
+static FileDescriptorTable* gOpenFdTable = nullptr;
+
+class FDTWrapper {
+ public:
+  FDTWrapper(JNIEnv* env, jint* debug_flags) {
+    // When the requested fork is called with invoke-with, do not use the global
+    // file descriptor table (as there are additional pipes open). We must not
+    // skip the checks, though, as we still need to re-attach open descriptors.
+    constexpr jint kDebugInvokeWith = 1 << 8;
+    if ((*debug_flags & kDebugInvokeWith) == 0) {
+      CheckFileDescriptorTable(env, false, &gOpenFdTable);
+      fd_table_ = gOpenFdTable;
+    } else {
+      FileDescriptorTable* tmp = nullptr;
+      CheckFileDescriptorTable(env, true, &tmp);
+      fd_table_ = tmp;
+      invoke_with_fd_table_.reset(tmp);
+      *debug_flags &= ~kDebugInvokeWith;
+    }
+  }
+
+  bool ReopenOrDetach() {
+    return fd_table_->ReopenOrDetach();
+  }
+
+ private:
+  static inline void CheckFileDescriptorTable(JNIEnv* env,
+                                              bool permissive,
+                                              FileDescriptorTable** fd_table) {
+    // Close any logging related FDs before we start evaluating the list of
+    // file descriptors.
+    __android_log_close();
+
+    // If this is the first fork for this zygote, create the open FD table.
+    if (*fd_table == nullptr) {
+      *fd_table = FileDescriptorTable::Create(permissive);
+      if (*fd_table == nullptr) {
+        RuntimeAbort(env, __LINE__, "Unable to construct file descriptor table.");
+      }
+      return;
+    }
+
+    // If it isn't, we just need to check whether the list of open files has
+    // changed (and it shouldn't in the normal case).
+    if (!(*fd_table)->Restat()) {
+      RuntimeAbort(env, __LINE__, "Unable to restat file descriptor table.");
+    }
+  }
+
+  FileDescriptorTable* fd_table_;
+  std::unique_ptr<FileDescriptorTable> invoke_with_fd_table_;
+};
+
+
 
 // Utility routine to fork zygote and specialize the child process.
 static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArray javaGids,
@@ -454,21 +526,9 @@ static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArra
   SetForkLoad(true);
 #endif
 
-  // Close any logging related FDs before we start evaluating the list of
-  // file descriptors.
-  __android_log_close();
+  FDTWrapper fd_table(env, &debug_flags);
 
-  // If this is the first fork for this zygote, create the open FD table.
-  // If it isn't, we just need to check whether the list of open files has
-  // changed (and it shouldn't in the normal case).
-  if (gOpenFdTable == NULL) {
-    gOpenFdTable = FileDescriptorTable::Create();
-    if (gOpenFdTable == NULL) {
-      RuntimeAbort(env, __LINE__, "Unable to construct file descriptor table.");
-    }
-  } else if (!gOpenFdTable->Restat()) {
-    RuntimeAbort(env, __LINE__, "Unable to restat file descriptor table.");
-  }
+  ResetNicePriority(env);
 
   pid_t pid = fork();
 
@@ -481,7 +541,7 @@ static pid_t ForkAndSpecializeCommon(JNIEnv* env, uid_t uid, gid_t gid, jintArra
 
     // Re-open all remaining open file descriptors so that they aren't shared
     // with the zygote across a fork.
-    if (!gOpenFdTable->ReopenOrDetach()) {
+    if (!fd_table.ReopenOrDetach()) {
       RuntimeAbort(env, __LINE__, "Unable to reopen whitelisted descriptors.");
     }
 
@@ -720,4 +780,3 @@ int register_com_android_internal_os_Zygote(JNIEnv* env) {
   return RegisterMethodsOrDie(env, "com/android/internal/os/Zygote", gMethods, NELEM(gMethods));
 }
 }  // namespace android
-

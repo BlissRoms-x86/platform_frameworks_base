@@ -261,6 +261,7 @@ public class WallpaperManagerService extends IWallpaperManager.Stub {
                                 if (DEBUG) {
                                     Slog.v(TAG, "moved-to, therefore restore; reloading metadata");
                                 }
+                                SELinux.restorecon(changedFile);
                                 loadSettingsLocked(wallpaper.userId, true);
                             }
                             generateCrop(wallpaper);
@@ -1089,7 +1090,7 @@ public class WallpaperManagerService extends IWallpaperManager.Stub {
                     final WallpaperData fallback = new WallpaperData(wallpaper.userId,
                             WALLPAPER_LOCK_ORIG, WALLPAPER_LOCK_CROP);
                     ensureSaneWallpaperData(fallback);
-                    bindWallpaperComponentLocked(mImageWallpaper, true, false, fallback, reply);
+                    bindWallpaperComponentLocked(cname, true, false, fallback, reply);
                     mWaitingForUnlock = true;
                 }
             }

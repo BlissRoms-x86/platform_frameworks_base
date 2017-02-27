@@ -284,7 +284,7 @@ class SaveImageInBackgroundTask extends AsyncTask<Void, Void, Void> {
             // Create a delete action for the notification
             PendingIntent deleteAction = PendingIntent.getBroadcast(context,  0,
                     new Intent(context, GlobalScreenshot.DeleteScreenshotReceiver.class)
-                            .putExtra(GlobalScreenshot.SCREENSHOT_URI_ID, uri.toString()),
+                            .putExtra(GlobalScreenshot.SCREENSHOT_URI_ID, uri != null ? uri.toString() : null),
                     PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_ONE_SHOT);
             Notification.Action.Builder deleteActionBuilder = new Notification.Action.Builder(
                     R.drawable.ic_screenshot_delete,
@@ -385,7 +385,11 @@ class DeleteImageInBackgroundTask extends AsyncTask<Uri, Void, Void> {
 
         Uri screenshotUri = params[0];
         ContentResolver resolver = mContext.getContentResolver();
-        resolver.delete(screenshotUri, null, null);
+        try{
+            resolver.delete(screenshotUri, null, null);
+        } catch (UnsupportedOperationException e) {
+            e.printStackTrace();
+        }
         return null;
     }
 }
@@ -433,6 +437,7 @@ class GlobalScreenshot {
 
     private MediaActionSound mCameraSound;
 
+    private final int mSfHwRotation;
 
     /**
      * @param context everything needs a context :(
@@ -503,6 +508,9 @@ class GlobalScreenshot {
         // Setup the Camera shutter sound
         mCameraSound = new MediaActionSound();
         mCameraSound.load(MediaActionSound.SHUTTER_CLICK);
+
+        // Load hardware rotation from prop
+        mSfHwRotation = android.os.SystemProperties.getInt("ro.sf.hwrotation",0) / 90;
     }
 
     /**
@@ -547,7 +555,10 @@ class GlobalScreenshot {
         // only in the natural orientation of the device :!)
         mDisplay.getRealMetrics(mDisplayMetrics);
         float[] dims = {mDisplayMetrics.widthPixels, mDisplayMetrics.heightPixels};
-        float degrees = getDegreesForRotation(mDisplay.getRotation());
+        int rot = mDisplay.getRotation();
+        // Allow for abnormal hardware orientation
+        rot = (rot + mSfHwRotation) % 4;
+        float degrees = getDegreesForRotation(rot);
         boolean requiresRotation = (degrees > 0);
         if (requiresRotation) {
             // Get the dimensions of the device in its native orientation

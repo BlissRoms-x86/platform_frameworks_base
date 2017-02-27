@@ -130,6 +130,10 @@ public class QSCustomizer extends LinearLayout implements OnMenuItemClickListene
         mQsContainer = qsContainer;
     }
 
+    public void setenabled() {
+        mPhoneStatusBar.setenabled();
+    }
+
     public void show(int x, int y) {
         if (!isShown) {
             MetricsLogger.visible(getContext(), MetricsProto.MetricsEvent.QS_EDIT);
@@ -160,6 +164,10 @@ public class QSCustomizer extends LinearLayout implements OnMenuItemClickListene
                     R.string.accessibility_desc_quick_settings));
             mHost.getKeyguardMonitor().removeCallback(mKeyguardCallback);
         }
+    }
+
+    public boolean isShown() {
+        return isShown;
     }
 
     private void setCustomizing(boolean customizing) {
@@ -216,7 +224,9 @@ public class QSCustomizer extends LinearLayout implements OnMenuItemClickListene
     private final AnimatorListener mExpandAnimationListener = new AnimatorListenerAdapter() {
         @Override
         public void onAnimationEnd(Animator animation) {
-            setCustomizing(true);
+            if (isShown) {
+                setCustomizing(true);
+            }
             mNotifQsContainer.setCustomizerAnimating(false);
         }
 

@@ -90,6 +90,13 @@ public class WifiManager {
     public static final String EXTRA_SCAN_AVAILABLE = "scan_enabled";
 
     /**
+     *  ACTION_AUTH_PASSWORD_WRONG
+     *
+     * @ @hide
+     **/
+    public static final String  ACTION_AUTH_PASSWORD_WRONG = "Auth_password_wrong";
+
+    /**
      * Broadcast intent action indicating that the credential of a Wi-Fi network
      * has been changed. One extra provides the ssid of the network. Another
      * extra provides the event type, whether the credential is saved or forgot.
@@ -236,6 +243,14 @@ public class WifiManager {
         "android.net.wifi.WIFI_AP_STATE_CHANGED";
 
     /**
+     * Broadcast intent action indicating that Wi-Fi AP sub system has been restarted.
+     *
+     * @hide
+     */
+    public static final String WIFI_AP_SUB_SYSTEM_RESTART =
+        "android.net.wifi.WIFI_AP_SUB_SYSTEM_RESTART";
+
+    /**
      * The lookup key for an int that indicates whether Wi-Fi AP is enabled,
      * disabled, enabling, disabling, or failed.  Retrieve it with
      * {@link android.content.Intent#getIntExtra(String,int)}.
@@ -322,6 +337,12 @@ public class WifiManager {
      */
     @SystemApi
     public static final int WIFI_AP_STATE_FAILED = 14;
+
+    /**
+     * Wi-Fi AP is in restarting state
+     * @hide
+     */
+    public static final int WIFI_AP_STATE_RESTART = 15;
 
     /**
      *  If WIFI AP start failed, this reason code means there is no legal channel exists on
@@ -516,6 +537,14 @@ public class WifiManager {
      */
     public static final String LINK_CONFIGURATION_CHANGED_ACTION =
         "android.net.wifi.LINK_CONFIGURATION_CHANGED";
+
+    /**
+     * Broadcast intent action indicating that the user initiated Wifi OFF
+     * or APM ON and Wifi disconnection is in progress
+     * Actual Wifi disconnection happens after mDisconnectDelayDuration seconds.
+     * @hide
+     */
+    public static final String  ACTION_WIFI_DISCONNECT_IN_PROGRESS = "wifi_disconnect_in_progress";
 
     /**
      * The lookup key for a {@link android.net.LinkProperties} object associated with the
@@ -1307,6 +1336,7 @@ public class WifiManager {
      * returned.
      */
     public List<ScanResult> getScanResults() {
+        android.util.SeempLog.record(55);
         try {
             return mService.getScanResults(mContext.getOpPackageName());
         } catch (RemoteException e) {
@@ -2673,6 +2703,21 @@ public class WifiManager {
             return mService.getAllowScansWithTraffic();
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * get concurrency support
+     *
+     * @return true if concurrency is allowed.
+     *
+     * @hide no intent to publish
+     */
+    public boolean getWifiStaSapConcurrency() {
+        try {
+            return mService.getWifiStaSapConcurrency();
+        } catch (RemoteException e) {
+             throw e.rethrowFromSystemServer();
         }
     }
 

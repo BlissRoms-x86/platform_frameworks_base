@@ -84,7 +84,7 @@ import java.util.List;
  */
 public class FingerprintService extends SystemService implements IBinder.DeathRecipient {
     static final String TAG = "FingerprintService";
-    static final boolean DEBUG = true;
+    static final boolean DEBUG = false;
     private static final String FP_DATA_DIR = "fpdata";
     private static final String FINGERPRINTD = "android.hardware.fingerprint.IFingerprintDaemon";
     private static final int MSG_USER_SWITCHING = 10;
@@ -103,7 +103,7 @@ public class FingerprintService extends SystemService implements IBinder.DeathRe
             new ArrayList<>();
     private final AppOpsManager mAppOps;
     private static final long FAIL_LOCKOUT_TIMEOUT_MS = 30*1000;
-    private static final int MAX_FAILED_ATTEMPTS = 5;
+    private static final int MAX_FAILED_ATTEMPTS = 10;
     private static final long CANCEL_TIMEOUT_LIMIT = 3000; // max wait for onCancel() from HAL,in ms
     private final String mKeyguardPackage;
     private int mCurrentUserId = UserHandle.USER_CURRENT;
@@ -371,8 +371,10 @@ public class FingerprintService extends SystemService implements IBinder.DeathRe
     private void startClient(ClientMonitor newClient, boolean initiatedByClient) {
         ClientMonitor currentClient = mCurrentClient;
         if (currentClient != null) {
-            if (DEBUG) Slog.v(TAG, "request stop current client " + currentClient.getOwnerString());
-            currentClient.stop(initiatedByClient);
+            if(!currentClient.getIsCanceling()) {
+                if (DEBUG) Slog.v(TAG, "request stop current client " + currentClient.getOwnerString());
+                currentClient.stop(initiatedByClient);
+            }
             mPendingClient = newClient;
             mHandler.removeCallbacks(mResetClientState);
             mHandler.postDelayed(mResetClientState, CANCEL_TIMEOUT_LIMIT);
