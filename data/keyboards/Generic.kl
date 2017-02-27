@@ -139,13 +139,13 @@ key 116   POWER
 key 117   NUMPAD_EQUALS
 # key 118 "KEY_KPPLUSMINUS"
 key 119   BREAK
-# key 120 (undefined)
+key 120   APP_SWITCH
 key 121   NUMPAD_COMMA
 key 122   KANA
 key 123   EISU
 key 124   YEN
-key 125   META_LEFT
-key 126   META_RIGHT
+key 125   HOME
+key 126   HOME
 key 127   MENU
 key 128   MEDIA_STOP
 # key 129 "KEY_AGAIN"

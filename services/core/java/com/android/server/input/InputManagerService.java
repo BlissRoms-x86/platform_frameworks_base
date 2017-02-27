@@ -65,6 +65,7 @@ import android.hardware.input.TouchCalibration;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.FileObserver;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -284,6 +285,9 @@ public class InputManagerService extends IInputManager.Stub
     /** Switch code: Headphone/Microphone Jack.  When set, something is inserted. */
     public static final int SW_JACK_PHYSICAL_INSERT = 0x07;
 
+    /** Switch code: Video out jack.  When set, something is inserted. */
+    public static final int SW_VIDEOOUT_INSERT = 0x08;
+
     /** Switch code: Camera lens cover. When set the lens is covered. */
     public static final int SW_CAMERA_LENS_COVER = 0x09;
 
@@ -294,12 +298,26 @@ public class InputManagerService extends IInputManager.Stub
     public static final int SW_MICROPHONE_INSERT_BIT = 1 << SW_MICROPHONE_INSERT;
     public static final int SW_LINEOUT_INSERT_BIT = 1 << SW_LINEOUT_INSERT;
     public static final int SW_JACK_PHYSICAL_INSERT_BIT = 1 << SW_JACK_PHYSICAL_INSERT;
+    public static final int SW_VIDEOOUT_INSERT_BIT = 1 << SW_VIDEOOUT_INSERT;
     public static final int SW_JACK_BITS =
-            SW_HEADPHONE_INSERT_BIT | SW_MICROPHONE_INSERT_BIT | SW_JACK_PHYSICAL_INSERT_BIT | SW_LINEOUT_INSERT_BIT;
+            SW_HEADPHONE_INSERT_BIT | SW_MICROPHONE_INSERT_BIT | SW_JACK_PHYSICAL_INSERT_BIT | SW_LINEOUT_INSERT_BIT | SW_VIDEOOUT_INSERT_BIT;
     public static final int SW_CAMERA_LENS_COVER_BIT = 1 << SW_CAMERA_LENS_COVER;
 
     /** Whether to use the dev/input/event or uevent subsystem for the audio jack. */
     final boolean mUseDevInputEventForAudioJack;
+
+    private class TscalObserver extends FileObserver {
+        public TscalObserver() {
+            super("/data/misc/tscal/pointercal", CLOSE_WRITE);
+        }
+
+        @Override
+        public void onEvent(int event, String path) {
+            Slog.i(TAG, "detect pointercal changed");
+            reloadDeviceAliases();
+        }
+    }
+    private final TscalObserver mTscalObserver = new TscalObserver();
 
     public InputManagerService(Context context) {
         this.mContext = context;
@@ -317,6 +335,7 @@ public class InputManagerService extends IInputManager.Stub
             new File(doubleTouchGestureEnablePath);
 
         LocalServices.addService(InputManagerInternal.class, new LocalService());
+        mTscalObserver.startWatching();
     }
 
     public void setWindowManagerCallbacks(WindowManagerCallbacks callbacks) {
