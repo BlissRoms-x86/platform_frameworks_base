@@ -63,7 +63,7 @@ public abstract class PanelView extends FrameLayout {
     private float mInitialOffsetOnTouch;
     private boolean mCollapsedAndHeadsUpOnDown;
     private float mExpandedFraction = 0;
-    protected float mExpandedHeight = 0;
+    protected static float mExpandedHeight = 0;
     private boolean mPanelClosedOnDown;
     private boolean mHasLayoutedSinceDown;
     private float mUpdateFlingVelocity;
@@ -761,7 +761,7 @@ public abstract class PanelView extends FrameLayout {
         }
     }
 
-    public void setExpandedHeightInternal(float h) {
+    public synchronized void setExpandedHeightInternal(float h) {
         float fhWithoutOverExpansion = getMaxPanelHeight() - getOverExpansionAmount();
         if (mHeightAnimator == null) {
             float overExpansionPixels = Math.max(0, h - fhWithoutOverExpansion);
@@ -822,7 +822,7 @@ public abstract class PanelView extends FrameLayout {
         return mExpandedHeight >= getMaxPanelHeight();
     }
 
-    public boolean isFullyCollapsed() {
+    public static boolean isFullyCollapsed() {
         return mExpandedHeight <= 0;
     }
 
