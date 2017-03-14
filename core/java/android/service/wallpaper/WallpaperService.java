@@ -58,6 +58,8 @@ import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
 import android.view.WindowManagerGlobal;
 
+import dalvik.system.VMRuntime;
+
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
@@ -191,7 +193,7 @@ public abstract class WallpaperService extends Service {
 
         final BaseSurfaceHolder mSurfaceHolder = new BaseSurfaceHolder() {
             {
-                mRequestedFormat = PixelFormat.RGBX_8888;
+                mRequestedFormat = VMRuntime.getRuntime().is64Bit() ? PixelFormat.RGBX_8888 : PixelFormat.RGBA_8888;
             }
 
             @Override
