@@ -106,6 +106,8 @@ class FileDescriptorInfo {
     std::string file_path;
     if (!Readlink(fd, &file_path)) {
       return NULL;
+    } else if (!strncmp(file_path.c_str(), "/android/", 9)) {
+        file_path = file_path.substr(8);
     }
 
     if (!IsWhitelisted(file_path)) {
