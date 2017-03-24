@@ -52,6 +52,7 @@ public class DiskInfo implements Parcelable {
     public static final int FLAG_USB = 1 << 3;
     /** The FLAG_STUB_VISIBLE is set from vold, which gets the flag from outside (e.g., ChromeOS) */
     public static final int FLAG_STUB_VISIBLE = 1 << 6;
+    public static final int FLAG_CDROM = 1 << 8;
 
     public final String id;
     @UnsupportedAppUsage
@@ -117,6 +118,12 @@ public class DiskInfo implements Parcelable {
                 return res.getString(com.android.internal.R.string.storage_usb_drive_label, label);
             } else {
                 return res.getString(com.android.internal.R.string.storage_usb_drive);
+            }
+        } else if ((flags & FLAG_CDROM) != 0) {
+            if (isInteresting(label)) {
+                return res.getString(com.android.internal.R.string.storage_cdrom_label, label);
+            } else {
+                return res.getString(com.android.internal.R.string.storage_cdrom);
             }
         } else {
             return null;
