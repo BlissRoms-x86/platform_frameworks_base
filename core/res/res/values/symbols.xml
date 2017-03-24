@@ -2732,6 +2732,8 @@
   <java-symbol type="string" name="storage_sd_card_label" />
   <java-symbol type="string" name="storage_usb_drive" />
   <java-symbol type="string" name="storage_usb_drive_label" />
+  <java-symbol type="string" name="storage_cdrom" />
+  <java-symbol type="string" name="storage_cdrom_label" />
   <java-symbol type="string" name="storage_usb" />
 
   <java-symbol type="drawable" name="ic_eject_24dp" />
