@@ -47,6 +47,7 @@ public class DiskInfo implements Parcelable {
     public static final int FLAG_DEFAULT_PRIMARY = 1 << 1;
     public static final int FLAG_SD = 1 << 2;
     public static final int FLAG_USB = 1 << 3;
+    public static final int FLAG_CDROM = 1 << 6;
 
     public final String id;
     public final int flags;
@@ -106,6 +107,12 @@ public class DiskInfo implements Parcelable {
                 return res.getString(com.android.internal.R.string.storage_usb_drive_label, label);
             } else {
                 return res.getString(com.android.internal.R.string.storage_usb_drive);
+            }
+        } else if ((flags & FLAG_CDROM) != 0) {
+            if (isInteresting(label)) {
+                return res.getString(com.android.internal.R.string.storage_cdrom_label, label);
+            } else {
+                return res.getString(com.android.internal.R.string.storage_cdrom);
             }
         } else {
             return null;
