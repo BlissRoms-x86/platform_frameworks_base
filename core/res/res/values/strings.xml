@@ -4134,6 +4134,11 @@
     <!-- Storage description for a USB drive from a specific manufacturer. [CHAR LIMIT=NONE] -->
     <string name="storage_usb_drive_label"><xliff:g id="manufacturer" example="Seagate">%s</xliff:g> USB drive</string>
 
+    <!-- Storage description for a generic CDROM drive. [CHAR LIMIT=NONE] -->
+    <string name="storage_cdrom">CD/DVD drive</string>
+    <!-- Storage description for a CDROM drive from a specific manufacturer. [CHAR LIMIT=NONE] -->
+    <string name="storage_cdrom_label"><xliff:g id="manufacturer" example="ASUS">%s</xliff:g> CD/DVD drive</string>
+
     <!-- Storage description for USB storage. [CHAR LIMIT=NONE] -->
     <string name="storage_usb">USB storage</string>
 
