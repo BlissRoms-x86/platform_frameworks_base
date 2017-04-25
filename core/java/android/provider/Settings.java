@@ -2707,6 +2707,13 @@ public final class Settings {
             "lock_pattern_tactile_feedback_enabled";
 
         /**
+         * Whether to use the custom quick unlock screen control
+         * @hide
+         */
+        public static final String LOCKSCREEN_QUICK_UNLOCK_CONTROL =
+                "lockscreen_quick_unlock_control";
+
+        /**
          * A formatted string of the next alarm that is set, or the empty string
          * if there is no alarm set.
          *
@@ -3692,6 +3699,30 @@ public final class Settings {
         /** @hide */
         public static final Validator POINTER_SPEED_VALIDATOR =
                 new InclusiveFloatRangeValidator(-7, 7);
+   
+        /**
+         * XOSP Blur personalization settings
+         * @hide
+         */
+        public static final String STATUS_BAR_EXPANDED_ENABLED_PREFERENCE_KEY = "blurred_status_bar_expanded_enabled_pref";
+   
+        public static final String BLUR_SCALE_PREFERENCE_KEY = "blurred_expanded_panel_scale_pref";
+   
+        public static final String BLUR_RADIUS_PREFERENCE_KEY = "blurred_expanded_panel_radius_pref";
+  
+        public static final String TRANSLUCENT_NOTIFICATIONS_PRECENTAGE_PREFERENCE_KEY = "translucent_notifications_percentage_pref";
+
+        public static final String TRANSLUCENT_QUICK_SETTINGS_PRECENTAGE_PREFERENCE_KEY = "translucent_quick_settings_percentage_pref";
+   
+        public static final String TRANSLUCENT_QUICK_SETTINGS_PREFERENCE_KEY = "translucent_quick_settings_pref";
+   
+        public static final String TRANSLUCENT_NOTIFICATIONS_PREFERENCE_KEY = "translucent_notifications_pref";
+
+        public static final String RECENT_APPS_ENABLED_PREFERENCE_KEY = "blurred_recent_app_enabled_pref";
+
+        public static final String RECENT_APPS_SCALE_PREFERENCE_KEY = "blurred_recent_app_scale_pref";
+
+        public static final String RECENT_APPS_RADIUS_PREFERENCE_KEY = "blurred_recent_app_radius_pref";
 
         /**
          * Whether lock-to-app will be triggered by long-press on recents.
@@ -3985,6 +4016,35 @@ public final class Settings {
          * @hide
          */
         public static final String STATUS_BAR_BLISS_LOGO_COLOR = "status_bar_bliss_logo_color";
+
+        /**
+         * Whether the user has enabled headsup (Default 1)
+         * HeadsUp is enabled by default within its Settings.Global.HEADS_UP_NOTIFICATIONS_ENABLED
+         * setting. Avoid changing low level implementations and use a System setting to
+         * override per-user heads up on/off preference.
+         *
+         * Enable headsup = 1 (on by default)
+         * Disable headsup = 0
+         *
+         * @see com.android.systemui.statusbar.BaseStatusBar#addNotification
+         * @hide
+         */
+        public static final String HEADS_UP_USER_ENABLED = "heads_up_user_enabled";
+
+        /** @hide */ public static final int HEADS_UP_USER_OFF = 0;
+        /** @hide */ public static final int HEADS_UP_USER_ON = 1;
+
+        /**
+         * Heads up timeout configuration
+         * @hide
+         */
+        public static final String HEADS_UP_TIMEOUT = "heads_up_timeout";
+
+        /**
+         * Defines the global heads up notification snooze
+         * @hide
+         */
+        public static final String HEADS_UP_NOTIFICATION_SNOOZE = "heads_up_notification_snooze";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
@@ -5235,6 +5295,12 @@ public final class Settings {
          * <p>0 = do not allow use of the package installer
          */
         public static final String INSTALL_NON_MARKET_APPS = "install_non_market_apps";
+
+        /**
+         * Launch actions for left/right lockscreen targets
+         * @hide
+         */
+        public static final String LOCKSCREEN_TARGETS = "lockscreen_target_actions";
 
         /**
          * Comma-separated list of location providers that activities may access. Do not rely on
@@ -6835,6 +6901,12 @@ public final class Settings {
          * @hide
          */
         public static final String WEB_ACTION_ENABLED = "web_action_enabled";
+
+        /**
+         * Force authorize Substratum (or equivalent) frontend calling packages by Masquerade
+         * @hide
+         */
+        public static final String FORCE_AUTHORIZE_SUBSTRATUM_PACKAGES = "force_authorize_substratum_packages";
 
         /**
          * This are the settings to be backed up.

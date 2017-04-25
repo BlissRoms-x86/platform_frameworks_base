@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.PorterDuff.Mode;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Handler;
@@ -57,7 +58,8 @@ public class TileQueryHelper {
     }
 
     private void addSystemTiles(final QSTileHost host) {
-        String possible = mContext.getString(R.string.quick_settings_tiles_stock);
+        String possible = mContext.getString(R.string.quick_settings_tiles_default)
+                + "," + mContext.getString(R.string.quick_settings_tiles_extra);
         String[] possibleTiles = possible.split(",");
         final Handler qsHandler = new Handler(host.getLooper());
         final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -178,6 +180,7 @@ public class TileQueryHelper {
                 }
                 icon.mutate();
                 icon.setTint(mContext.getColor(R.color.external_qs_tile_tint_color));
+                icon.setTintMode(Mode.SRC_ATOP);
                 CharSequence label = info.serviceInfo.loadLabel(pm);
                 addTile(spec, icon, label != null ? label.toString() : "null", appLabel, mContext);
             }

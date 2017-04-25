@@ -279,7 +279,7 @@
                   android:excludeFromRecents="true"
                   android:stateNotNeeded="true"
                   android:resumeWhilePausing="true"
-                  android:screenOrientation="behind"
+                  android:screenOrientation="fullUser"
                   android:resizeableActivity="true"
                   android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout"
                   android:theme="@style/RecentsTheme.Wallpaper">
@@ -320,6 +320,15 @@
         <receiver android:name=".screenshot.GlobalScreenshot$DeleteScreenshotReceiver"
                   android:process=":screenshot"
                   android:exported="false" />
+
+        <activity
+            android:name=".bliss.LockscreenShortcutsActivity"
+            android:icon="@drawable/tuner"
+            android:label="@string/lockscreen_targets_message"
+            android:theme="@android:style/Theme.Material.Settings"
+            android:process=":cmsettings"
+            android:exported="true">
+        </activity>
 
         <!-- started from UsbDeviceSettingsManager -->
         <activity android:name=".usb.UsbConfirmActivity"

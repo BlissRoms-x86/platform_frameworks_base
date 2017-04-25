@@ -41,6 +41,8 @@ import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.WindowManager;
 
+import dalvik.system.VMRuntime;
+
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -81,7 +83,7 @@ public class ImageWallpaper extends WallpaperService {
         //noinspection PointlessBooleanExpression,ConstantConditions
         if (FIXED_SIZED_SURFACE && USE_OPENGL) {
             if (!isEmulator()) {
-                mIsHwAccelerated = ActivityManager.isHighEndGfx();
+                mIsHwAccelerated = ActivityManager.isHighEndGfx() && VMRuntime.getRuntime().is64Bit();
             }
         }
     }

@@ -24,6 +24,7 @@ import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.RippleDrawable;
 import android.os.UserManager;
+import android.os.UserHandle;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -37,6 +38,7 @@ import com.android.internal.logging.MetricsProto;
 import com.android.keyguard.KeyguardStatusView;
 import com.android.systemui.FontSizeUtils;
 import com.android.systemui.R;
+import com.android.systemui.bliss.UserContentObserver;
 import com.android.systemui.qs.QSPanel;
 import com.android.systemui.qs.QSPanel.Callback;
 import com.android.systemui.qs.QuickQSPanel;
@@ -133,7 +135,6 @@ public class QuickStatusBarHeader extends BaseStatusBarHeader implements
         // settings), so disable it for this view
         ((RippleDrawable) mSettingsButton.getBackground()).setForceSoftware(true);
         ((RippleDrawable) mExpandIndicator.getBackground()).setForceSoftware(true);
-
         updateResources();
     }
 
@@ -323,24 +324,7 @@ public class QuickStatusBarHeader extends BaseStatusBarHeader implements
             MetricsLogger.action(mContext,
                     mExpanded ? MetricsProto.MetricsEvent.ACTION_QS_EXPANDED_SETTINGS_LAUNCH
                             : MetricsProto.MetricsEvent.ACTION_QS_COLLAPSED_SETTINGS_LAUNCH);
-            if (mSettingsButton.isTunerClick()) {
-                mHost.startRunnableDismissingKeyguard(() -> post(() -> {
-                    if (TunerService.isTunerEnabled(mContext)) {
-                        TunerService.showResetRequest(mContext, () -> {
-                            // Relaunch settings so that the tuner disappears.
-                            startSettingsActivity();
-                        });
-                    } else {
-                        Toast.makeText(getContext(), R.string.tuner_toast,
-                                Toast.LENGTH_LONG).show();
-                        TunerService.setTunerEnabled(mContext, true);
-                    }
-                    startSettingsActivity();
-
-                }));
-            } else {
                 startSettingsActivity();
-            }
         } else if (v == mAlarmStatus && mNextAlarm != null) {
             PendingIntent showIntent = mNextAlarm.getShowIntent();
             mActivityStarter.startPendingIntentDismissingKeyguard(showIntent);
@@ -382,7 +366,7 @@ public class QuickStatusBarHeader extends BaseStatusBarHeader implements
             }
         }
     }
-
+    
     @Override
     public void onUserInfoChanged(String name, Drawable picture) {
         mMultiUserAvatar.setImageDrawable(picture);
