@@ -76,26 +76,20 @@ import dalvik.system.VMRuntime;
  * <dl>
  * <dt><code>android:name</code></dt>
  * <dd>Defines the name of this vector drawable.</dd>
- * <dd>Animatable : No.</dd>
  * <dt><code>android:width</code></dt>
  * <dd>Used to define the intrinsic width of the drawable.
  * This support all the dimension units, normally specified with dp.</dd>
- * <dd>Animatable : No.</dd>
  * <dt><code>android:height</code></dt>
  * <dd>Used to define the intrinsic height the drawable.
  * This support all the dimension units, normally specified with dp.</dd>
- * <dd>Animatable : No.</dd>
  * <dt><code>android:viewportWidth</code></dt>
  * <dd>Used to define the width of the viewport space. Viewport is basically
  * the virtual canvas where the paths are drawn on.</dd>
- * <dd>Animatable : No.</dd>
  * <dt><code>android:viewportHeight</code></dt>
  * <dd>Used to define the height of the viewport space. Viewport is basically
  * the virtual canvas where the paths are drawn on.</dd>
- * <dd>Animatable : No.</dd>
  * <dt><code>android:tint</code></dt>
  * <dd>The color to apply to the drawable as a tint. By default, no tint is applied.</dd>
- * <dd>Animatable : No.</dd>
  * <dt><code>android:tintMode</code></dt>
  * <dd>The Porter-Duff blending mode for the tint color. Default is src_in.</dd>
  * <dt><code>android:autoMirrored</code></dt>
@@ -114,7 +108,6 @@ import dalvik.system.VMRuntime;
  * <dl>
  * <dt><code>android:name</code></dt>
  * <dd>Defines the name of the group.</dd>
- * <dd>Animatable : No.</dd>
  * <dt><code>android:rotation</code></dt>
  * <dd>The degrees of rotation of the group. Default is 0.</dd>
  * <dt><code>android:pivotX</code></dt>
@@ -142,11 +135,9 @@ import dalvik.system.VMRuntime;
  * <dl>
  * <dt><code>android:name</code></dt>
  * <dd>Defines the name of the path.</dd>
- * <dd>Animatable : No.</dd>
  * <dt><code>android:pathData</code></dt>
  * <dd>Defines path data using exactly same format as "d" attribute
  * in the SVG's path data. This is defined in the viewport space.</dd>
- * <dd>Animatable : Yes.</dd>
  * <dt><code>android:fillColor</code></dt>
  * <dd>Specifies the color used to fill the path. May be a color or, for SDK 24+, a color state list
  * or a gradient color (See {@link android.R.styleable#GradientColor}
