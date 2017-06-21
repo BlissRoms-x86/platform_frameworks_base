@@ -102,6 +102,7 @@ public class RecentsTransitionHelper {
             final TaskStackView stackView, final TaskView taskView,
             final boolean screenPinningRequested, final Rect bounds, final int destinationStack) {
         final ActivityOptions opts = ActivityOptions.makeBasic();
+        opts.setLaunchStackId(destinationStack);
         if (bounds != null) {
             opts.setLaunchBounds(bounds.isEmpty() ? null : bounds);
         }
