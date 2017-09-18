@@ -1788,6 +1788,34 @@ class DisplayContent extends WindowContainer<DisplayContent.DisplayChildWindowCo
         mInitialDisplayCutout = mDisplayInfo.displayCutout;
     }
 
+    void getLogicalDisplayRect(Rect out) {
+        // Uses same calculation as in LogicalDisplay#configureDisplayInTransactionLocked.
+        final int orientation = mDisplayInfo.rotation;
+        boolean rotated = (orientation == ROTATION_90 || orientation == ROTATION_270);
+        boolean forcedOrientation = mService.mPolicy.isDefaultOrientationForced();
+        final int physWidth = rotated ? mBaseDisplayHeight : mBaseDisplayWidth;
+        final int physHeight = rotated ? mBaseDisplayWidth : mBaseDisplayHeight;
+        int width = mDisplayInfo.logicalWidth;
+        int left = forcedOrientation ? 0 : (physWidth - width) / 2;
+        int height = mDisplayInfo.logicalHeight;
+        int top = forcedOrientation ? 0 : (physHeight - height) / 2;
+        out.set(left, top, left + width, top + height);
+    }
+
+    private void getLogicalDisplayRect(Rect out, int orientation) {
+        getLogicalDisplayRect(out);
+
+        // Rotate the Rect if needed.
+        final int currentRotation = mDisplayInfo.rotation;
+        final int rotationDelta = deltaRotation(currentRotation, orientation);
+        if (rotationDelta == ROTATION_90 || rotationDelta == ROTATION_270) {
+            createRotationMatrix(rotationDelta, mBaseDisplayWidth, mBaseDisplayHeight, mTmpMatrix);
+            mTmpRectF.set(out);
+            mTmpMatrix.mapRect(mTmpRectF);
+            mTmpRectF.round(out);
+        }
+    }
+
     /**
      * If display metrics changed, overrides are not set and it's not just a rotation - update base
      * values.
