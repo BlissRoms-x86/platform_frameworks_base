@@ -372,7 +372,9 @@ public final class DisplayManagerService extends SystemService {
                             + ", brightness=" + brightness + ")");
                     mGlobalDisplayState = state;
                     mGlobalDisplayBrightness = brightness;
-                    applyGlobalDisplayStateLocked(mTempDisplayStateWorkQueue);
+                    if (state != Display.STATE_OFF) {
+                        applyGlobalDisplayStateLocked(mTempDisplayStateWorkQueue);
+                    }
                 }
 
                 // Setting the display power state can take hundreds of milliseconds
