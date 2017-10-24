@@ -235,10 +235,11 @@ class DisplayContent {
                 || orientation == Surface.ROTATION_270);
         final int physWidth = rotated ? mBaseDisplayHeight : mBaseDisplayWidth;
         final int physHeight = rotated ? mBaseDisplayWidth : mBaseDisplayHeight;
+        boolean forcedOrientation = mService.mPolicy.isDefaultOrientationForced();
         int width = mDisplayInfo.logicalWidth;
-        int left = (physWidth - width) / 2;
+        int left = forcedOrientation ? 0 : (physWidth - width) / 2;
         int height = mDisplayInfo.logicalHeight;
-        int top = (physHeight - height) / 2;
+        int top = forcedOrientation ? 0 : (physHeight - height) / 2;
         out.set(left, top, left + width, top + height);
     }
 

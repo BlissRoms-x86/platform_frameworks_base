@@ -1682,7 +1682,7 @@ final class WindowState implements WindowManagerPolicy.WindowState {
 
     int getTouchableRegion(Region region, int flags) {
         final boolean modal = (flags & (FLAG_NOT_TOUCH_MODAL | FLAG_NOT_FOCUSABLE)) == 0;
-        if (modal && mAppToken != null) {
+        if (modal && mAppToken != null && !mAppToken.appFullscreen) {
             // Limit the outer touch to the activity stack region.
             flags |= FLAG_NOT_TOUCH_MODAL;
             // If this is a modal window we need to dismiss it if it's not full screen and the
