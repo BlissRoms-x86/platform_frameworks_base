@@ -198,9 +198,12 @@ public class Input {
         injectKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, 0,
                 KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0, inputSource));
         if (longpress) {
-            injectKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 1, 0,
-                    KeyCharacterMap.VIRTUAL_KEYBOARD, 0, KeyEvent.FLAG_LONG_PRESS,
-                    inputSource));
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+            now = SystemClock.uptimeMillis();
         }
         injectKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, 0,
                 KeyCharacterMap.VIRTUAL_KEYBOARD, 0, 0, inputSource));
