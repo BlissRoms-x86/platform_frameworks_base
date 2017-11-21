@@ -192,7 +192,7 @@ public class Input extends BaseCommand {
         }
 
         private void sendKeyEvent(int inputSource, int keyCode, boolean longpress, int displayId) {
-            final long now = SystemClock.uptimeMillis();
+            long now = SystemClock.uptimeMillis();
             int repeatCount = 0;
 
             KeyEvent event = new KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, repeatCount,
@@ -202,9 +202,13 @@ public class Input extends BaseCommand {
 
             injectKeyEvent(event);
             if (longpress) {
-                repeatCount++;
-                injectKeyEvent(KeyEvent.changeTimeRepeat(event, now, repeatCount,
-                        KeyEvent.FLAG_LONG_PRESS));
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                now = SystemClock.uptimeMillis();
+                event = KeyEvent.changeTimeRepeat(event, now, repeatCount);
             }
             injectKeyEvent(KeyEvent.changeAction(event, KeyEvent.ACTION_UP));
         }
