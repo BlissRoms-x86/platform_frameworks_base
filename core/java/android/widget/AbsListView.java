@@ -3927,6 +3927,39 @@ public abstract class AbsListView extends AdapterView<ListAdapter> implements Te
     }
 
     @Override
+    public boolean onHoverEvent(@NonNull MotionEvent ev) {
+        final int action = ev.getActionMasked();
+
+        // Allow the super class to handle hover state management first.
+        final boolean handled = super.onHoverEvent(ev);
+        if (action == MotionEvent.ACTION_HOVER_ENTER
+                || action == MotionEvent.ACTION_HOVER_MOVE) {
+            final int position = pointToPosition((int) ev.getX(), (int) ev.getY());
+            if (position != INVALID_POSITION && position != mSelectedPosition) {
+                final View hoveredItem = getChildAt(position - getFirstVisiblePosition());
+                if (hoveredItem.isEnabled()) {
+                    // Force a focus so that the proper selector state gets
+                    // used when we update.
+                    requestFocus();
+                    positionSelector(position, hoveredItem);
+                    setSelectedPositionInt(position);
+                    setNextSelectedPositionInt(position);
+                }
+                updateSelectorState();
+            }
+        } else {
+            // Do not cancel the selected position if the selection is visible
+            // by other means.
+            if (!shouldShowSelector()) {
+                setSelectedPositionInt(INVALID_POSITION);
+                setNextSelectedPositionInt(INVALID_POSITION);
+            }
+        }
+
+        return handled;
+    }
+
+    @Override
     public boolean onTouchEvent(MotionEvent ev) {
         if (!isEnabled()) {
             // A disabled view that is clickable still consumes the touch
