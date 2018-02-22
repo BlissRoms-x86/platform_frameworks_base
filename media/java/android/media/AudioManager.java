@@ -1682,7 +1682,13 @@ public class AudioManager {
             AudioSystem.getDeviceConnectionState(DEVICE_OUT_WIRED_HEADPHONE,"")
                 == AudioSystem.DEVICE_STATE_UNAVAILABLE &&
             AudioSystem.getDeviceConnectionState(DEVICE_OUT_USB_HEADSET, "")
-              == AudioSystem.DEVICE_STATE_UNAVAILABLE) {
+              == AudioSystem.DEVICE_STATE_UNAVAILABLE &&
+             AudioSystem.getDeviceConnectionState(DEVICE_OUT_USB_DEVICE, "")
+              == AudioSystem.DEVICE_STATE_UNAVAILABLE &&
+             AudioSystem.getDeviceConnectionState(DEVICE_OUT_SPEAKER, "")
+              == AudioSystem.DEVICE_STATE_UNAVAILABLE)
+
+        {
             return false;
         } else {
             return true;
