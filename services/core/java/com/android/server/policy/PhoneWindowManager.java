@@ -1640,6 +1640,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 }
             }
         }
+        finishPowerKeyPress();
     }
 
     private void interceptPowerKeyUp(KeyEvent event, boolean interactive, boolean canceled) {
@@ -7185,8 +7186,6 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 isWakeKey = false; // wake-up will be handled separately
                 if (down) {
                     interceptPowerKeyDown(event, interactive);
-                } else {
-                    interceptPowerKeyUp(event, interactive, canceled);
                 }
                 break;
             }
