@@ -41,10 +41,12 @@ import android.net.ConnectivityManager;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Message;
+import android.os.PowerManager;
 import android.os.Messenger;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -126,6 +128,7 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
     private static final String GLOBAL_ACTION_KEY_VOICEASSIST = "voiceassist";
     private static final String GLOBAL_ACTION_KEY_ASSIST = "assist";
     private static final String GLOBAL_ACTION_KEY_RESTART = "restart";
+    private static final String GLOBAL_ACTION_KEY_SLEEP = "sleep";
     private static final String GLOBAL_ACTION_KEY_LOGOUT = "logout";
     private static final String GLOBAL_ACTION_KEY_EMERGENCY = "emergency";
     private static final String GLOBAL_ACTION_KEY_SCREENSHOT = "screenshot";
@@ -407,6 +410,8 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
                 mItems.add(getAssistAction());
             } else if (GLOBAL_ACTION_KEY_RESTART.equals(actionKey)) {
                 mItems.add(new RestartAction());
+            } else if (GLOBAL_ACTION_KEY_SLEEP.equals(actionKey)) {
+                mItems.add(new SleepAction());
             } else if (GLOBAL_ACTION_KEY_SCREENSHOT.equals(actionKey)) {
                 mItems.add(new ScreenshotAction());
             } else if (GLOBAL_ACTION_KEY_LOGOUT.equals(actionKey)) {
@@ -637,6 +642,37 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             mWindowManagerFuncs.reboot(false, null);
         }
     }
+    
+    private final class SleepAction extends SinglePressAction implements LongPressAction { 
+        private SleepAction() { 
+            super(R.drawable.ic_restart, R.string.global_action_sleep); 
+        } 
+ 
+        @Override 
+        public boolean onLongPress() { 
+            PowerManager mPowerManager = (PowerManager) 
+                   mContext.getSystemService(Context.POWER_SERVICE); 
+            mPowerManager.goToSleep(SystemClock.uptimeMillis()); 
+            return true; 
+        } 
+ 
+        @Override 
+        public boolean showDuringKeyguard() { 
+            return true; 
+        } 
+ 
+        @Override 
+        public boolean showBeforeProvisioning() { 
+            return true; 
+        } 
+ 
+        @Override 
+        public void onPress() { 
+            PowerManager mPowerManager = (PowerManager) 
+                   mContext.getSystemService(Context.POWER_SERVICE); 
+            mPowerManager.goToSleep(SystemClock.uptimeMillis()); 
+        } 
+    } 
 
     private final class RebootRecoveryAction extends SinglePressAction {
         private RebootRecoveryAction() {
