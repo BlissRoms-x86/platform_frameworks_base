@@ -560,6 +560,9 @@
 
     <!-- label for item that restarts phone in phone options dialog [CHAR LIMIT=24]-->
     <string name="global_action_restart">Restart</string>
+    
+    <!-- label for item that puts device to sleep in phone options dialog [CHAR LIMIT=24]-->
+    <string name="global_action_sleep">Sleep</string>
 
     <!-- label for item that opens emergency features in the phone options dialog [CHAR LIMIT=24]-->
     <string name="global_action_emergency">Emergency</string>
