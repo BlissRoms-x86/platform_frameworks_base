@@ -519,6 +519,8 @@
     <!-- TODO: promote to separate string-->
     <string name="global_action_restart" translatable="false">@string/sim_restart_button</string>
 
+    <string name="global_action_sleep">Sleep</string>
+
     <!-- label for item that starts emergency call -->
     <string name="global_action_emergency">Emergency</string>
 
