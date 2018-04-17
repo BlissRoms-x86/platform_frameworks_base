@@ -60,6 +60,7 @@ import android.os.Process;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -139,6 +140,7 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
 
     private static final boolean SHOW_SILENT_TOGGLE = false;
 
+    private static final String GLOBAL_ACTION_KEY_SLEEP = "sleep";
     private final Context mContext;
     private final GlobalActionsManager mWindowManagerFuncs;
     private final AudioManager mAudioManager;
@@ -461,6 +463,8 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             } else if (GLOBAL_ACTION_KEY_RESTART_SYSTEMUI.equals(actionKey) &&
                     PowerMenuUtils.isAdvancedRestartPossible(mContext)) {
                 mItems.add(new RestartSystemUIAction());
+            } else if (GLOBAL_ACTION_KEY_SLEEP.equals(actionKey)) {
+                mItems.add(new SleepAction());
             } else if (GLOBAL_ACTION_KEY_SCREENSHOT.equals(actionKey)) {
                 mItems.add(new ScreenshotAction());
             } else if (mScreenRecordAvailable && GLOBAL_ACTION_KEY_SCREENRECORD.equals(actionKey)) {
@@ -620,6 +624,37 @@ public class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             return true;
         }
     }
+    
+    private final class SleepAction extends SinglePressAction implements LongPressAction { 
+        private SleepAction() { 
+            super(R.drawable.ic_restart, R.string.global_action_sleep); 
+        } 
+ 
+        @Override 
+        public boolean onLongPress() { 
+            PowerManager mPowerManager = (PowerManager) 
+                   mContext.getSystemService(Context.POWER_SERVICE); 
+            mPowerManager.goToSleep(SystemClock.uptimeMillis()); 
+            return true; 
+        } 
+ 
+        @Override 
+        public boolean showDuringKeyguard() { 
+            return true; 
+        } 
+ 
+        @Override 
+        public boolean showBeforeProvisioning() { 
+            return true; 
+        } 
+ 
+        @Override 
+        public void onPress() { 
+            PowerManager mPowerManager = (PowerManager) 
+                   mContext.getSystemService(Context.POWER_SERVICE); 
+            mPowerManager.goToSleep(SystemClock.uptimeMillis()); 
+        } 
+    } 
 
     private class EmergencyAffordanceAction extends EmergencyAction {
         EmergencyAffordanceAction() {
