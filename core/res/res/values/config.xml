@@ -3020,6 +3020,7 @@
         <item>lockdown</item>
         <item>power</item>
         <item>restart</item>
+        <item>sleep</item>
         <item>logout</item>
         <item>bugreport</item>
     </string-array>
