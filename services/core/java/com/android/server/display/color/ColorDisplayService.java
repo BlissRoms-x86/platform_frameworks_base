@@ -155,10 +155,10 @@ public final class ColorDisplayService extends SystemService {
      * ProgramCache for full implementation details.
      */
     private static final float[] MATRIX_INVERT_COLOR = new float[]{
-            0.402f, -0.598f, -0.599f, 0f,
-            -1.174f, -0.174f, -1.175f, 0f,
-            -0.228f, -0.228f, 0.772f, 0f,
-            1f, 1f, 1f, 1f
+       0.0f, 0.0f, 1.0f, 0,
+       0.0f, 1.0f, 0.0f, 0,
+       1.0f, 0.0f, 0.0f, 0,
+          0,    0,    0, 1
     };
 
     private final Handler mHandler;
