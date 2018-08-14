@@ -120,7 +120,9 @@ public class CarStatusBar extends StatusBar implements
      * before and after the device is provisioned
      */
     private void restartNavBars() {
-        mCarFacetButtonController.removeAll();
+        if (mCarFacetButtonController != null) {
+            mCarFacetButtonController.removeAll();
+        }
         if (ENABLE_HVAC_CONNECTION) {
             Dependency.get(HvacController.class).removeAllComponents();
         }
@@ -513,6 +515,7 @@ public class CarStatusBar extends StatusBar implements
     @Override
     public void onDensityOrFontScaleChanged() {
         super.onDensityOrFontScaleChanged();
+        restartNavBars();
         // Need to update the background on density changed in case the change was due to night
         // mode.
         mNotificationPanelBackground = getDefaultWallpaper();
