@@ -857,7 +857,7 @@ public class PackageInstallerService extends IPackageInstaller.Stub implements
         }
 
         if (!SELinux.restorecon(stageDir)) {
-            throw new IOException("Failed to restorecon session dir: " + stageDir);
+            Slog.e(TAG, "Failed to restorecon session dir: " + stageDir);
         }
     }
 
