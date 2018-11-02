@@ -77,6 +77,7 @@ import android.util.SparseBooleanArray;
 import android.util.proto.ProtoOutputStream;
 
 import com.android.internal.annotations.GuardedBy;
+import com.android.internal.app.LocalePicker;
 import com.android.internal.content.PackageMonitor;
 import com.android.internal.os.BackgroundThread;
 import com.android.providers.settings.SettingsState.Setting;
@@ -2935,7 +2936,7 @@ public class SettingsProvider extends ContentProvider {
         }
 
         private final class UpgradeController {
-            private static final int SETTINGS_VERSION = 169;
+            private static final int SETTINGS_VERSION = 170;
 
             private final int mUserId;
 
@@ -3818,6 +3819,24 @@ public class SettingsProvider extends ContentProvider {
                                 null, true, SettingsState.SYSTEM_PACKAGE_NAME);
                     }
                     currentVersion = 169;
+                }
+
+                if (currentVersion == 169) {
+                    // Version 169: add default value for system locales
+                    if (userId == UserHandle.USER_SYSTEM) {
+                        final SettingsState systemSettings = getSystemSettingsLocked(userId);
+                        final Setting currentSetting = systemSettings.getSettingLocked(
+                                Settings.System.SYSTEM_LOCALES);
+                        if (currentSetting.isNull()) {
+                            Locale locale = LocalePicker.getLocales().get(0);
+                            final String defaultValue = locale.toLanguageTag();
+                            systemSettings.insertSettingLocked(
+                                    Settings.System.SYSTEM_LOCALES,
+                                    defaultValue,
+                                    null, true, SettingsState.SYSTEM_PACKAGE_NAME);
+                        }
+                    }
+                    currentVersion = 170;
                 }
 
                 // vXXX: Add new settings above this point.
