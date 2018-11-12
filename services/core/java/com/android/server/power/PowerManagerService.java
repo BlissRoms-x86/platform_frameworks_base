@@ -123,6 +123,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import android.os.FileUtils;
 
 /**
  * The power manager service is responsible for coordinating power management
@@ -1801,6 +1802,12 @@ public final class PowerManagerService extends SystemService
                     Math.max(reason, PowerManager.GO_TO_SLEEP_REASON_MIN));
             Slog.i(TAG, "Going to sleep due to " + PowerManager.sleepReasonToString(reason)
                     + " (uid " + uid + ")...");
+			// Adding force suspend code to enter S3 after pressing sleep button
+			try {
+				FileUtils.stringToFile("/sys/power/state", "mem");
+			} catch (IOException e) {
+				Slog.v(TAG, "IOException: " + e);
+			}
 
             mLastSleepTime = eventTime;
             mLastSleepReason = reason;
