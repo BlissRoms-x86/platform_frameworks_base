@@ -201,7 +201,7 @@ abstract public class ManagedServices {
                 for (int j = 0; j < M; j++) {
                     final boolean isPrimary = approvedByType.keyAt(j);
                     final ArraySet<String> approved = approvedByType.valueAt(j);
-                    if (approvedByType != null && approvedByType.size() > 0) {
+                    if (approved.size() > 0) {
                         pw.println("      " + String.join(ENABLED_SERVICES_SEPARATOR, approved)
                                 + " (user: " + userId + " isPrimary: " + isPrimary + ")");
                     }
@@ -243,7 +243,7 @@ abstract public class ManagedServices {
                 for (int j = 0; j < M; j++) {
                     final boolean isPrimary = approvedByType.keyAt(j);
                     final ArraySet<String> approved = approvedByType.valueAt(j);
-                    if (approvedByType != null && approvedByType.size() > 0) {
+                    if (approved.size() > 0) {
                         final long sToken = proto.start(ManagedServicesProto.APPROVED);
                         for (String s : approved) {
                             proto.write(ServiceProto.NAME, s);
@@ -315,21 +315,21 @@ abstract public class ManagedServices {
                 final int M = approvedByType.size();
                 for (int j = 0; j < M; j++) {
                     final boolean isPrimary = approvedByType.keyAt(j);
-                    final Set<String> approved = approvedByType.valueAt(j);
-                    if (approved != null) {
-                        String allowedItems = String.join(ENABLED_SERVICES_SEPARATOR, approved);
+                    final ArraySet<String> approved = approvedByType.valueAt(j);
+                    String allowedItems = String.join(ENABLED_SERVICES_SEPARATOR, approved);
+
+                    if (!TextUtils.isEmpty(allowedItems)) {
                         out.startTag(null, TAG_MANAGED_SERVICES);
                         out.attribute(null, ATT_APPROVED_LIST, allowedItems);
                         out.attribute(null, ATT_USER_ID, Integer.toString(userId));
                         out.attribute(null, ATT_IS_PRIMARY, Boolean.toString(isPrimary));
                         out.endTag(null, TAG_MANAGED_SERVICES);
+                    }
 
-                        if (!forBackup && isPrimary) {
-                            // Also write values to settings, for observers who haven't migrated yet
-                            Settings.Secure.putStringForUser(mContext.getContentResolver(),
-                                    getConfig().secureSettingName, allowedItems, userId);
-                        }
-
+                    if (!forBackup && isPrimary) {
+                        // Also write values to settings, for observers who haven't migrated yet
+                        Settings.Secure.putStringForUser(mContext.getContentResolver(),
+                                getConfig().secureSettingName, allowedItems, userId);
                     }
                 }
             }
@@ -419,7 +419,7 @@ abstract public class ManagedServices {
         String[] approvedArray = approved.split(ENABLED_SERVICES_SEPARATOR);
         for (String pkgOrComponent : approvedArray) {
             String approvedItem = getApprovedValue(pkgOrComponent);
-            if (approvedItem != null) {
+            if (!TextUtils.isEmpty(approvedItem)) {
                 approvedList.add(approvedItem);
             }
         }
