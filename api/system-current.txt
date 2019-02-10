@@ -5482,6 +5482,7 @@ package android.telephony.ims {
     method public void callSessionMergeStarted(android.telephony.ims.stub.ImsCallSessionImplBase, android.telephony.ims.ImsCallProfile);
     method public void callSessionMultipartyStateChanged(boolean);
     method public void callSessionProgressing(android.telephony.ims.ImsStreamMediaProfile);
+    method public void callSessionPropertyChanged(int);
     method public void callSessionRemoveParticipantsRequestDelivered();
     method public void callSessionRemoveParticipantsRequestFailed(android.telephony.ims.ImsReasonInfo);
     method public void callSessionResumeFailed(android.telephony.ims.ImsReasonInfo);
@@ -6047,6 +6048,7 @@ package android.telephony.ims.stub {
     method public final void onRegistering(int);
     method public final void onSubscriberAssociatedUriChanged(android.net.Uri[]);
     method public final void onTechnologyChangeFailed(int, android.telephony.ims.ImsReasonInfo);
+    method public void updateToState(int, int);
     field public static final int REGISTRATION_TECH_IWLAN = 1; // 0x1
     field public static final int REGISTRATION_TECH_LTE = 0; // 0x0
     field public static final int REGISTRATION_TECH_NONE = -1; // 0xffffffff
