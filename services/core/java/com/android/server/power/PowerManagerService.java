@@ -2138,57 +2138,19 @@ public final class PowerManagerService extends SystemService
                             + screenOffTimeout - screenDimDuration;
                     if (now < nextTimeout) {
                         mUserActivitySummary = USER_ACTIVITY_SCREEN_BRIGHT;
-                        if (mWakefulness == WAKEFULNESS_AWAKE) {
-                            int buttonBrightness;
-                            if (mHardwareKeysDisable) {
-                                buttonBrightness = 0;
-                            } else {
-                                if (mButtonBrightnessOverrideFromWindowManager >= 0) {
-                                    buttonBrightness = mButtonBrightnessOverrideFromWindowManager;
-                                } else {
-                                    buttonBrightness = mButtonBrightness;
-                                }
-                            }
-                            mLastButtonActivityTime = mButtonBacklightOnTouchOnly ?
-                                    mLastButtonActivityTime : mLastUserActivityTime;
-                            if (mButtonTimeout != 0
-                                    && now > mLastButtonActivityTime + mButtonTimeout) {
-                                mButtonsLight.setBrightness(0);
-                                mButtonOn = false;
-                            } else {
-                                if ((!mButtonBacklightOnTouchOnly || mButtonPressed) &&
-                                        !mProximityPositive) {
-                                    mButtonsLight.setBrightness(buttonBrightness);
-                                    mButtonPressed = false;
-                                    if (buttonBrightness != 0 && mButtonTimeout != 0) {
-                                        mButtonOn = true;
-                                        if (now + mButtonTimeout < nextTimeout) {
-                                            nextTimeout = now + mButtonTimeout;
-                                        }
-                                    }
-                                } else if (mButtonBacklightOnTouchOnly && mButtonOn &&
-                                        mLastButtonActivityTime + mButtonTimeout < nextTimeout) {
-                                    nextTimeout = mLastButtonActivityTime + mButtonTimeout;
-                                }
-                            }
-                        }
                     } else {
                         nextTimeout = mLastUserActivityTime + screenOffTimeout;
                         if (now < nextTimeout) {
                             mUserActivitySummary = USER_ACTIVITY_SCREEN_DIM;
-                            if (mWakefulness == WAKEFULNESS_AWAKE) {
-                                mButtonsLight.setBrightness(0);
-                                mButtonOn = false;
-                            }
                         }
                     }
                 }
-
                 if (mUserActivitySummary == 0
                         && mLastUserActivityTimeNoChangeLights >= mLastWakeTime) {
                     nextTimeout = mLastUserActivityTimeNoChangeLights + screenOffTimeout;
                     if (now < nextTimeout) {
-                        if (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_BRIGHT) {
+                        if (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_BRIGHT
+                                || mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_VR) {
                             mUserActivitySummary = USER_ACTIVITY_SCREEN_BRIGHT;
                         } else if (mDisplayPowerRequest.policy == DisplayPowerRequest.POLICY_DIM) {
                             mUserActivitySummary = USER_ACTIVITY_SCREEN_DIM;
