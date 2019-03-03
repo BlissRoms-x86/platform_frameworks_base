@@ -1030,6 +1030,10 @@ static jobject android_view_ThreadedRenderer_createHardwareBitmapFromRenderNode(
         // Continue I guess?
     }
     sk_sp<Bitmap> bitmap = Bitmap::createFrom(buffer);
+    if (!bitmap.get()) {
+        ALOGW("Failed to create hardware bitmap from graphic buffer");
+        return nullptr;
+    }
     return bitmap::createBitmap(env, bitmap.release(),
             android::bitmap::kBitmapCreateFlag_Premultiplied);
 }
