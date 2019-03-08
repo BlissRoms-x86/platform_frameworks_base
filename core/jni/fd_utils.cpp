@@ -265,6 +265,8 @@ FileDescriptorInfo* FileDescriptorInfo::CreateFromFd(int fd, fail_fn_t fail_fn) 
     fail_fn(android::base::StringPrintf("Could not read fd link %s: %s",
                                         fd_path.c_str(),
                                         strerror(errno)));
+  } else if (android::base::StartsWith(file_path, "/android/")) {
+    file_path = file_path.substr(8);
   }
 
   if (!whitelist->IsAllowed(file_path)) {
