@@ -17,6 +17,7 @@
 package android.net;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.annotation.RequiresPermission;
 import android.annotation.SystemApi;
 import android.annotation.SystemService;
@@ -42,7 +43,37 @@ import java.util.concurrent.Executor;
 @SystemService(Context.ETHERNET_SERVICE)
 public class EthernetManager {
     private static final String TAG = "EthernetManager";
+	
+    /**
+     * @hide
+     */
+    public static final String ETHERNET_STATE_CHANGED_ACTION = "android.net.ethernet.ETHERNET_STATE_CHANGED";
 
+    /**
+     * @hide
+     */
+    public static final String EXTRA_ETHERNET_STATE = "ethernet_state";
+
+    /**
+     * @hide
+     */
+    public static final int ETHER_STATE_DISCONNECTED = 0;
+
+    /**
+     * @hide
+     */
+    public static final int ETHER_STATE_CONNECTING = 1;
+
+    /**
+     * @hide
+     */
+    public static final int ETHER_STATE_CONNECTED = 2;
+
+    /**
+     * @hide
+     */
+    public static final int ETHER_STATE_DISCONNECTING = 3;
+  
     private final IEthernetManager mService;
     @GuardedBy("mListeners")
     private final ArrayList<ListenerInfo> mListeners = new ArrayList<>();
@@ -315,4 +346,121 @@ public class EthernetManager {
         }
         return new TetheredInterfaceRequest(mService, cbInternal);
     }
+	
+    @Nullable
+    public int getEthernetCarrierState(@Nullable String ifname) {
+		/*
+        try {
+            return mService.getEthernetCarrierState(ifname);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+		*/
+		return 0;
+    }
+
+    @Nullable
+    public String getEthernetMacAddress(@Nullable String ifname) {
+		/*
+        try {
+            return mService.getEthernetMacAddress(ifname);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+		*/
+		return "";
+    }
+
+    @Nullable
+    public int getEthernetConnectState() {
+		/*
+        try {
+            return mService.getEthernetConnectState();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+		*/
+		return 0;
+    }
+
+    @Nullable
+    public String getIpAddress() {
+		/*
+        try {
+            return mService.getIpAddress();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+		*/
+		return "192.168.1.1";
+    }
+
+    @Nullable
+    public String getNetmask() {
+		/*
+        try {
+            return mService.getNetmask();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+		*/
+		return "255.255.255.0";
+    }
+
+    @Nullable
+    public String getGateway() {
+		/*
+        try {
+            return mService.getGateway();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+		*/
+		return "0.0.255.255";
+    }
+
+    @Nullable
+    public String getDns() {
+		/*
+        try {
+            return mService.getDns();
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+		*/
+		return "0.0.0.0";
+    }
+
+    @Nullable
+    public String dumpCurrentState(@Nullable int state) {
+		/*
+        try {
+            return mService.dumpCurrentState(state);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+		*/
+		return "";
+    }
+	
+    @Nullable
+    public void disconnect(@Nullable String iface) {
+		/*
+        try {
+            mService.disconnect(iface);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+		*/
+    }
+	
+	@Nullable
+	public void updateIpConfiguration(@Nullable String iface, @Nullable IpConfiguration ipConfiguration){
+		try {
+            mService.updateIpConfiguration(iface, ipConfiguration);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+	}
+	
 }

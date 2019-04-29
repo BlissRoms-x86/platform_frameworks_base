@@ -36,4 +36,5 @@ interface IEthernetManager
     void setIncludeTestInterfaces(boolean include);
     void requestTetheredInterface(in ITetheredInterfaceCallback callback);
     void releaseTetheredInterface(in ITetheredInterfaceCallback callback);
+	void updateIpConfiguration(String iface, in IpConfiguration ipConfiguration);
 }
