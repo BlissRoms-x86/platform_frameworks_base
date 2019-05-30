@@ -68,8 +68,10 @@ public final class SQLiteDebug {
 
         /**
          * True to enable database performance testing instrumentation.
+         * Enable using "adb shell setprop log.tag.LogSlowQueries VERBOSE".
          */
-        public static final boolean DEBUG_LOG_SLOW_QUERIES = Build.IS_DEBUGGABLE;
+        public static final boolean DEBUG_LOG_SLOW_QUERIES =
+                Log.isLoggable("LogSlowQueries", Log.VERBOSE);
 
         private static final String SLOW_QUERY_THRESHOLD_PROP = "db.log.slow_query_threshold";
 
