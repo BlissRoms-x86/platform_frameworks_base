@@ -18,4 +18,7 @@
     <!-- The default WebView implementation -->
     <webviewprovider description="Android WebView" packageName="com.android.webview" availableByDefault="true">
     </webviewprovider>
+    <webviewprovider description="Chrome Debug" packageName="com.google.android.apps.chrome">
+        <!-- Ignore this package on user/release builds unless preinstalled. -->
+    </webviewprovider>
 </webviewproviders>
