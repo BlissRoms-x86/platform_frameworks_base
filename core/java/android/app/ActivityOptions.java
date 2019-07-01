@@ -20,6 +20,8 @@ import static android.Manifest.permission.CONTROL_REMOTE_APP_TRANSITION_ANIMATIO
 import static android.app.ActivityManager.SPLIT_SCREEN_CREATE_MODE_TOP_OR_LEFT;
 import static android.app.WindowConfiguration.ACTIVITY_TYPE_UNDEFINED;
 import static android.app.WindowConfiguration.WINDOWING_MODE_UNDEFINED;
+import static android.app.WindowConfiguration.WINDOWING_MODE_FULLSCREEN;
+import static android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM;
 import static android.view.Display.INVALID_DISPLAY;
 
 import android.annotation.Nullable;
@@ -926,6 +928,11 @@ public class ActivityOptions {
         mLockTaskMode = opts.getBoolean(KEY_LOCK_TASK_MODE, false);
         mLaunchDisplayId = opts.getInt(KEY_LAUNCH_DISPLAY_ID, INVALID_DISPLAY);
         mLaunchWindowingMode = opts.getInt(KEY_LAUNCH_WINDOWING_MODE, WINDOWING_MODE_UNDEFINED);
+        // region @cobra
+        if (mLaunchWindowingMode == WINDOWING_MODE_FULLSCREEN || mLaunchWindowingMode == WINDOWING_MODE_UNDEFINED) {
+            mLaunchWindowingMode = WINDOWING_MODE_FREEFORM;
+        }
+        // endregion
         mLaunchActivityType = opts.getInt(KEY_LAUNCH_ACTIVITY_TYPE, ACTIVITY_TYPE_UNDEFINED);
         mLaunchTaskId = opts.getInt(KEY_LAUNCH_TASK_ID, -1);
         mTaskOverlay = opts.getBoolean(KEY_TASK_OVERLAY, false);
@@ -1199,6 +1206,11 @@ public class ActivityOptions {
     @TestApi
     public void setLaunchWindowingMode(int windowingMode) {
         mLaunchWindowingMode = windowingMode;
+        // region @cobra
+        if (mLaunchWindowingMode == WINDOWING_MODE_FULLSCREEN || mLaunchWindowingMode == WINDOWING_MODE_UNDEFINED) {
+            mLaunchWindowingMode = WINDOWING_MODE_FREEFORM;
+        }
+        // endregion
     }
 
     /** @hide */
