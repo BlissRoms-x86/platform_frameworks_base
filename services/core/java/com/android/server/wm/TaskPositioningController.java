@@ -31,6 +31,8 @@ import com.android.internal.annotations.GuardedBy;
 import com.android.server.input.InputManagerService;
 import com.android.server.input.InputWindowHandle;
 
+import java.util.List;
+
 /**
  * Controller for task positioning by drag.
  */
@@ -100,6 +102,31 @@ class TaskPositioningController {
             }
             if (taskId >= 0) {
                 try {
+                    // region @cobra
+                    // If we start some freeform windows above the launcher, and click the empty
+                    // space of launcher, the launcher will be the focused task, and move to front
+                    // of the freeform windows. But we don't want to keep this behavior, and want
+                    // to launcher responses to input event, and keep the freeform windows above
+                    // the launcher. So we will do nothing if we found the new focused task is
+                    // the home type, we don't notify the AMS to change the focused task.
+                    // If we click another freeform window, the logic is the same as origin, the
+                    // clicked freeform window will be the new focused task.
+                    // Note: the input response is processed by InputFlinger, see the InputDispatcher's
+                    // findTouchedWindowTargetsLocked to find the magic.
+                    // TODO If we click the empty space of launcher, we should clear the focused
+                    //   state of current freeform window.
+                    List<Task> visibleTasks = displayContent.getVisibleTasks();
+                    for(Task visibleTask : visibleTasks) {
+                        if (visibleTask.mTaskId != taskId) {
+                            continue;
+                        }
+                        if (visibleTask.isActivityTypeHome()) {
+                            return;
+                        } else {
+                            break;
+                        }
+                    }
+                    // endregion
                     mActivityManager.setFocusedTask(taskId);
                 } catch (RemoteException e) {
                 }
