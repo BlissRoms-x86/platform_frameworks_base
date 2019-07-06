@@ -5220,6 +5220,22 @@ public class ActivityManagerService extends IActivityManager.Stub
         userId = mActivityStartController.checkTargetUser(userId, validateIncomingUser,
                 Binder.getCallingPid(), Binder.getCallingUid(), "startActivityAsUser");
 
+        // region @cobra
+        if (bOptions == null) {
+            ActivityOptions activityOptions = ActivityOptions.makeBasic();
+            activityOptions.setLaunchWindowingMode(WINDOWING_MODE_FREEFORM);
+            bOptions = activityOptions.toBundle();
+        } else {
+            ActivityOptions activityOptions = new ActivityOptions(bOptions);
+            int windowingMode = activityOptions.getLaunchWindowingMode();
+            if (windowingMode != WINDOWING_MODE_PINNED
+                    && windowingMode != WINDOWING_MODE_SPLIT_SCREEN_PRIMARY
+                    && windowingMode != WINDOWING_MODE_SPLIT_SCREEN_SECONDARY) {
+                activityOptions.setLaunchWindowingMode(WINDOWING_MODE_FREEFORM);
+            }
+            bOptions = activityOptions.toBundle();
+        }
+        // endregion
         // TODO: Switch to user app stacks here.
         return mActivityStartController.obtainStarter(intent, "startActivityAsUser")
                 .setCaller(caller)

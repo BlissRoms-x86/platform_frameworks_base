@@ -536,7 +536,6 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
             // to go fullscreen.
             windowingMode = WINDOWING_MODE_FULLSCREEN;
         }
-
         final boolean alreadyInSplitScreenMode = display.hasSplitScreenPrimaryStack();
 
         // Don't send non-resizeable notifications if the windowing mode changed was a side effect
@@ -620,6 +619,15 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
                 }
             }
 
+            // region @cobra
+            // Current logic, if we change windowing mode from freeform to fullscreen, getOverrideBounds() will
+            // return empty, the same as mTmpRect2, which doesn't trigger resize for window. So if current mode
+            // is freeform, and new mode is fullscreen, we should resize window forcibl to avoid rigid
+            // rendering problem.
+            if (mTmpRect2.isEmpty() && currentMode == WINDOWING_MODE_FREEFORM) {
+                resize(mTmpRect2, null /* tempTaskBounds */, null /* tempTaskInsetBounds */);
+            }
+            // endregion
             if (!Objects.equals(getOverrideBounds(), mTmpRect2)) {
                 resize(mTmpRect2, null /* tempTaskBounds */, null /* tempTaskInsetBounds */);
             }
