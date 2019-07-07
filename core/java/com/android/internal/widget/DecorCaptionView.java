@@ -16,6 +16,7 @@
 
 package com.android.internal.widget;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
@@ -335,6 +336,11 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     private void updateCaptionVisibility() {
         // Don't show the caption if the window has e.g. entered full screen.
         boolean invisible = isFillingScreen() || !mShow;
+        // region @cobra
+        // We disable the checking for system ui visibility now, before supporting caption view
+        // shows over the window with automatic disappear feature.
+        invisible = false;
+        // endregion
         mCaption.setVisibility(invisible ? GONE : VISIBLE);
         mCaption.setOnTouchListener(this);
     }
@@ -344,6 +350,19 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
      **/
     private void maximizeWindow() {
         Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+        // region @cobra
+        if (callback instanceof Activity) {
+            Activity activity = (Activity) callback;
+            if (!activity.isInMultiWindowMode()) {
+                try {
+                    activity.enterFreeformMode();
+                } catch (RemoteException e) {
+                    Log.e(TAG, "Cannot change task workspace.");
+                }
+                return;
+            }
+        }
+        // endregion
         if (callback != null) {
             try {
                 callback.exitFreeformMode();

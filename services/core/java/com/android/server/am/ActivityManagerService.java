@@ -11458,6 +11458,31 @@ public class ActivityManagerService extends IActivityManager.Stub
             }
         }
     }
+    // region @cobra
+    @Override
+    public void enterFreeformMode(IBinder token) throws RemoteException {
+        synchronized (this) {
+            long ident = Binder.clearCallingIdentity();
+            try {
+                final ActivityRecord r = ActivityRecord.forTokenLocked(token);
+                if (r == null) {
+                    throw new IllegalArgumentException(
+                            "enterFreeformMode: No activity record matching token=" + token);
+                }
+
+                final ActivityStack stack = r.getStack();
+                if (stack == null || stack.inMultiWindowMode()) {
+                    throw new IllegalStateException(
+                            "enterFreeformMode: You can only go freefrom from fullscreen.");
+                }
+
+                stack.setWindowingMode(WINDOWING_MODE_FREEFORM);
+            } finally {
+                Binder.restoreCallingIdentity(ident);
+            }
+        }
+    }
+    // endregion
 
     @Override
     public void setTaskWindowingMode(int taskId, int windowingMode, boolean toTop) {

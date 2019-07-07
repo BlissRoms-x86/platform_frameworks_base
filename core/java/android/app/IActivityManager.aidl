@@ -714,4 +714,7 @@ interface IActivityManager {
 
     /** @see android.app.ActivityManager#alwaysShowUnsupportedCompileSdkWarning */
     void alwaysShowUnsupportedCompileSdkWarning(in ComponentName activity);
+    // region @cobra
+    void enterFreeformMode(in IBinder token);
+    // endregion
 }

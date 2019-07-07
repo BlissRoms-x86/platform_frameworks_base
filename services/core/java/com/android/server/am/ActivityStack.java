@@ -4799,7 +4799,11 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
                         // For freeform stack we don't adjust the size of the tasks to match that
                         // of the stack, but we do try to make sure the tasks are still contained
                         // with the bounds of the stack.
-                        mTmpRect2.set(task.getOverrideBounds());
+                        // region @cobra
+                        // Each freeform task is in its own stack, we should adjust the size of the
+                        // tasks to match that of the stack.
+                        // mTmpRect2.set(task.getOverrideBounds());
+                        // endregion
                         fitWithinBounds(mTmpRect2, bounds);
                         task.updateOverrideConfiguration(mTmpRect2);
                     } else {
