@@ -2000,13 +2000,26 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         }
     }
 
-    void updateDecorCaptionShade() {
+    // region @cobra
+    /** @hide */
+    // void updateDecorCaptionShade() {
+    public void updateDecorCaptionShade() {
+    // endregion
         if (mDecorCaptionView != null) {
             setDecorCaptionShade(getContext(), mDecorCaptionView);
         }
     }
 
     private void setLightDecorCaptionShade(DecorCaptionView view) {
+        // region @cobra
+        if (view.inFullScreenMode()) {
+            view.findViewById(R.id.maximize_window).setBackgroundResource(
+                    R.drawable.decor_restore_button_light);
+            view.findViewById(R.id.close_window).setBackgroundResource(
+                    R.drawable.decor_close_button_light);
+            return;
+        }
+        // endregion
         view.findViewById(R.id.maximize_window).setBackgroundResource(
                 R.drawable.decor_maximize_button_light);
         view.findViewById(R.id.close_window).setBackgroundResource(
@@ -2014,6 +2027,14 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
     }
 
     private void setDarkDecorCaptionShade(DecorCaptionView view) {
+        // region @cobra
+        if (view.inFullScreenMode()) {
+            view.findViewById(R.id.maximize_window).setBackgroundResource(
+                    R.drawable.decor_restore_button_dark);
+            view.findViewById(R.id.close_window).setBackgroundResource(
+                    R.drawable.decor_close_button_dark);
+        }
+        // endregion
         view.findViewById(R.id.maximize_window).setBackgroundResource(
                 R.drawable.decor_maximize_button_dark);
         view.findViewById(R.id.close_window).setBackgroundResource(

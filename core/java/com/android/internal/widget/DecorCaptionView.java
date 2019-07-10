@@ -32,6 +32,7 @@ import android.view.ViewOutlineProvider;
 import android.view.Window;
 
 import com.android.internal.R;
+import com.android.internal.policy.DecorView;
 import com.android.internal.policy.PhoneWindow;
 
 import java.util.ArrayList;
@@ -350,22 +351,13 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
      **/
     private void maximizeWindow() {
         Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
-        // region @cobra
-        if (callback instanceof Activity) {
-            Activity activity = (Activity) callback;
-            if (!activity.isInMultiWindowMode()) {
-                try {
-                    activity.enterFreeformMode();
-                } catch (RemoteException e) {
-                    Log.e(TAG, "Cannot change task workspace.");
-                }
-                return;
-            }
-        }
-        // endregion
         if (callback != null) {
             try {
                 callback.exitFreeformMode();
+                // region @cobra
+                inFullscreenMode = true;
+                ((DecorView) mOwner.getDecorView()).updateDecorCaptionShade();
+                // endregion
             } catch (RemoteException ex) {
                 Log.e(TAG, "Cannot change task workspace.");
             }
@@ -425,6 +417,22 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
         if (mClickTarget == mMaximize) {
+            // region @cobra
+            Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+            if (callback instanceof Activity) {
+                Activity activity = (Activity) callback;
+                if (!activity.isInMultiWindowMode()) {
+                    try {
+                        activity.enterFreeformMode();
+                        inFullscreenMode = false;
+                        ((DecorView) mOwner.getDecorView()).updateDecorCaptionShade();
+                    } catch (RemoteException exception) {
+                        Log.e(TAG, "Cannot change task workspace.");
+                    }
+                    return true;
+                }
+            }
+            // endregion
             maximizeWindow();
         } else if (mClickTarget == mClose) {
             mOwner.dispatchOnWindowDismissed(
@@ -447,4 +455,12 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
         return false;
     }
+    // region @cobra
+    private boolean inFullscreenMode = false;
+
+    /** @hide */
+    public boolean inFullScreenMode() {
+        return inFullscreenMode;
+    }
+    // endregion
 }
