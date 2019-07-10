@@ -2240,6 +2240,9 @@
   <java-symbol type="drawable" name="decor_maximize_button_dark" />
   <java-symbol type="drawable" name="decor_maximize_button_light" />
   <!-- region @cobra -->
+  <java-symbol type="id" name="minimize_window" />
+  <java-symbol type="drawable" name="decor_minimize_button_dark" />
+  <java-symbol type="drawable" name="decor_minimize_button_light" />
   <java-symbol type="drawable" name="decor_restore_button_dark" />
   <java-symbol type="drawable" name="decor_restore_button_light" />
   <!-- endregion -->
