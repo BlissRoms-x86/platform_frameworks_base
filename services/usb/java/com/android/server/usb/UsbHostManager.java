@@ -228,6 +228,22 @@ public class UsbHostManager {
         }
     }
 
+    private static class VendorIdProductId {
+        public int vendorId;
+        public int productId;
+
+        public VendorIdProductId(int vendorId, int productId) {
+            vendorId = vendorId;
+            productId = productId;
+        }
+    }
+    //TODO: move the ids to the config of platform
+    private VendorIdProductId[] mVidPidBlackList = {
+        new VendorIdProductId(0x8087, 0x0a2b),
+        new VendorIdProductId(0x8087, 0x0aa7), //dedicated for BT in Celadon
+    };
+
+
     /*
      * UsbHostManager
      */
@@ -282,14 +298,22 @@ public class UsbHostManager {
     }
 
     /* returns true if the USB device should not be accessible by applications */
-    private boolean isBlackListed(int clazz, int subClass) {
+    private boolean isBlackListed(int clazz, int subClass, int vendorID, int productID) {
         // blacklist hubs
         if (clazz == UsbConstants.USB_CLASS_HUB) return true;
 
         // blacklist HID boot devices (mouse and keyboard)
-        return clazz == UsbConstants.USB_CLASS_HID
-                && subClass == UsbConstants.USB_INTERFACE_SUBCLASS_BOOT;
-
+        if (clazz == UsbConstants.USB_CLASS_HID
+                && subClass == UsbConstants.USB_INTERFACE_SUBCLASS_BOOT) {
+            return true;
+        }
+        //blacklist vendor id & product id devices
+        for (VendorIdProductId id : mVidPidBlackList) {
+            if (id.vendorId == vendorID && id.productId == productID) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void addConnectionRecord(String deviceAddress, int mode, byte[] rawDescriptors) {
@@ -351,6 +375,8 @@ public class UsbHostManager {
     @SuppressWarnings("unused")
     private boolean usbDeviceAdded(String deviceAddress, int deviceClass, int deviceSubclass,
             byte[] descriptors) {
+        int vendorId = 0;
+        int productId = 0;
         if (DEBUG) {
             Slog.d(TAG, "usbDeviceAdded(" + deviceAddress + ") - start");
         }
@@ -362,16 +388,22 @@ public class UsbHostManager {
             return false;
         }
 
-        if (isBlackListed(deviceClass, deviceSubclass)) {
-            if (DEBUG) {
-                Slog.d(TAG, "device class is black listed");
-            }
-            return false;
-        }
-
         UsbDescriptorParser parser = new UsbDescriptorParser(deviceAddress, descriptors);
         if (deviceClass == UsbConstants.USB_CLASS_PER_INTERFACE
                 && !checkUsbInterfacesBlackListed(parser)) {
+            return false;
+        }
+
+        UsbDeviceDescriptor deviceDescriptor = parser.getDeviceDescriptor();
+        if (deviceDescriptor != null) {
+            vendorId  = deviceDescriptor.getVendorID();
+            productId = deviceDescriptor.getProductID();
+        }
+
+        if (isBlackListed(deviceClass, deviceSubclass, vendorId, productId)) {
+            if (DEBUG) {
+                Slog.d(TAG, "device class is black listed");
+            }
             return false;
         }
 
@@ -555,12 +587,22 @@ public class UsbHostManager {
         // Device class needs to be obtained through the device interface.  Ignore device only
         // if ALL interfaces are black-listed.
         boolean shouldIgnoreDevice = false;
+        int vendorId = 0;
+        int productId = 0;
         for (UsbDescriptor descriptor: parser.getDescriptors()) {
             if (!(descriptor instanceof UsbInterfaceDescriptor)) {
                 continue;
             }
+
+            UsbDeviceDescriptor deviceDescriptor = parser.getDeviceDescriptor();
+            if (deviceDescriptor != null) {
+                vendorId  = deviceDescriptor.getVendorID();
+                productId = deviceDescriptor.getProductID();
+            }
+
             UsbInterfaceDescriptor iface = (UsbInterfaceDescriptor) descriptor;
-            shouldIgnoreDevice = isBlackListed(iface.getUsbClass(), iface.getUsbSubclass());
+            shouldIgnoreDevice = isBlackListed(iface.getUsbClass(), iface.getUsbSubclass(),
+                                                vendorId, productId);
             if (!shouldIgnoreDevice) {
                 break;
             }
