@@ -2418,7 +2418,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         // so if the orientation is forced, we need to respect that no matter what.
         final boolean isTv = mContext.getPackageManager().hasSystemFeature(
                 PackageManager.FEATURE_LEANBACK);
-        mForceDefaultOrientation = ((longSizeDp >= 960 && shortSizeDp >= 720) || isCar || isTv) &&
+        mForceDefaultOrientation = /* ((longSizeDp >= 960 && shortSizeDp >= 720) || isCar || isTv) && */
                 res.getBoolean(com.android.internal.R.bool.config_forceDefaultOrientation) &&
                 // For debug purposes the next line turns this feature off with:
                 // $ adb shell setprop config.override_forced_orient true

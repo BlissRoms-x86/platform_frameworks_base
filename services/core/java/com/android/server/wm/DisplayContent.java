@@ -2932,12 +2932,13 @@ class DisplayContent extends WindowContainer<DisplayContent.DisplayChildWindowCo
         // Uses same calculation as in LogicalDisplay#configureDisplayInTransactionLocked.
         final int orientation = mDisplayInfo.rotation;
         boolean rotated = (orientation == ROTATION_90 || orientation == ROTATION_270);
+        boolean forcedOrientation = mService.mPolicy.isDefaultOrientationForced();
         final int physWidth = rotated ? mBaseDisplayHeight : mBaseDisplayWidth;
         final int physHeight = rotated ? mBaseDisplayWidth : mBaseDisplayHeight;
         int width = mDisplayInfo.logicalWidth;
-        int left = (physWidth - width) / 2;
+        int left = forcedOrientation ? 0 : (physWidth - width) / 2;
         int height = mDisplayInfo.logicalHeight;
-        int top = (physHeight - height) / 2;
+        int top = forcedOrientation ? 0 : (physHeight - height) / 2;
         out.set(left, top, left + width, top + height);
     }
 
