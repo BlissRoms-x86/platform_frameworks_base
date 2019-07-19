@@ -1198,6 +1198,12 @@
     <string-array name="config_usbHostBlacklist" translatable="false">
     </string-array>
 
+    <!-- List of restricted usb devices to exclude. Items should be added in the format
+          vendorId:produtId.
+    -->
+    <string-array name="config_usbDeviceBlacklist" translatable="false">
+    </string-array>
+
     <!-- List of paths to serial ports that are available to the serial manager.
          for example, /dev/ttyUSB0
     -->

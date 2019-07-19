@@ -64,6 +64,9 @@ public class UsbHostManager {
     // USB busses to exclude from USB host support
     private final String[] mHostBlacklist;
 
+    // USB devices to exclude
+    private final String[] mDeviceBlacklist;
+
     private final UsbAlsaManager mUsbAlsaManager;
     private final UsbSettingsManager mSettingsManager;
 
@@ -253,6 +256,8 @@ public class UsbHostManager {
 
         mHostBlacklist = context.getResources().getStringArray(
                 com.android.internal.R.array.config_usbHostBlacklist);
+        mDeviceBlacklist = context.getResources().getStringArray(
+                com.android.internal.R.array.config_usbDeviceBlacklist);
         mUsbAlsaManager = alsaManager;
         mSettingsManager = settingsManager;
         String deviceConnectionHandler = context.getResources().getString(
@@ -298,7 +303,7 @@ public class UsbHostManager {
     }
 
     /* returns true if the USB device should not be accessible by applications */
-    private boolean isBlackListed(int clazz, int subClass, int vendorID, int productID) {
+    private boolean isBlackListed(int clazz, int subClass, int vendorId, int productId) {
         // blacklist hubs
         if (clazz == UsbConstants.USB_CLASS_HUB) return true;
 
@@ -307,9 +312,10 @@ public class UsbHostManager {
                 && subClass == UsbConstants.USB_INTERFACE_SUBCLASS_BOOT) {
             return true;
         }
-        //blacklist vendor id & product id devices
-        for (VendorIdProductId id : mVidPidBlackList) {
-            if (id.vendorId == vendorID && id.productId == productID) {
+        int count = mDeviceBlacklist.length;
+        String vid_pid = String.format("%04x:%04x", vendorId, productId);
+        for (int i = 0; i < count; i++) {
+            if (vid_pid.equals(mDeviceBlacklist[i])) {
                 return true;
             }
         }
