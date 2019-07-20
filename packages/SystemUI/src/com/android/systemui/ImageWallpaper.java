@@ -137,7 +137,10 @@ public class ImageWallpaper extends WallpaperService {
         @Override
         public void onDestroy() {
             super.onDestroy();
-            mBackground = null;
+            if (mBackground != null) {
+                mBackground.recycle();
+                mBackground = null;
+            }
             unloadWallpaper(true /* forgetSize */);
         }
 
