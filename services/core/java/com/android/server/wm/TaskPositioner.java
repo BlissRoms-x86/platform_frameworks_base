@@ -424,7 +424,12 @@ class TaskPositioner {
         }
 
         // This is a moving or scrolling operation.
-        mTask.mStack.getDimBounds(mTmpRect);
+        // region @cobra
+        // We use the display bounds to limit the move boundary.
+        // If we use the stack dim bounds, we can't move window to upper location.
+        mTask.mStack.getDisplayContent().getBounds(mTmpRect);
+        // mTask.mStack.getDimBounds(mTmpRect);
+        // endregion
 
         int nX = (int) x;
         int nY = (int) y;

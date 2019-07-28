@@ -83,6 +83,7 @@ import android.app.IApplicationThread;
 import android.app.PendingIntent;
 import android.app.ProfilerInfo;
 import android.app.WaitResult;
+import android.app.WindowConfiguration;
 import android.content.IIntentSender;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -114,6 +115,7 @@ import com.android.internal.app.IVoiceInteractor;
 import com.android.server.am.ActivityStackSupervisor.PendingActivityLaunch;
 import com.android.server.am.LaunchParamsController.LaunchParams;
 import com.android.server.pm.InstantAppResolver;
+import com.android.server.wm.WindowManagerService;
 
 import java.io.PrintWriter;
 import java.text.DateFormat;
@@ -1281,6 +1283,16 @@ class ActivityStarter {
 
         setInitialState(r, options, inTask, doResume, startFlags, sourceRecord, voiceSession,
                 voiceInteractor);
+        // region @cobra
+        if (mOptions == null) {
+            mOptions = ActivityOptions.makeBasic();
+        }
+        if (mOptions.getLaunchWindowingMode() == WINDOWING_MODE_UNDEFINED) {
+            mOptions.setLaunchWindowingMode(
+                    WindowManagerService.getCobraInstance().getPackageWindowingMode(mStartActivity.info.packageName)
+            );
+        }
+        // endregion
 
         computeLaunchingTaskFlags();
 

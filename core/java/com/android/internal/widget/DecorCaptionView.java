@@ -17,6 +17,8 @@
 package com.android.internal.widget;
 
 import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.WindowConfiguration;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
@@ -351,11 +353,11 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
      **/
     private void updateCaptionVisibility() {
         // Don't show the caption if the window has e.g. entered full screen.
-        boolean invisible = isFillingScreen() || !mShow;
         // region @cobra
+        // boolean invisible = isFillingScreen() || !mShow;
         // We disable the checking for system ui visibility now, before supporting caption view
         // shows over the window with automatic disappear feature.
-        invisible = false;
+        boolean invisible = false;
         // endregion
         mCaption.setVisibility(invisible ? GONE : VISIBLE);
         mCaption.setOnTouchListener(this);
@@ -370,7 +372,6 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
             try {
                 callback.exitFreeformMode();
                 // region @cobra
-                inFullscreenMode = true;
                 ((DecorView) mOwner.getDecorView()).updateDecorCaptionShade();
                 // endregion
             } catch (RemoteException ex) {
@@ -440,16 +441,13 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
             }
             return true;
         }
-        // endregion
         if (mClickTarget == mMaximize) {
-            // region @cobra
             Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
             if (callback instanceof Activity) {
                 Activity activity = (Activity) callback;
                 if (!activity.isInMultiWindowMode()) {
                     try {
                         activity.enterFreeformMode();
-                        inFullscreenMode = false;
                         ((DecorView) mOwner.getDecorView()).updateDecorCaptionShade();
                     } catch (RemoteException exception) {
                         Log.e(TAG, "Cannot change task workspace.");
@@ -457,7 +455,9 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
                     return true;
                 }
             }
-            // endregion
+        }
+        // endregion
+        if (mClickTarget == mMaximize) {
             maximizeWindow();
         } else if (mClickTarget == mClose) {
             mOwner.dispatchOnWindowDismissed(
@@ -481,14 +481,21 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         return false;
     }
     // region @cobra
-    private boolean inFullscreenMode = false;
     private View mMinimize;
     private final Rect mMinimizeRect = new Rect();
 
 
     /** @hide */
     public boolean inFullScreenMode() {
-        return inFullscreenMode;
+        if (mOwner == null) {
+            return true;
+        }
+        Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+        if (callback instanceof Activity) {
+            Activity activity = (Activity) callback;
+            return !activity.isInMultiWindowMode();
+        }
+        return true;
     }
     // endregion
 }

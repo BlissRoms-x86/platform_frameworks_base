@@ -536,6 +536,7 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
             // to go fullscreen.
             windowingMode = WINDOWING_MODE_FULLSCREEN;
         }
+
         final boolean alreadyInSplitScreenMode = display.hasSplitScreenPrimaryStack();
 
         // Don't send non-resizeable notifications if the windowing mode changed was a side effect
@@ -582,6 +583,13 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
                 mStackSupervisor.mNoAnimActivities.add(topActivity);
             }
             super.setWindowingMode(windowingMode);
+            // region @cobra
+            // When stack's windowing mode changed, we will persist this windowing mode for
+            // top Activity.
+            if (topActivity != null) {
+                mWindowManager.savePackageWindowingMode(topActivity.appInfo.packageName, windowingMode);
+            }
+            // endregion
 
             if (creating) {
                 // Nothing else to do if we don't have a window container yet. E.g. call from ctor.

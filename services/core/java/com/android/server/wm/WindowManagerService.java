@@ -120,12 +120,14 @@ import android.app.ActivityThread;
 import android.app.AppOpsManager;
 import android.app.IActivityManager;
 import android.app.IAssistDataReceiver;
+import android.app.WindowConfiguration;
 import android.app.admin.DevicePolicyCache;
 import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManagerInternal;
@@ -148,6 +150,7 @@ import android.os.Binder;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Debug;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.IRemoteCallback;
@@ -169,6 +172,7 @@ import android.os.SystemProperties;
 import android.os.SystemService;
 import android.os.Trace;
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.os.WorkSource;
 import android.provider.Settings;
 import android.text.format.DateUtils;
@@ -7763,4 +7767,58 @@ public class WindowManagerService extends IWindowManager.Stub
     public void takeOPScreenshot(int type, int reason) {
         mPolicy.takeOPScreenshot(type, reason);
     }
+    // region @cobra
+    private static final String PACKAGE_WINDOWING_MODE_NAME = "package-windowing-mode";
+
+    private static boolean isDataSystemDirNotReady(Context context) {
+        UserManager userManager = context.getSystemService(UserManager.class);
+        return !(userManager != null && userManager.isUserUnlockingOrUnlocked(UserHandle.myUserId()));
+    }
+
+    private static File getPackageWindowingModeFile() {
+        return new File(
+                Environment.getDataSystemCeDirectory(UserHandle.myUserId())
+                        + File.separator + PACKAGE_WINDOWING_MODE_NAME
+        );
+    }
+
+    /**
+     * @hide
+     */
+    public static WindowManagerService getCobraInstance() {
+        return getInstance();
+    }
+
+    /**
+     * @hide
+     */
+    public void savePackageWindowingMode(String packageName,
+                                         @WindowConfiguration.WindowingMode int windowingMode) {
+
+        if (isDataSystemDirNotReady(mContext)) {
+            Slog.e(TAG, "Calling savePackageWindowingMode with package " + packageName
+                    + ", and mode " + windowingMode + ", before file is ready");
+            return;
+        }
+        SharedPreferences sharedPreferences =
+                mContext.getSharedPreferences(getPackageWindowingModeFile(), Context.MODE_PRIVATE);
+        android.util.Log.e("wjy", "save " + packageName + ", " + windowingMode);
+        sharedPreferences.edit().putInt(packageName, windowingMode).apply();
+    }
+
+    /**
+     * @hide
+     */
+    public @WindowConfiguration.WindowingMode int getPackageWindowingMode(String packageName) {
+        if (isDataSystemDirNotReady(mContext)) {
+            Slog.e(TAG, "Calling getPackageWindowingMode with package " + packageName
+                    + ", before file is ready");
+            return WindowConfiguration.WINDOWING_MODE_UNDEFINED;
+        }
+        SharedPreferences sharedPreferences =
+                mContext.getSharedPreferences(getPackageWindowingModeFile(), Context.MODE_PRIVATE);
+        // We hope the default windowing mode is freeform.
+        return sharedPreferences.getInt(packageName, WindowConfiguration.WINDOWING_MODE_FREEFORM);
+    }
+    // endregion
 }

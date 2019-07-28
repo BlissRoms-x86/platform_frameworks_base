@@ -5220,22 +5220,6 @@ public class ActivityManagerService extends IActivityManager.Stub
         userId = mActivityStartController.checkTargetUser(userId, validateIncomingUser,
                 Binder.getCallingPid(), Binder.getCallingUid(), "startActivityAsUser");
 
-        // region @cobra
-        if (bOptions == null) {
-            ActivityOptions activityOptions = ActivityOptions.makeBasic();
-            activityOptions.setLaunchWindowingMode(WINDOWING_MODE_FREEFORM);
-            bOptions = activityOptions.toBundle();
-        } else {
-            ActivityOptions activityOptions = new ActivityOptions(bOptions);
-            int windowingMode = activityOptions.getLaunchWindowingMode();
-            if (windowingMode != WINDOWING_MODE_PINNED
-                    && windowingMode != WINDOWING_MODE_SPLIT_SCREEN_PRIMARY
-                    && windowingMode != WINDOWING_MODE_SPLIT_SCREEN_SECONDARY) {
-                activityOptions.setLaunchWindowingMode(WINDOWING_MODE_FREEFORM);
-            }
-            bOptions = activityOptions.toBundle();
-        }
-        // endregion
         // TODO: Switch to user app stacks here.
         return mActivityStartController.obtainStarter(intent, "startActivityAsUser")
                 .setCaller(caller)
@@ -5699,22 +5683,6 @@ public class ActivityManagerService extends IActivityManager.Stub
 
         final int callingPid = Binder.getCallingPid();
         final int callingUid = Binder.getCallingUid();
-        // region @cobra
-        if (bOptions == null) {
-            ActivityOptions activityOptions = ActivityOptions.makeBasic();
-            activityOptions.setLaunchWindowingMode(WINDOWING_MODE_FREEFORM);
-            bOptions = activityOptions.toBundle();
-        } else {
-            ActivityOptions activityOptions = new ActivityOptions(bOptions);
-            int windowingMode = activityOptions.getLaunchWindowingMode();
-            if (windowingMode != WINDOWING_MODE_PINNED
-                    && windowingMode != WINDOWING_MODE_SPLIT_SCREEN_PRIMARY
-                    && windowingMode != WINDOWING_MODE_SPLIT_SCREEN_SECONDARY) {
-                activityOptions.setLaunchWindowingMode(WINDOWING_MODE_FREEFORM);
-            }
-            bOptions = activityOptions.toBundle();
-        }
-        // endregion
         final SafeActivityOptions safeOptions = SafeActivityOptions.fromBundle(bOptions);
         final long origId = Binder.clearCallingIdentity();
         try {
@@ -11097,6 +11065,11 @@ public class ActivityManagerService extends IActivityManager.Stub
                     preserveWindow = false;
                 }
 
+                // region @cobra
+                if (stack.getWindowingMode() == WINDOWING_MODE_FREEFORM) {
+                    stack.setBounds(bounds);
+                }
+                // endregion
                 // After reparenting (which only resizes the task to the stack bounds), resize the
                 // task to the actual bounds provided
                 task.resize(bounds, resizeMode, preserveWindow, !DEFER_RESUME);

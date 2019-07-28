@@ -1903,6 +1903,18 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
         } else if (!getWindowConfiguration().persistTaskBounds()) {
             return mStack.getOverrideBounds();
         }
+        // region @cobra
+        if (mLastNonFullscreenBounds == null) {
+            mLastNonFullscreenBounds = new Rect();
+            getParent().getBounds(mLastNonFullscreenBounds);
+            int width = mLastNonFullscreenBounds.width() / 2;
+            int height = mLastNonFullscreenBounds.height() / 2;
+            int left = mLastNonFullscreenBounds.left + width / 2;
+            int top = mLastNonFullscreenBounds.top + height / 2;
+            mLastNonFullscreenBounds.set(left, top , left + width, top + height);
+            adjustForMinimalTaskDimensions(mLastNonFullscreenBounds);
+        }
+        // endregion
         return mLastNonFullscreenBounds;
     }
 
