@@ -7769,6 +7769,7 @@ public class WindowManagerService extends IWindowManager.Stub
     }
     // region @cobra
     private static final String PACKAGE_WINDOWING_MODE_NAME = "package-windowing-mode";
+    private static final String PACKAGE_WINDOW_BOUNDS_NAME = "package-window-bounds";
 
     private static boolean isDataSystemDirNotReady(Context context) {
         UserManager userManager = context.getSystemService(UserManager.class);
@@ -7779,6 +7780,13 @@ public class WindowManagerService extends IWindowManager.Stub
         return new File(
                 Environment.getDataSystemCeDirectory(UserHandle.myUserId())
                         + File.separator + PACKAGE_WINDOWING_MODE_NAME
+        );
+    }
+
+    private static File getPackageWindowBoundsName() {
+        return new File(
+                Environment.getDataSystemCeDirectory(UserHandle.myUserId())
+                        + File.separator + PACKAGE_WINDOW_BOUNDS_NAME
         );
     }
 
@@ -7802,7 +7810,6 @@ public class WindowManagerService extends IWindowManager.Stub
         }
         SharedPreferences sharedPreferences =
                 mContext.getSharedPreferences(getPackageWindowingModeFile(), Context.MODE_PRIVATE);
-        android.util.Log.e("wjy", "save " + packageName + ", " + windowingMode);
         sharedPreferences.edit().putInt(packageName, windowingMode).apply();
     }
 
@@ -7819,6 +7826,46 @@ public class WindowManagerService extends IWindowManager.Stub
                 mContext.getSharedPreferences(getPackageWindowingModeFile(), Context.MODE_PRIVATE);
         // We hope the default windowing mode is freeform.
         return sharedPreferences.getInt(packageName, WindowConfiguration.WINDOWING_MODE_FREEFORM);
+    }
+
+    /**
+     * @hide
+     */
+    public void savePackageWindowBounds(String packageName, Rect bounds) {
+        if (isDataSystemDirNotReady(mContext)) {
+            Slog.e(TAG, "Calling savePackageWindowBounds with package " + packageName
+                    + ", and bounds " + bounds + ", before file is ready");
+            return;
+        }
+        SharedPreferences sharedPreferences =
+                mContext.getSharedPreferences(getPackageWindowBoundsName(), Context.MODE_PRIVATE);
+        Rect tempBounds = new Rect(bounds);
+        sharedPreferences
+                .edit()
+                .putInt(packageName + "-left", tempBounds.left)
+                .putInt(packageName + "-top", tempBounds.top)
+                .putInt(packageName + "-right", tempBounds.right)
+                .putInt(packageName + "-bottom", tempBounds.bottom)
+                .apply();
+    }
+
+    /**
+     * @hide
+     */
+    public Rect getPackageWindowBounds(String packageName) {
+        if (isDataSystemDirNotReady(mContext)) {
+            Slog.e(TAG, "Calling getPackageWindowBounds with package " + packageName
+                    + ", before file is ready");
+            return new Rect();
+        }
+        SharedPreferences sharedPreferences =
+                mContext.getSharedPreferences(getPackageWindowBoundsName(), Context.MODE_PRIVATE);
+        return new Rect(
+                sharedPreferences.getInt(packageName + "-left", 0),
+                sharedPreferences.getInt(packageName + "-top", 0),
+                sharedPreferences.getInt(packageName + "-right", 0),
+                sharedPreferences.getInt(packageName + "-bottom", 0)
+        );
     }
     // endregion
 }

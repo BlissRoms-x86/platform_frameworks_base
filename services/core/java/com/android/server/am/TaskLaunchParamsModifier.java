@@ -16,6 +16,7 @@
 
 package com.android.server.am;
 
+import static android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM;
 import static com.android.server.am.ActivityManagerDebugConfig.TAG_AM;
 import static com.android.server.am.ActivityManagerDebugConfig.TAG_WITH_CLASS_NAME;
 
@@ -92,6 +93,13 @@ class TaskLaunchParamsModifier implements LaunchParamsModifier {
         final Rect resultBounds = outParams.mBounds;
 
         if (layout == null) {
+            // region @cobra
+            // For freeform window, we should use its launch bounds instead of recauclate its bounds.
+            if (task.getWindowingMode() == WINDOWING_MODE_FREEFORM) {
+                task.updateOverrideConfiguration(task.getLaunchBounds());
+                return RESULT_CONTINUE;
+            }
+            // endregion
             positionCenter(tasks, mAvailableRect, getFreeformWidth(mAvailableRect),
                     getFreeformHeight(mAvailableRect), resultBounds);
             return RESULT_CONTINUE;
@@ -118,6 +126,13 @@ class TaskLaunchParamsModifier implements LaunchParamsModifier {
             // center.
             Slog.w(TAG, "Received unsupported gravity: " + layout.gravity
                     + ", positioning in the center instead.");
+            // region @cobra
+            // For freeform window, we should use its launch bounds instead of recauclate its bounds.
+            if (task.getWindowingMode() == WINDOWING_MODE_FREEFORM) {
+                task.updateOverrideConfiguration(task.getLaunchBounds());
+                return RESULT_CONTINUE;
+            }
+            // endregion
             positionCenter(tasks, mAvailableRect, width, height, resultBounds);
         }
 

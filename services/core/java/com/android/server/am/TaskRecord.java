@@ -548,6 +548,25 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
                 }
             }
             mWindowContainerController.resize(kept, forced);
+            // region @cobra
+            // After window resizes its bounds(real resize and move), we should save the window bounds.
+            Rect savedBounds = new Rect();
+            mWindowContainerController.getBounds(savedBounds);
+            String packageName = null;
+            if (realActivity != null) {
+                packageName = realActivity.getPackageName();
+            } else if (getRootActivity() != null) {
+                packageName = getRootActivity().packageName;
+            }
+            if (mStack != null
+                    && mStack.getWindowingMode() == WINDOWING_MODE_FREEFORM
+                    && !savedBounds.isEmpty()
+                    && packageName != null) {
+                WindowManagerService
+                        .getCobraInstance()
+                        .savePackageWindowBounds(packageName, savedBounds);
+            }
+            // endregion
 
             Trace.traceEnd(TRACE_TAG_ACTIVITY_MANAGER);
             return kept;
@@ -559,6 +578,25 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
     // TODO: Investigate combining with the resize() method above.
     void resizeWindowContainer() {
         mWindowContainerController.resize(false /* relayout */, false /* forced */);
+        // region @cobra
+        // After window resizes its bounds(real resize and move), we should save the window bounds.
+        Rect savedBounds = new Rect();
+        mWindowContainerController.getBounds(savedBounds);
+        String packageName = null;
+        if (realActivity != null) {
+            packageName = realActivity.getPackageName();
+        } else if (getRootActivity() != null) {
+            packageName = getRootActivity().packageName;
+        }
+        if (mStack != null
+                && mStack.getWindowingMode() == WINDOWING_MODE_FREEFORM
+                && !savedBounds.isEmpty()
+                && packageName != null) {
+            WindowManagerService
+                    .getCobraInstance()
+                    .savePackageWindowBounds(packageName, savedBounds);
+        }
+        // endregion
     }
 
     void getWindowContainerBounds(Rect bounds) {
@@ -1905,7 +1943,21 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
         }
         // region @cobra
         if (mLastNonFullscreenBounds == null) {
-            mLastNonFullscreenBounds = new Rect();
+            String packageName = null;
+            if (realActivity != null) {
+                packageName = realActivity.getPackageName();
+            } else if (getRootActivity() != null) {
+                packageName = getRootActivity().packageName;
+            }
+            mLastNonFullscreenBounds =
+                    packageName != null ?
+                            WindowManagerService
+                                    .getCobraInstance()
+                                    .getPackageWindowBounds(packageName)
+                            : new Rect();
+            if (!mLastNonFullscreenBounds.isEmpty()) {
+                return mLastNonFullscreenBounds;
+            }
             getParent().getBounds(mLastNonFullscreenBounds);
             int width = mLastNonFullscreenBounds.width() / 2;
             int height = mLastNonFullscreenBounds.height() / 2;
