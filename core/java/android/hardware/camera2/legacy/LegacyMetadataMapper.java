@@ -405,7 +405,7 @@ public class LegacyMetadataMapper {
         /*
          * control.aeAvailableTargetFpsRanges
          */
-        {
+        try {
             List<int[]> fpsRanges = p.getSupportedPreviewFpsRange();
             if (fpsRanges == null) {
                 throw new AssertionError("Supported FPS ranges cannot be null.");
@@ -422,6 +422,8 @@ public class LegacyMetadataMapper {
                         (int) Math.ceil(r[Camera.Parameters.PREVIEW_FPS_MAX_INDEX] / 1000.0));
             }
             m.set(CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES, ranges);
+        } catch (Exception e) {
+            Log.d(TAG, "ignore any error from getSupportedPreviewFpsRange: ", e);
         }
 
         /*

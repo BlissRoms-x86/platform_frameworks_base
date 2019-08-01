@@ -217,6 +217,8 @@ FileDescriptorInfo* FileDescriptorInfo::CreateFromFd(int fd, std::string* error_
                                              fd_path.c_str(),
                                              strerror(errno));
     return nullptr;
+  } else if (android::base::StartsWith(file_path, "/android/")) {
+    file_path = file_path.substr(8);
   }
 
   if (!whitelist->IsAllowed(file_path)) {
