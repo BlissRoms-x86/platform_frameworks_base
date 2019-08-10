@@ -127,7 +127,10 @@
     <bool name="config_sendAudioBecomingNoisy">true</bool>
 
     <!-- Flag to disable all transition animations -->
-    <bool name="config_disableTransitionAnimation">false</bool>
+    <!-- regoin @cobra -->
+    <!-- <bool name="config_disableTransitionAnimation">false</bool> -->
+    <bool name="config_disableTransitionAnimation">true</bool>
+    <!-- endregion -->
 
     <!-- The duration (in milliseconds) of a short animation. -->
     <integer name="config_shortAnimTime">100</integer>
