@@ -127,6 +127,8 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
      */
     private static final String NORMAL_BOOT = "normal";
 
+    private static final String USB_DBC_STATE_MATCH =
+            "SUBSYSTEM=pci";
     private static final String USB_STATE_MATCH =
             "DEVPATH=/devices/virtual/android_usb/android0";
     private static final String ACCESSORY_START_MATCH =
@@ -354,6 +356,7 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
         mUEventObserver = new UsbUEventObserver();
         mUEventObserver.startObserving(USB_STATE_MATCH);
         mUEventObserver.startObserving(ACCESSORY_START_MATCH);
+        mUEventObserver.startObserving(USB_DBC_STATE_MATCH);
     }
 
     UsbProfileGroupSettingsManager getCurrentSettings() {
@@ -444,6 +447,7 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
 
         // current USB state
         private boolean mConnected;
+	private boolean mDbcConnected;
         private boolean mHostConnected;
         private boolean mSourcePower;
         private boolean mSinkPower;
@@ -560,7 +564,6 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
 
         public void updateState(String state) {
             int connected, configured;
-
             if ("DISCONNECTED".equals(state)) {
                 connected = 0;
                 configured = 0;
@@ -569,6 +572,9 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
                 configured = 0;
             } else if ("CONFIGURED".equals(state)) {
                 connected = 1;
+                configured = 1;
+            } else if ("DBCCONNECTED".equals(state)) {
+                connected = 2;
                 configured = 1;
             } else {
                 Slog.e(TAG, "unknown state " + state);
@@ -795,11 +801,18 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
 
         @Override
         public void handleMessage(Message msg) {
+            final String ADBD = "adbd";
+	    final String CTL_START = "ctl.start";
+            final String CTL_STOP = "ctl.stop";
+
             switch (msg.what) {
                 case MSG_UPDATE_STATE:
                     mConnected = (msg.arg1 == 1);
                     mConfigured = (msg.arg2 == 1);
-
+                    if (msg.arg1==2) {
+		    	mConnected = (msg.arg1==2);
+		    	mDbcConnected = (msg.arg1==2);
+		    }
                     updateUsbNotification(false);
                     updateAdbNotification(false);
                     if (mBootCompleted) {
@@ -823,6 +836,11 @@ public class UsbDeviceManager implements ActivityTaskManagerInternal.ScreenObser
                     } else {
                         mPendingBootBroadcast = true;
                     }
+                    if (mDbcConnected) {
+			setSystemProperty("sys.usb.controller","none");
+                        setSystemProperty(CTL_STOP, ADBD);
+			setSystemProperty(CTL_START, ADBD);
+		    }
                     break;
                 case MSG_UPDATE_PORT_STATE:
                     SomeArgs args = (SomeArgs) msg.obj;
