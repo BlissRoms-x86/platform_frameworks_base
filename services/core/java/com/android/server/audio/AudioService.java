@@ -3588,10 +3588,6 @@ public class AudioService extends IAudioService.Stub
 
     /** @see AudioManager#reloadAudioSettings() */
     public void reloadAudioSettings() {
-        readAudioSettings(false /*userSwitch*/);
-    }
-
-    private void readAudioSettings(boolean userSwitch) {
         // restore ringer mode, ringer mode affected streams, mute affected streams and vibrate settings
         readPersistedSettings();
         readUserRestrictions();
@@ -3600,10 +3596,6 @@ public class AudioService extends IAudioService.Stub
         int numStreamTypes = AudioSystem.getNumStreamTypes();
         for (int streamType = 0; streamType < numStreamTypes; streamType++) {
             VolumeStreamState streamState = mStreamStates[streamType];
-
-            if (userSwitch && mStreamVolumeAlias[streamType] == AudioSystem.STREAM_MUSIC) {
-                continue;
-            }
 
             streamState.readSettings();
             synchronized (VolumeStreamState.class) {
@@ -5673,7 +5665,8 @@ public class AudioService extends IAudioService.Stub
                 mMediaFocusControl.discardAudioFocusOwner();
 
                 // load volume settings for new user
-                readAudioSettings(true /*userSwitch*/);
+                reloadAudioSettings();
+
                 // preserve STREAM_MUSIC volume from one user to the next.
                 sendMsg(mAudioHandler,
                         MSG_SET_ALL_VOLUMES,
