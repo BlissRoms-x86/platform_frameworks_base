@@ -470,15 +470,7 @@ public class WindowConfiguration implements Parcelable, Comparable<WindowConfigu
      * @hide
      */
     public boolean hasWindowDecorCaption() {
-        // region @cobra
-        // return mWindowingMode == WINDOWING_MODE_FREEFORM;
-        // We only show window decor caption when window is in freeform or fullscreen mode,
-        // and we don't support decor caption for home.
-        return (mWindowingMode == WINDOWING_MODE_FREEFORM
-                || mWindowingMode == WINDOWING_MODE_FULLSCREEN
-                || mWindowingMode == WINDOWING_MODE_UNDEFINED )
-                && getActivityType() != ACTIVITY_TYPE_HOME;
-        // endregion
+        return mWindowingMode == WINDOWING_MODE_FREEFORM;
     }
 
     /**

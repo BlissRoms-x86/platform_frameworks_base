@@ -4827,6 +4827,29 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
 
             mWindowContainerController.resize(bounds, mTmpBounds, mTmpInsetBounds);
             setBounds(bounds);
+            // region @cobra
+            String packageName = null;
+            for(int i = mTaskHistory.size() - 1; i >= 0; i--) {
+                TaskRecord task = mTaskHistory.get(i);
+                if (!task.isResizeable() || !inFreeformWindowingMode()) {
+                    continue;
+                }
+                if (task.realActivity != null) {
+                    packageName = task.realActivity.getPackageName();
+                    if (packageName != null) {
+                        break;
+                    }
+                }
+                ActivityRecord rootActivity = task.getRootActivity();
+                if (rootActivity != null) {
+                    packageName = rootActivity.packageName;
+                    break;
+                }
+            }
+            if (inFreeformWindowingMode() && !bounds.isEmpty() && packageName != null) {
+                WindowManagerService.getCobraInstance().savePackageWindowBounds(packageName, bounds);
+            }
+            // endregion
         }
     }
 

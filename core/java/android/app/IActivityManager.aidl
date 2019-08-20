@@ -716,5 +716,6 @@ interface IActivityManager {
     void alwaysShowUnsupportedCompileSdkWarning(in ComponentName activity);
     // region @cobra
     void enterFreeformMode(in IBinder token);
+    void maximizeTask(in IBinder token);
     // endregion
 }

@@ -1572,11 +1572,6 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
             mBackdropFrameRenderer.onConfigurationChange();
         }
         mWindow.onViewRootImplSet(getViewRootImpl());
-        // region @cobra
-        // After attached to window, we should update the decor caption
-        // shade with current windowing mode.
-        updateDecorCaptionShade();
-        // endregion
     }
 
     @Override
@@ -1852,11 +1847,6 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
             DecorContext decorContext = (DecorContext) context;
             decorContext.setPhoneWindow(mWindow);
         }
-        // region @cobra
-        // After setting mPhoneWindow, we should update the decor caption
-        // shade with current windowing mode.
-        updateDecorCaptionShade();
-        // endregion
     }
 
     @Override
@@ -2010,11 +2000,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         }
     }
 
-    // region @cobra
-    /** @hide */
-    // void updateDecorCaptionShade() {
-    public void updateDecorCaptionShade() {
-    // endregion
+    void updateDecorCaptionShade() {
         if (mDecorCaptionView != null) {
             setDecorCaptionShade(getContext(), mDecorCaptionView);
         }
@@ -2024,13 +2010,6 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         // region @cobra
         view.findViewById(R.id.minimize_window).setBackgroundResource(
                 R.drawable.decor_minimize_button_light);
-        if (view.inFullScreenMode()) {
-            view.findViewById(R.id.maximize_window).setBackgroundResource(
-                    R.drawable.decor_restore_button_light);
-            view.findViewById(R.id.close_window).setBackgroundResource(
-                    R.drawable.decor_close_button_light);
-            return;
-        }
         // endregion
         view.findViewById(R.id.maximize_window).setBackgroundResource(
                 R.drawable.decor_maximize_button_light);
@@ -2042,12 +2021,6 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         // region @cobra
         view.findViewById(R.id.minimize_window).setBackgroundResource(
                 R.drawable.decor_minimize_button_dark);
-        if (view.inFullScreenMode()) {
-            view.findViewById(R.id.maximize_window).setBackgroundResource(
-                    R.drawable.decor_restore_button_dark);
-            view.findViewById(R.id.close_window).setBackgroundResource(
-                    R.drawable.decor_close_button_dark);
-        }
         // endregion
         view.findViewById(R.id.maximize_window).setBackgroundResource(
                 R.drawable.decor_maximize_button_dark);

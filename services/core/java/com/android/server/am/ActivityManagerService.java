@@ -28,9 +28,7 @@ import static android.Manifest.permission.READ_FRAME_BUFFER;
 import static android.Manifest.permission.REMOVE_TASKS;
 import static android.Manifest.permission.START_TASKS_FROM_RECENTS;
 import static android.Manifest.permission.STOP_APP_SWITCHES;
-import static android.app.ActivityManager.LOCK_TASK_MODE_NONE;
-import static android.app.ActivityManager.RESIZE_MODE_PRESERVE_WINDOW;
-import static android.app.ActivityManager.SPLIT_SCREEN_CREATE_MODE_TOP_OR_LEFT;
+import static android.app.ActivityManager.*;
 import static android.app.ActivityManager.StackId.INVALID_STACK_ID;
 import static android.app.ActivityManagerInternal.ASSIST_KEY_CONTENT;
 import static android.app.ActivityManagerInternal.ASSIST_KEY_DATA;
@@ -11466,6 +11464,35 @@ public class ActivityManagerService extends IActivityManager.Stub
                 }
 
                 stack.setWindowingMode(WINDOWING_MODE_FREEFORM);
+            } finally {
+                Binder.restoreCallingIdentity(ident);
+            }
+        }
+    }
+
+    @Override
+    public void maximizeTask(IBinder token) throws RemoteException {
+        synchronized (this) {
+            long ident = Binder.clearCallingIdentity();
+            try {
+                final ActivityRecord r = ActivityRecord.forTokenLocked(token);
+                if (r == null) {
+                    throw new IllegalArgumentException(
+                            "maximizeTask: No activity record matching token=" + token);
+                }
+
+                final TaskRecord task = r.getTask();
+                if (task == null || !task.inMultiWindowMode()) {
+                    throw new IllegalStateException(
+                            "maximizeTask: You can only maximize task in freeform mode.");
+                }
+                Rect displaySize = new Rect();
+                final ActivityStack stack = task.getStack();
+                if (stack != null) {
+                    stack.getDisplay().mDisplay.getRectSize(displaySize);
+                    resizeTask(task.taskId, displaySize, RESIZE_MODE_USER);
+                    stack.setWindowingMode(WINDOWING_MODE_FREEFORM);
+                }
             } finally {
                 Binder.restoreCallingIdentity(ident);
             }

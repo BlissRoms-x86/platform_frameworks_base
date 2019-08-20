@@ -142,8 +142,6 @@
        <!-- region @cobra -->
        <item>@drawable/decor_minimize_button_dark</item>
        <item>@drawable/decor_minimize_button_light</item>
-       <item>@drawable/decor_restore_button_dark</item>
-       <item>@drawable/decor_restore_button_light</item>
        <!-- endregion -->
    </array>
 
