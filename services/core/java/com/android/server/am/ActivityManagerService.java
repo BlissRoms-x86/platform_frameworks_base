@@ -11065,7 +11065,11 @@ public class ActivityManagerService extends IActivityManager.Stub
 
                 // region @cobra
                 if (stack.getWindowingMode() == WINDOWING_MODE_FREEFORM) {
-                    stack.setBounds(bounds);
+                    // Many places use the stack bounds to clip the task or window bounds.
+                    // We use task bounds as stack bounds before, because every freeform window
+                    // uses a stack. But we don't consider shadow boundary size. To avoid
+                    // this problem, we use the display size as the stack size.
+                    stack.setBounds(stack.getDisplay().getBounds());
                 }
                 // endregion
                 // After reparenting (which only resizes the task to the stack bounds), resize the
