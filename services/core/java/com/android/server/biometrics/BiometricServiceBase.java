@@ -73,7 +73,6 @@ public abstract class BiometricServiceBase extends SystemService
 
     protected static final boolean DEBUG = true;
 
-    private static final boolean CLEANUP_UNKNOWN_TEMPLATES = true;
     private static final String KEY_LOCKOUT_RESET_USER = "lockout_reset_user";
     private static final int MSG_USER_SWITCHING = 10;
     private static final long CANCEL_TIMEOUT_LIMIT = 3000; // max wait for onCancel() from HAL,in ms
@@ -119,6 +118,9 @@ public abstract class BiometricServiceBase extends SystemService
         public int lockout; // total number of lockouts
         public int permanentLockout; // total number of permanent lockouts
     }
+
+    private final boolean mNotifyClient;
+    private final boolean mCleanupUnusedFingerprints;
 
     /**
      * @return the log tag.
@@ -263,10 +265,12 @@ public abstract class BiometricServiceBase extends SystemService
         @Override
         public int handleFailedAttempt() {
             final int lockoutMode = getLockoutMode();
-            if (lockoutMode == AuthenticationClient.LOCKOUT_PERMANENT) {
-                mPerformanceStats.permanentLockout++;
-            } else if (lockoutMode == AuthenticationClient.LOCKOUT_TIMED) {
-                mPerformanceStats.lockout++;
+            if (mPerformanceStats != null) {
+                if (lockoutMode == AuthenticationClient.LOCKOUT_PERMANENT) {
+                    mPerformanceStats.permanentLockout++;
+                } else if (lockoutMode == AuthenticationClient.LOCKOUT_TIMED) {
+                    mPerformanceStats.lockout++;
+                }
             }
 
             // Failing multiple times will continue to push out the lockout time
@@ -645,6 +649,10 @@ public abstract class BiometricServiceBase extends SystemService
         mPowerManager = mContext.getSystemService(PowerManager.class);
         mUserManager = UserManager.get(mContext);
         mMetricsLogger = new MetricsLogger();
+        mNotifyClient = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_notifyClientOnFingerprintCancelSuccess);
+        mCleanupUnusedFingerprints = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_cleanupUnusedFingerprints);
     }
 
     @Override
@@ -697,10 +705,12 @@ public abstract class BiometricServiceBase extends SystemService
         if (client != null && client.onAuthenticated(identifier, authenticated, token)) {
             removeClient(client);
         }
-        if (authenticated) {
-            mPerformanceStats.accept++;
-        } else {
-            mPerformanceStats.reject++;
+        if (mPerformanceStats != null) {
+            if (authenticated) {
+                mPerformanceStats.accept++;
+            } else {
+                mPerformanceStats.reject++;
+            }
         }
     }
 
@@ -890,7 +900,11 @@ public abstract class BiometricServiceBase extends SystemService
                             + ", fromClient: " + fromClient);
                     // If cancel was from BiometricService, it means the dialog was dismissed
                     // and authentication should be canceled.
-                    client.stop(client.getToken() == token);
+                    final int stopResult = client.stop(client.getToken() == token);
+                    if (mNotifyClient && (stopResult == 0)) {
+                        handleError(mHalDeviceId,
+                                BiometricConstants.BIOMETRIC_ERROR_CANCELED, 0);
+                    }
                 } else {
                     if (DEBUG) Slog.v(getTag(), "Can't stop client " + client.getOwnerString()
                             + " since tokens don't match. fromClient: " + fromClient);
@@ -1044,15 +1058,10 @@ public abstract class BiometricServiceBase extends SystemService
                 }
             } else {
                 currentClient.stop(initiatedByClient);
-
-                // Only post the reset runnable for non-cleanup clients. Cleanup clients should
-                // never be forcibly stopped since they ensure synchronization between HAL and
-                // framework. Thus, we should instead just start the pending client once cleanup
-                // finishes instead of using the reset runnable.
-                mHandler.removeCallbacks(mResetClientState);
-                mHandler.postDelayed(mResetClientState, CANCEL_TIMEOUT_LIMIT);
             }
             mPendingClient = newClient;
+            mHandler.removeCallbacks(mResetClientState);
+            mHandler.postDelayed(mResetClientState, CANCEL_TIMEOUT_LIMIT);
         } else if (newClient != null) {
             // For BiometricPrompt clients, do not start until
             // <Biometric>Service#startPreparedClient is called. BiometricService waits until all
@@ -1200,7 +1209,7 @@ public abstract class BiometricServiceBase extends SystemService
      * @param userId
      */
     protected void doTemplateCleanupForUser(int userId) {
-        if (CLEANUP_UNKNOWN_TEMPLATES) {
+        if (mCleanupUnusedFingerprints) {
             enumerateUser(userId);
         }
     }
@@ -1229,7 +1238,6 @@ public abstract class BiometricServiceBase extends SystemService
         } else {
             clearEnumerateState();
             if (mPendingClient != null) {
-                Slog.d(getTag(), "Enumerate finished, starting pending client");
                 startClient(mPendingClient, false /* initiatedByClient */);
                 mPendingClient = null;
             }

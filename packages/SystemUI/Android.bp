@@ -63,9 +63,11 @@ android_library {
         "SystemUI-tags",
         "SystemUI-proto",
         "dagger2-2.19",
-        "jsr330"
+        "jsr330",
+        "org.lineageos.platform.internal",
     ],
     manifest: "AndroidManifest.xml",
+    additional_manifests: ["LineageManifest.xml"],
 
     libs: [
         "telephony-common",
@@ -121,7 +123,8 @@ android_library {
         "testables",
         "truth-prebuilt",
         "dagger2-2.19",
-        "jsr330"
+        "jsr330",
+        "org.lineageos.platform.internal",
     ],
     libs: [
         "android.test.runner",
