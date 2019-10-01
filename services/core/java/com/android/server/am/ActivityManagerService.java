@@ -391,6 +391,7 @@ import android.view.IRecentsAnimationRunner;
 import android.view.LayoutInflater;
 import android.view.RemoteAnimationAdapter;
 import android.view.RemoteAnimationDefinition;
+import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.autofill.AutofillManagerInternal;
@@ -11490,13 +11491,42 @@ public class ActivityManagerService extends IActivityManager.Stub
                     throw new IllegalStateException(
                             "maximizeTask: You can only maximize task in freeform mode.");
                 }
-                Rect displaySize = new Rect();
                 final ActivityStack stack = task.getStack();
-                if (stack != null) {
-                    stack.getDisplay().mDisplay.getRectSize(displaySize);
-                    resizeTask(task.taskId, displaySize, RESIZE_MODE_USER);
-                    stack.setWindowingMode(WINDOWING_MODE_FREEFORM);
+                if (stack == null || stack.getDisplay() == null || stack.getDisplay().mDisplay == null) {
+                    return;
                 }
+                final Point displaySize = new Point();
+                stack.getDisplay().mDisplay.getRealSize(displaySize);
+                final int rotation = stack.getDisplay().mDisplay.getRotation();
+                final Resources res = mUiContext.getResources();
+                int statusBarHeight = 0;
+                if (displaySize.x > displaySize.y) {
+                    // Now the screen is width > height, so we think rotation 0 and 180 is landscape.
+                    if (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180) {
+                        statusBarHeight =
+                                res.getDimensionPixelSize(com.android.internal.R.dimen.status_bar_height_landscape);
+                    } else {
+                        statusBarHeight =
+                                res.getDimensionPixelSize(com.android.internal.R.dimen.status_bar_height_portrait);
+                    }
+                } else {
+                    // Now the screen is width <= height, so we think rotation 0 and 180 is portrait.
+                    if (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180) {
+                        statusBarHeight =
+                                res.getDimensionPixelSize(com.android.internal.R.dimen.status_bar_height_portrait);
+                    } else {
+                        statusBarHeight =
+                                res.getDimensionPixelSize(com.android.internal.R.dimen.status_bar_height_landscape);
+                    }
+                }
+                // The system will show status bar forcibly for freeform window. So we must calculate the offset
+                // to let window top location is below of status bar.
+                resizeTask(
+                        task.taskId,
+                        new Rect(0, statusBarHeight, displaySize.x, displaySize.y),
+                        RESIZE_MODE_USER
+                );
+                stack.setWindowingMode(WINDOWING_MODE_FREEFORM);
             } finally {
                 Binder.restoreCallingIdentity(ident);
             }
