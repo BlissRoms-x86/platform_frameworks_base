@@ -19,4 +19,21 @@
     <!-- Our custom clock values -->
     <dimen name="widget_sammy_accent_font_size">80dp</dimen>
 
+    <!-- Custom text clock -->
+    <dimen name="customtextclock_fontsize">38dp</dimen>
+    <dimen name="custom_clock_left_padding">55dp</dimen>
+    <dimen name="custom_clock_top_margin">62dp</dimen>
+
+    <!-- padding for date view -->
+    <dimen name="widget_clock_normal_clock_padding">2dp</dimen>
+    <dimen name="widget_clock_shishu_date_padding">10dp</dimen>
+    <!-- Date styles padding-->
+    <dimen name="widget_date_box_padding_hor">12dp</dimen>
+    <dimen name="widget_date_box_padding_ver">8dp</dimen>
+    <dimen name="q_nowplay_pill_padding_hor">17.0sp</dimen>
+    <dimen name="q_nowplay_pill_padding_ver">8.0sp</dimen>
+    <!-- Accent Date styles padding-->
+    <dimen name="widget_date_accent_box_padding_hor">10dp</dimen>
+    <dimen name="widget_date_accent_box_padding_ver">6dp</dimen>
+
 </resources>

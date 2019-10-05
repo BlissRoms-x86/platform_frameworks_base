@@ -128,6 +128,8 @@ import android.os.UserManager;
 import android.os.Vibrator;
 import android.os.health.SystemHealthManager;
 import android.os.storage.StorageManager;
+import android.pocket.IPocketService;
+import android.pocket.PocketManager;
 import android.print.IPrintManager;
 import android.print.PrintManager;
 import android.service.oemlock.IOemLockService;
@@ -163,6 +165,8 @@ import com.android.internal.os.IDropBoxManagerService;
 import com.android.internal.policy.PhoneLayoutInflater;
 
 import java.util.HashMap;
+
+import com.android.internal.custom.longshot.LongScreenshotManager;
 
 /**
  * Manages all of the system services that can be returned by {@link Context#getSystemService}.
@@ -781,6 +785,15 @@ final class SystemServiceRegistry {
                 return new FingerprintManager(ctx.getOuterContext(), service);
             }});
 
+        registerService(Context.POCKET_SERVICE, PocketManager.class,
+                new CachedServiceFetcher<PocketManager>() {
+                    @Override
+                    public PocketManager createService(ContextImpl ctx) {
+                        IBinder binder = ServiceManager.getService(Context.POCKET_SERVICE);
+                        IPocketService service = IPocketService.Stub.asInterface(binder);
+                        return new PocketManager(ctx.getOuterContext(), service);
+                    }});
+
         registerService(Context.TV_INPUT_SERVICE, TvInputManager.class,
                 new CachedServiceFetcher<TvInputManager>() {
             @Override
@@ -996,6 +1009,15 @@ final class SystemServiceRegistry {
                                 ServiceManager.getServiceOrThrow(
                                         Context.DEVICE_IDLE_CONTROLLER));
                         return new DeviceIdleManager(ctx.getOuterContext(), service);
+                    }});
+
+
+        registerService(Context.LONGSCREENSHOT_SERVICE, LongScreenshotManager.class,
+                new CachedServiceFetcher<LongScreenshotManager>() {
+                    @Override
+                    public LongScreenshotManager createService(ContextImpl ctx)
+                            throws ServiceNotFoundException {
+                        return LongScreenshotManager.getInstance();
                     }});
     }
 

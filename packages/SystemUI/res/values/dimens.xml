@@ -57,6 +57,9 @@
     <!-- Spacing after the wifi signals that is present if there are any icons following it. -->
     <dimen name="status_bar_wifi_signal_spacer_width">4dp</dimen>
 
+    <!-- Size of the view displaying the wifi signal icon in the status bar. -->
+    <dimen name="status_bar_wifi_signal_size">15dp</dimen>
+
     <!-- Spacing before the airplane mode icon if there are any icons preceding it. -->
     <dimen name="status_bar_airplane_spacer_width">4dp</dimen>
 
@@ -198,10 +201,10 @@
     <dimen name="status_bar_icon_padding">0dp</dimen>
 
     <!-- the padding on the start of the statusbar -->
-    <dimen name="status_bar_padding_start">6dp</dimen>
+    <dimen name="status_bar_padding_start">4dp</dimen>
 
     <!-- the padding on the end of the statusbar -->
-    <dimen name="status_bar_padding_end">6dp</dimen>
+    <dimen name="status_bar_padding_end">4dp</dimen>
 
     <!-- the radius of the overflow dot in the status bar -->
     <dimen name="overflow_dot_radius">2dp</dimen>
@@ -602,7 +605,7 @@
     <dimen name="framed_avatar_size">54dp</dimen>
 
     <!-- Margin on the left side of the carrier text on Keyguard -->
-    <dimen name="keyguard_carrier_text_margin">16dp</dimen>
+    <dimen name="keyguard_carrier_text_margin">10dp</dimen>
 
     <!-- Margin on the left side of the battery % in the header. -->
     <dimen name="header_battery_margin_expanded">6dp</dimen>
@@ -644,7 +647,7 @@
     <dimen name="keyguard_affordance_icon_height">24dp</dimen>
     <dimen name="keyguard_affordance_icon_width">24dp</dimen>
 
-    <dimen name="keyguard_indication_margin_bottom">56dp</dimen>
+    <dimen name="keyguard_indication_margin_bottom">65dp</dimen>
     <dimen name="keyguard_indication_margin_bottom_ambient">32dp</dimen>
 
     <!-- The text size for battery level -->

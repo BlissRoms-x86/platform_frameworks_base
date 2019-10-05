@@ -23,7 +23,7 @@
 
     <!-- The default tiles to display in QuickSettings -->
     <string name="quick_settings_tiles_extra" translatable="false">
-        aod,caffeine,adb_network,weather,nfc,sync,navbar,screenrecord,heads_up,smartpixels,pie,expanded_desktop,soundsearch,music,sound,lte
+        aod,caffeine,adb_network,weather,nfc,sync,navbar,screenrecord,heads_up,smartpixels,pie,expanded_desktop,soundsearch,music,sound
     </string>
 
     <!-- Overall pie animation speed --> 
@@ -64,6 +64,10 @@
         <!-- Google's service for Elmyra -->
         <item>com.google.android.systemui.GoogleServices</item>
     </string-array>
+
+    <!-- Max visible notification icons -->
+    <integer name="config_maxVisibleNotificationIcons">4</integer>
+    <integer name="config_maxVisibleNotificationIconsWhenDark">5</integer>
 
 </resources>
 

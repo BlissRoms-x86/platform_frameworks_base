@@ -116,4 +116,11 @@ interface IStatusBarService
     void toggleNavigationEditor();
     void dispatchNavigationEditorResults(in Intent intent);
     void toggleOrientationListener(boolean enable);
+
+    // Used to show or hide in display fingerprint view
+    void showInDisplayFingerprintView();
+    void hideInDisplayFingerprintView();
+
+    // Used for devices with alert slider flash support
+    void toggleCameraFlashState(boolean enable);
 }

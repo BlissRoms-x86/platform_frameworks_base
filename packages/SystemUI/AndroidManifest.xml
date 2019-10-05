@@ -289,6 +289,13 @@
                 <action android:name="com.android.systemui.screenshot.SHOW_ERROR" />
             </intent-filter>
         </receiver>
+        <receiver android:name=".screenshot.ScreenshotServiceCaptureErrorReceiver"
+            android:process=":screenshot"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.android.systemui.screenshot.SHOW_ERROR" />
+            </intent-filter>
+        </receiver>
 
         <receiver android:name=".SysuiRestartReceiver"
             android:exported="false">
@@ -296,6 +303,16 @@
                 <action android:name="com.android.systemui.action.RESTART" />
 
                 <data android:scheme="package" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.android.systemui.action.RESTART_THEME" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".SoundRefreshReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.android.systemui.action.REFRESH_SOUND" />
             </intent-filter>
         </receiver>
 

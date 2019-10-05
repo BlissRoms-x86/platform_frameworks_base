@@ -97,6 +97,8 @@ import com.android.server.oemlock.OemLockService;
 import com.android.server.om.OverlayManagerService;
 import com.android.server.os.DeviceIdentifiersPolicyService;
 import com.android.server.os.SchedulingPolicyService;
+import com.android.server.pocket.PocketService;
+import com.android.server.pocket.PocketBridgeService;
 import com.android.server.pm.BackgroundDexOptService;
 import com.android.server.pm.CrossProfileAppsService;
 import com.android.server.gesture.EdgeGestureService;
@@ -117,6 +119,7 @@ import com.android.server.soundtrigger.SoundTriggerService;
 import com.android.server.stats.StatsCompanionService;
 import com.android.server.statusbar.StatusBarManagerService;
 import com.android.server.storage.DeviceStorageMonitorService;
+import com.android.server.substratum.SubstratumService;
 import com.android.server.telecom.TelecomLoaderService;
 import com.android.server.textclassifier.TextClassificationManagerService;
 import com.android.server.trust.TrustManagerService;
@@ -142,6 +145,9 @@ import static android.os.IServiceManager.DUMP_FLAG_PRIORITY_HIGH;
 import static android.os.IServiceManager.DUMP_FLAG_PRIORITY_NORMAL;
 import static android.os.IServiceManager.DUMP_FLAG_PROTO;
 import static android.view.Display.DEFAULT_DISPLAY;
+
+// Long screenshot
+import com.android.internal.custom.longshot.LongScreenshotManagerService;
 
 public final class SystemServer {
     private static final String TAG = "SystemServer";
@@ -707,6 +713,11 @@ public final class SystemServer {
         OverlayManagerService overlayManagerService = new OverlayManagerService(
                 mSystemContext, installer);
         mSystemServiceManager.startService(overlayManagerService);
+
+        // Substratum system server implementation
+        traceBeginAndSlog("StartSubstratumService");
+        mSystemServiceManager.startService(new SubstratumService(mSystemContext));
+
         traceEnd();
 
         if (SystemProperties.getInt("persist.sys.displayinset.top", 0) > 0) {
@@ -976,6 +987,10 @@ public final class SystemServer {
             traceBeginAndSlog("PinnerService");
             mSystemServiceManager.startService(PinnerService.class);
             traceEnd();
+
+            traceBeginAndSlog("LongScreenShot Manager");
+            ServiceManager.addService(Context.LONGSCREENSHOT_SERVICE, LongScreenshotManagerService.getInstance(context));
+            traceEnd();
         } catch (RuntimeException e) {
             Slog.e("System", "******************************************");
             Slog.e("System", "************ Failure starting core service", e);
@@ -1222,7 +1237,6 @@ public final class SystemServer {
                 ServiceManager.addService(Context.CONNECTIVITY_SERVICE, connectivity,
                             /* allowIsolated= */ false,
                     DUMP_FLAG_PRIORITY_HIGH | DUMP_FLAG_PRIORITY_NORMAL);
-                networkStats.bindConnectivityManager(connectivity);
                 networkPolicy.bindConnectivityManager(connectivity);
             } catch (Throwable e) {
                 reportWtf("starting Connectivity Service", e);
@@ -1601,6 +1615,9 @@ public final class SystemServer {
 
             traceBeginAndSlog("StartCrossProfileAppsService");
             mSystemServiceManager.startService(CrossProfileAppsService.class);
+
+            traceBeginAndSlog("StartPocketService");
+            mSystemServiceManager.startService(PocketService.class);
             traceEnd();
             try {
                 Slog.i(TAG, "EdgeGesture service");
@@ -1608,6 +1625,13 @@ public final class SystemServer {
                 ServiceManager.addService("edgegestureservice", edgeGestureService);
             } catch (Throwable e) {
                 Slog.e(TAG, "Failure starting EdgeGesture service", e);
+            }
+
+            if (!context.getResources().getString(
+                    com.android.internal.R.string.config_pocketBridgeSysfsInpocket).isEmpty()) {
+                traceBeginAndSlog("StartPocketBridgeService");
+                mSystemServiceManager.startService(PocketBridgeService.class);
+                traceEnd();
             }
         }
 
@@ -1731,6 +1755,12 @@ public final class SystemServer {
 
         if (safeMode) {
             mActivityManagerService.showSafeModeOverlay();
+        }
+
+        // Let's check whether we should disable all theme overlays
+        final boolean disableOverlays = wm.detectDisableOverlays();
+        if (disableOverlays) {
+            mActivityManagerService.disableOverlays();
         }
 
         // Update the configuration for this context by hand, because we're going

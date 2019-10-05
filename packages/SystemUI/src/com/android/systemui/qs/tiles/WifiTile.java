@@ -47,6 +47,7 @@ import com.android.systemui.statusbar.policy.NetworkController;
 import com.android.systemui.statusbar.policy.NetworkController.AccessPointController;
 import com.android.systemui.statusbar.policy.NetworkController.IconState;
 import com.android.systemui.statusbar.policy.NetworkController.SignalCallback;
+import com.android.systemui.statusbar.policy.WifiIcons;
 
 import java.util.List;
 
@@ -190,12 +191,13 @@ public class WifiTile extends QSTileImpl<SignalState> {
         final StringBuffer minimalContentDescription = new StringBuffer();
         final Resources r = mContext.getResources();
         if (isTransient) {
-            state.icon = ResourceIcon.get(R.drawable.ic_signal_wifi_transient_animation);
+            state.icon = ResourceIcon.get(
+                    com.android.internal.R.drawable.ic_signal_wifi_transient_animation);
             state.label = r.getString(R.string.quick_settings_wifi_label);
         } else if (!state.value) {
             state.slash.isSlashed = true;
             state.state = Tile.STATE_INACTIVE;
-            state.icon = ResourceIcon.get(R.drawable.ic_qs_wifi_disabled);
+            state.icon = ResourceIcon.get(WifiIcons.QS_WIFI_DISABLED);
             state.label = r.getString(R.string.quick_settings_wifi_label);
         } else if (wifiConnected) {
             state.icon = ResourceIcon.get(cb.wifiSignalIconId);
@@ -204,7 +206,7 @@ public class WifiTile extends QSTileImpl<SignalState> {
             state.icon = ResourceIcon.get(R.drawable.ic_qs_wifi_disconnected);
             state.label = r.getString(R.string.quick_settings_wifi_label);
         } else {
-            state.icon = ResourceIcon.get(R.drawable.ic_qs_wifi_no_network);
+            state.icon = ResourceIcon.get(WifiIcons.QS_WIFI_NO_NETWORK);
             state.label = r.getString(R.string.quick_settings_wifi_label);
         }
         minimalContentDescription.append(
@@ -416,14 +418,14 @@ public class WifiTile extends QSTileImpl<SignalState> {
 
             // Wi-Fi is off
             if (!mSignalCallback.mInfo.enabled) {
-                mItems.setEmptyState(R.drawable.ic_qs_wifi_detail_empty,
+                mItems.setEmptyState(WifiIcons.QS_WIFI_NO_NETWORK,
                         R.string.wifi_is_off);
                 mItems.setItems(null);
                 return;
             }
 
             // No available access points
-            mItems.setEmptyState(R.drawable.ic_qs_wifi_detail_empty,
+            mItems.setEmptyState(WifiIcons.QS_WIFI_NO_NETWORK,
                     R.string.quick_settings_wifi_detail_empty_text);
 
             // Build the list

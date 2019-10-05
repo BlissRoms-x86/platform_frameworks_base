@@ -87,7 +87,8 @@ public class KeyguardIndicationController implements
     private ViewGroup mIndicationArea;
     private KeyguardIndicationTextView mTextView;
     private KeyguardIndicationTextView mDisclosure;
-    private LottieAnimationView mChargingIndication;
+    private LottieAnimationView mChargingIndicationView;
+    private boolean mChargingIndication = true;
     private final UserManager mUserManager;
     private final IBatteryStats mBatteryInfo;
     private final SettableWakeLock mWakeLock;
@@ -144,7 +145,7 @@ public class KeyguardIndicationController implements
                 WakeLock wakeLock) {
         mContext = context;
         mIndicationArea = indicationArea;
-        mChargingIndication = (LottieAnimationView) indicationArea.findViewById(
+        mChargingIndicationView = (LottieAnimationView) indicationArea.findViewById(
                 R.id.charging_indication);
         mTextView = indicationArea.findViewById(R.id.keyguard_indication_text);
         mInitialTextColor = mTextView != null ? mTextView.getCurrentTextColor() : Color.WHITE;
@@ -390,7 +391,7 @@ public class KeyguardIndicationController implements
                         mTextView.switchIndication(null);
                     }
                 }
-                mChargingIndication.setVisibility(View.GONE);
+                updateChargingIndication();
                 return;
             }
 
@@ -398,6 +399,9 @@ public class KeyguardIndicationController implements
             int userId = KeyguardUpdateMonitor.getCurrentUser();
             String trustGrantedIndication = getTrustGrantedIndication();
             String trustManagedIndication = getTrustManagedIndication();
+
+            updateChargingIndication();
+
             if (!mUserManager.isUserUnlocked(userId)) {
                 mTextView.switchIndication(com.android.internal.R.string.lockscreen_storage_locked);
                 mTextView.setTextColor(mInitialTextColor);
@@ -428,16 +432,19 @@ public class KeyguardIndicationController implements
                 mTextView.switchIndication(mRestingIndication);
                 mTextView.setTextColor(mInitialTextColor);
             }
-            updateChargingIndication();
         }
     }
 
+    public void updateChargingIndication(boolean visible) {
+        mChargingIndication = visible;
+    }
+
     private void updateChargingIndication() {
-        if (!mDozing && mPowerPluggedIn) {
-            mChargingIndication.setVisibility(View.VISIBLE);
-            mChargingIndication.playAnimation();
+        if (mChargingIndication && !mDozing && mPowerPluggedIn) {
+            mChargingIndicationView.setVisibility(View.VISIBLE);
+            mChargingIndicationView.playAnimation();
         } else {
-            mChargingIndication.setVisibility(View.GONE);
+            mChargingIndicationView.setVisibility(View.GONE);
         }
     }
 
@@ -491,6 +498,11 @@ public class KeyguardIndicationController implements
                     chargingId = hasChargingTime
                             ? R.string.keyguard_indication_charging_time_fast
                             : R.string.keyguard_plugged_in_charging_fast;
+                    break;
+                case KeyguardUpdateMonitor.BatteryStatus.CHARGING_DASH:
+                    chargingId = hasChargingTime
+                            ? R.string.keyguard_indication_dash_charging_time
+                            : R.string.keyguard_plugged_in_dash_charging;
                     break;
                 case KeyguardUpdateMonitor.BatteryStatus.CHARGING_SLOWLY:
                     chargingId = hasChargingTime

@@ -3961,12 +3961,6 @@ public final class Settings {
         private static final Validator DOCK_SOUNDS_ENABLED_VALIDATOR = BOOLEAN_VALIDATOR;
 
         /**
-         * Check the proximity sensor during wakeup
-         * @hide
-         */
-        public static final String PROXIMITY_ON_WAKE = "proximity_on_wake";
-
-        /**
          * Whether to play sounds when the keyguard is shown and dismissed.
          * @hide
          */
@@ -4338,6 +4332,14 @@ public final class Settings {
         public static final String CARBON_CUSTOM_GESTURE_PACKAGE_DOWN = "carbon_custom_gesture_package_down";
 
         /**
+         * 0 - wallpaper based
+         * 1 - force light
+         * 2 - force dark
+         * @hide
+         */
+        public static final String SYSTEM_THEME = "system_theme";
+
+        /**
          * Number of qs columns on landscape orientation
          * @hide
          */
@@ -4407,6 +4409,13 @@ public final class Settings {
 
         /** @hide */
         public static final String AUDIO_PANEL_VIEW_BT_SCO = "audio_panel_view_bt_sco";
+
+        /**
+         * Select various accents to go along with system themes
+         *
+         * @hide
+         */
+        public static final String ACCENT_PICKER = "accent_picker";
 
         /**
          * Whether to change the transparency of the qs panel
@@ -4786,18 +4795,6 @@ public final class Settings {
         * @hide
         */
        public static final String QS_FOOTER_WARNINGS = "qs_footer_warnings";
-
-        /**
-         *  Weather to use a custom color for the visualizer on the lock screen
-         * @hide
-         */
-        public static final String LOCK_SCREEN_VISUALIZER_USE_CUSTOM_COLOR = "lock_screen_visualizer_use_custom_color";
-
-        /**
-         *  Custom color of the visualizer on the lock screen
-         * @hide
-         */
-        public static final String LOCK_SCREEN_VISUALIZER_CUSTOM_COLOR = "lock_screen_visualizer_custom_color";
 
         /**
          * Whether to show the battery info on the lockscreen while charging
@@ -5807,6 +5804,15 @@ public final class Settings {
         public static final String AUTO_ANSWER_CALL_KEY = "auto_answer_call_key";
 
         /**
+         * Status bar brightness control.
+         * @hide
+         */
+        public static final String STATUS_BAR_BRIGHTNESS_CONTROL = "status_bar_brightness_control";
+
+         /** @hide */
+        public static final Validator STATUS_BAR_BRIGHTNESS_CONTROL_VALIDATOR = BOOLEAN_VALIDATOR;
+
+        /**
          * Whether to use the custom status bar header or not
          * @hide
          */
@@ -5878,6 +5884,126 @@ public final class Settings {
         public static final String HIDE_LOCKSCREEN_STATUS_BAR = "hide_lockscreen_status_bar";
 
         /**
+         * Enable face auto unlock on secure lock screens
+         *
+         * @hide
+         */
+        public static final String DISPLAY_MODE = "display_mode";
+
+        private static final Validator DISPLAY_MODE_VALIDATOR =
+                ANY_INTEGER_VALIDATOR;
+
+        /**
+         * Ambient screen settings
+         * "screen_brightness_array=0:1:2:3:4"
+         * @hide
+         */
+        public static final String ALWAYS_ON_DISPLAY_CONSTANTS_CUST = "always_on_display_constants_cust";
+
+        /**
+         * Custom Ambient tilt gesture
+         * @hide
+         */
+        public static final String CUSTOM_AMBIENT_TILT_GESTURE = "custom_ambient_tilt_gesture";
+
+        /**
+         * Custom Ambient handwave gesture
+         * @hide
+         */
+        public static final String CUSTOM_AMBIENT_HANDWAVE_GESTURE = "custom_ambient_handwave_gesture";
+
+         /**
+         * Custom Ambient pocketmode gesture
+         * @hide
+         */
+        public static final String CUSTOM_AMBIENT_POCKETMODE_GESTURE = "custom_ambient_pocketmode_gesture";
+
+        /**
+         * modify how the album art shows up on lockscreen
+         * 0 - default
+         * 1 - grayscale
+         * 2 - blurry
+         * @hide
+         */
+        public static final String LOCKSCREEN_ALBUM_ART_FILTER = "lockscreen_album_art_filter";
+
+        /**
+         * Whether allowing pocket service to register sensors and dispatch informations.
+         *   0 = disabled
+         *   1 = enabled
+         * @author Carlo Savignano
+         * @hide
+         */
+        public static final String POCKET_JUDGE = "pocket_judge";
+
+        /** @hide */
+        public static final Validator POCKET_JUDGE_VALIDATOR = BOOLEAN_VALIDATOR;
+
+        /**
+         * @hide
+         */
+        public static final String POCKET_JUDGE_ALLOW_FP = "pocket_judge_allow_fp";
+
+        /**
+         * @hide
+         */
+        public static final String CUSTOM_FP_ICON = "custom_fingerprint_icon";
+
+        /** @hide */
+        private static final Validator CUSTOM_FP_ICON_VALIDATOR =
+                ANY_STRING_VALIDATOR;
+
+        /**
+         * Whether to show charging animation
+         * @hide
+         */
+        public static final String CHARGING_ANIMATION = "charging_animation";
+
+        /**
+         * @hide
+         */
+        public static final String SMART_CHARGING = "smart_charging";
+
+        /**
+         * @hide
+         */
+        public static final String SMART_CHARGING_LEVEL = "smart_charging_level";
+
+        /**
+         * @hide
+         */
+        public static final String SMART_CHARGING_RESUME_LEVEL = "smart_charging_resume_level";
+
+        /**
+         * @hide
+         */
+        public static final String SMART_CHARGING_RESET_STATS = "smart_charging_reset_stats";
+
+        /**
+         * Whether to show charging animation on lock screen
+         * @hide
+         */
+        public static final String LOCKSCREEN_CHARGING_ANIMATION = "lockscreen_charging_animation";
+
+        /**
+         * Whether to vibrate on power connection or disconnection
+         * @hide
+         */
+        public static final String VIBRATION_ON_CHARGE_STATE_CHANGED = "vibration_on_charge_state_changed";
+
+        /**
+         * Select which lockscreen date style to display
+         * @hide
+         */
+        public static final String LOCKSCREEN_DATE_SELECTION = "lockscreen_date_selection";
+
+        /**
+         * Select which lockscreen date format to display
+         * @hide
+         */
+        public static final String LOCKSCREEN_DATE_FORMAT = "lockscreen_date_format";
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *
@@ -5936,6 +6062,7 @@ public final class Settings {
             NOTIFICATION_VIBRATION_INTENSITY,
             HAPTIC_FEEDBACK_INTENSITY,
             DISPLAY_COLOR_MODE,
+            DISPLAY_MODE,
             OMNI_NAVIGATION_BAR_RECENTS,
             OMNI_BUTTON_EXTRA_KEY_MAPPING,
             OMNI_HARDWARE_KEYS_DISABLE,
@@ -5979,6 +6106,7 @@ public final class Settings {
             STATUSBAR_CLOCK_DATE_STYLE,
             STATUSBAR_CLOCK_DATE_FORMAT,
             STATUSBAR_CLOCK_DATE_POSITION,
+            STATUS_BAR_BRIGHTNESS_CONTROL,
             SHOW_FOURG,
             BURN_IN_PROTECTION,
             BURN_IN_PROTECTION_INTERVAL,
@@ -5997,7 +6125,8 @@ public final class Settings {
             OMNI_STATUS_BAR_CUSTOM_HEADER_PROVIDER,
             OMNI_STATUS_BAR_CUSTOM_HEADER_IMAGE,
             OMNI_STATUS_BAR_FILE_HEADER_IMAGE,
-            OMNI_DOZE_ON_CHARGE
+            OMNI_DOZE_ON_CHARGE,
+            CUSTOM_FP_ICON
         };
 
         /**
@@ -6112,6 +6241,7 @@ public final class Settings {
             PRIVATE_SETTINGS.add(EGG_MODE);
             PRIVATE_SETTINGS.add(SHOW_BATTERY_PERCENT);
             PRIVATE_SETTINGS.add(DISPLAY_COLOR_MODE);
+            PRIVATE_SETTINGS.add(DISPLAY_MODE);
             PRIVATE_SETTINGS.add(OMNI_NAVIGATION_BAR_RECENTS);
             PRIVATE_SETTINGS.add(OMNI_BUTTON_EXTRA_KEY_MAPPING);
             PRIVATE_SETTINGS.add(OMNI_HARDWARE_KEYS_DISABLE);
@@ -6155,6 +6285,7 @@ public final class Settings {
             PRIVATE_SETTINGS.add(STATUSBAR_CLOCK_DATE_STYLE);
             PRIVATE_SETTINGS.add(STATUSBAR_CLOCK_DATE_FORMAT);
             PRIVATE_SETTINGS.add(STATUSBAR_CLOCK_DATE_POSITION);
+            PRIVATE_SETTINGS.add(STATUS_BAR_BRIGHTNESS_CONTROL);
             PRIVATE_SETTINGS.add(SHOW_FOURG);
             PRIVATE_SETTINGS.add(BURN_IN_PROTECTION);
             PRIVATE_SETTINGS.add(BURN_IN_PROTECTION_INTERVAL);
@@ -6182,6 +6313,8 @@ public final class Settings {
             PRIVATE_SETTINGS.add(OMNI_STATUS_BAR_FILE_HEADER_IMAGE);
             PRIVATE_SETTINGS.add(HIDE_LOCKSCREEN_STATUS_BAR);
             PRIVATE_SETTINGS.add(OMNI_DOZE_ON_CHARGE);
+            PRIVATE_SETTINGS.add(POCKET_JUDGE);
+            PRIVATE_SETTINGS.add(CUSTOM_FP_ICON);
 	}
 
         /**
@@ -6333,7 +6466,9 @@ public final class Settings {
             VALIDATORS.put(STATUSBAR_CLOCK_DATE_STYLE, STATUSBAR_CLOCK_DATE_STYLE_VALIDATOR);
             VALIDATORS.put(STATUSBAR_CLOCK_DATE_POSITION, STATUSBAR_CLOCK_DATE_POSITION_VALIDATOR);
             VALIDATORS.put(STATUSBAR_CLOCK_DATE_FORMAT, STATUSBAR_CLOCK_DATE_FORMAT_VALIDATOR);
+            VALIDATORS.put(STATUS_BAR_BRIGHTNESS_CONTROL, STATUS_BAR_BRIGHTNESS_CONTROL_VALIDATOR);
             VALIDATORS.put(SHOW_FOURG, SHOW_FOURG_VALIDATOR);
+            VALIDATORS.put(DISPLAY_MODE, DISPLAY_MODE_VALIDATOR);
             VALIDATORS.put(BURN_IN_PROTECTION, BURN_IN_PROTECTION_VALIDATOR);
             VALIDATORS.put(BURN_IN_PROTECTION_INTERVAL, BURN_IN_PROTECTION_INTERVAL_VALIDATOR);
             VALIDATORS.put(MUTE_ANNOYING_NOTIFICATIONS_THRESHOLD, MUTE_ANNOYING_NOTIFICATIONS_THRESHOLD_VALIDATOR);
@@ -6362,6 +6497,9 @@ public final class Settings {
             VALIDATORS.put(OMNI_STATUS_BAR_FILE_HEADER_IMAGE,
                     OMNI_STATUS_BAR_FILE_HEADER_IMAGE_VALIDATOR);
             VALIDATORS.put(OMNI_DOZE_ON_CHARGE, OMNI_DOZE_ON_CHARGE_VALIDATOR);
+            VALIDATORS.put(POCKET_JUDGE, POCKET_JUDGE_VALIDATOR);
+            VALIDATORS.put(CUSTOM_FP_ICON,
+                    CUSTOM_FP_ICON_VALIDATOR);
         }
 
         /**
@@ -9528,6 +9666,21 @@ public final class Settings {
                 BOOLEAN_VALIDATOR;
 
         /**
+         * Whether the torch launch gesture to double tap or long press the power button when the
+         * screen is off should be enabled.
+         *
+         * 0: disabled
+         * 1: double tap power for torch
+         * 2: long tap power for torch
+         * @hide
+         */
+        public static final String TORCH_POWER_BUTTON_GESTURE =
+                "torch_power_button_gesture";
+
+        private static final Validator TORCH_POWER_BUTTON_GESTURE_VALIDATOR =
+                NON_NEGATIVE_INTEGER_VALIDATOR;
+
+        /**
          * Whether the swipe up gesture to switch apps should be enabled.
          *
          * @hide
@@ -10122,6 +10275,13 @@ public final class Settings {
                 "low_power_warning_acknowledged";
 
         /**
+         * Force authorize Substratum (or equivalent) frontend calling packages by ThemeInterfacer
+         * The value is boolean (1 or 0).
+         * @hide
+         */
+        public static final String FORCE_AUTHORIZE_SUBSTRATUM_PACKAGES = "force_authorize_substratum_packages";
+
+        /**
          * 0 (default) Auto battery saver suggestion has not been suppressed. 1) it has been
          * suppressed.
          * @hide
@@ -10505,6 +10665,15 @@ public final class Settings {
         public static final String PULSE_FADING_BLOCKS_OPACITY = "pulse_fading_blocks_opacity";
 
         /**
+         * Wheter to dismiss notifications on fingerprint left and right swipe action
+         * @hide
+         */
+        public static final String FP_SWIPE_TO_DISMISS_NOTIFICATIONS = "fp_swipe_to_dismiss_notifications";
+
+        private static final Validator FP_SWIPE_TO_DISMISS_NOTIFICATIONS_VALIDATOR = BOOLEAN_VALIDATOR;
+
+
+        /**
          * Whether to show the brightness slider in quick settings panel
          * @hide
          */
@@ -10546,6 +10715,42 @@ public final class Settings {
          * @hide
          */
         public static final String HIDE_LOCK_SHORTCUTS = "hide_lock_shortcuts";
+
+        /**
+         * Lockscreen lavalamp psychedelic colors
+         * @hide
+         */
+        public static final String LOCKSCREEN_LAVALAMP_ENABLED = "lockscreen_lavalamp_enabled";
+
+        /**
+         * Lockscreen lavalamp animation speed
+         * @hide
+         */
+        public static final String LOCKSCREEN_LAVALAMP_SPEED = "lockscreen_lavalamp_speed";
+
+        /**
+         * Whether to use automatic color for visualizer
+         * @hide
+         */
+        public static final String LOCKSCREEN_VISUALIZER_AUTOCOLOR = "lockscreen_visualizer_autocolor";
+
+        /**
+         * Number of bars shown in visualizer
+         * @hide
+         */
+        public static final String LOCKSCREEN_SOLID_UNITS_COUNT = "lockscreen_solid_units_count";
+
+        /**
+         * Visualizer sanity level
+         * @hide
+         */
+        public static final String LOCKSCREEN_SOLID_FUDGE_FACTOR = "lockscreen_solid_fudge_factor";
+
+        /**
+         * Visualizer opacity
+         * @hide
+         */
+        public static final String LOCKSCREEN_SOLID_UNITS_OPACITY = "lockscreen_solid_units_opacity";
 
         /**
          * This are the settings to be backed up.
@@ -10626,6 +10831,7 @@ public final class Settings {
             CAMERA_DOUBLE_TWIST_TO_FLIP_ENABLED,
             SWIPE_UP_TO_SWITCH_APPS_ENABLED,
             CAMERA_DOUBLE_TAP_POWER_GESTURE_DISABLED,
+            TORCH_POWER_BUTTON_GESTURE,
             SYSTEM_NAVIGATION_KEYS_ENABLED,
             QS_TILES,
             DOZE_ENABLED,
@@ -10763,8 +10969,12 @@ public final class Settings {
                     SWIPE_UP_TO_SWITCH_APPS_ENABLED_VALIDATOR);
             VALIDATORS.put(CAMERA_DOUBLE_TAP_POWER_GESTURE_DISABLED,
                     CAMERA_DOUBLE_TAP_POWER_GESTURE_DISABLED_VALIDATOR);
+            VALIDATORS.put(TORCH_POWER_BUTTON_GESTURE,
+                    TORCH_POWER_BUTTON_GESTURE_VALIDATOR);
             VALIDATORS.put(SYSTEM_NAVIGATION_KEYS_ENABLED,
                     SYSTEM_NAVIGATION_KEYS_ENABLED_VALIDATOR);
+            VALIDATORS.put(FP_SWIPE_TO_DISMISS_NOTIFICATIONS,
+                    FP_SWIPE_TO_DISMISS_NOTIFICATIONS_VALIDATOR);
             VALIDATORS.put(QS_TILES, QS_TILES_VALIDATOR);
             VALIDATORS.put(DOZE_ENABLED, DOZE_ENABLED_VALIDATOR);
             VALIDATORS.put(DOZE_PULSE_ON_PICK_UP, DOZE_PULSE_ON_PICK_UP_VALIDATOR);
@@ -14547,6 +14757,11 @@ public final class Settings {
          * @hide
          */
         public static final String DEVICE_DEMO_MODE = "device_demo_mode";
+
+        /**
+         * @hide
+         */
+        public static final String WAKE_WHEN_PLUGGED_OR_UNPLUGGED = "wake_when_plugged_or_unplugged";
 
         /**
          * Indicates the maximum time that an app is blocked for the network rules to get updated.

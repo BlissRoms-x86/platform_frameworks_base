@@ -41,6 +41,7 @@ import android.os.ServiceManager;
 import android.os.ServiceSpecificException;
 import android.os.SystemProperties;
 import android.text.TextUtils;
+import android.util.Log;
 import android.util.ArrayMap;
 import android.util.Log;
 
@@ -912,17 +913,19 @@ public final class CameraManager {
                 // Try to make sure we have an up-to-date list of camera devices.
                 connectCameraServiceLocked();
 
-                boolean exposeAuxCamera = false;
+                boolean exposeAuxCamera = true;
                 String packageName = ActivityThread.currentOpPackageName();
-                String packageList = SystemProperties.get("vendor.camera.aux.packagelist");
-                if (packageList.length() > 0) {
-                    TextUtils.StringSplitter splitter = new TextUtils.SimpleStringSplitter(',');
-                    splitter.setString(packageList);
-                    for (String str : splitter) {
-                        if (packageName.equals(str)) {
-                            exposeAuxCamera = true;
-                            break;
-                        }
+                String packageList = SystemProperties.get("vendor.camera.aux.packagelist", "");
+                String packageBlacklist = SystemProperties.get("vendor.camera.aux.packageblacklist", "");
+                if (!packageList.isEmpty()) {
+                    exposeAuxCamera = false;
+                    if (Arrays.asList(packageList.split(",")).contains(packageName)) {
+                        exposeAuxCamera = true;
+                    }
+                } else if (!packageBlacklist.isEmpty()) {
+                    exposeAuxCamera = true;
+                    if (Arrays.asList(packageBlacklist.split(",")).contains(packageName)) {
+                        exposeAuxCamera = false;
                     }
                 }
                 int idCount = 0;
@@ -1141,17 +1144,19 @@ public final class CameraManager {
             /* Force to ignore the last mono/aux camera status update
              * if the package name does not falls in this bucket
              */
-            boolean exposeMonoCamera = false;
+            boolean exposeMonoCamera = true;
             String packageName = ActivityThread.currentOpPackageName();
-            String packageList = SystemProperties.get("vendor.camera.aux.packagelist");
-            if (packageList.length() > 0) {
-                TextUtils.StringSplitter splitter = new TextUtils.SimpleStringSplitter(',');
-                splitter.setString(packageList);
-                for (String str : splitter) {
-                    if (packageName.equals(str)) {
-                        exposeMonoCamera = true;
-                        break;
-                    }
+            String packageList = SystemProperties.get("vendor.camera.aux.packagelist", "");
+            String packageBlacklist = SystemProperties.get("vendor.camera.aux.packageblacklist", "");
+            if (!packageList.isEmpty()) {
+                exposeMonoCamera = false;
+                if (Arrays.asList(packageList.split(",")).contains(packageName)) {
+                    exposeMonoCamera = true;
+                }
+            } else if (!packageBlacklist.isEmpty()) {
+                exposeMonoCamera = true;
+                if (Arrays.asList(packageBlacklist.split(",")).contains(packageName)) {
+                    exposeMonoCamera = false;
                 }
             }
 

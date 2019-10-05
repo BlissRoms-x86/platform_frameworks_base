@@ -537,6 +537,7 @@ public class WindowManagerService extends IWindowManager.Stub
 
     boolean mDisplayReady;
     boolean mSafeMode;
+    boolean mDisableOverlays;
     boolean mDisplayEnabled = false;
     boolean mSystemBooted = false;
     boolean mForceDisplayEnabled = false;
@@ -668,6 +669,8 @@ public class WindowManagerService extends IWindowManager.Stub
      * window draws in the new orientation.
      */
     private boolean mRotatingSeamlessly = false;
+
+    static DisplayModeManager mDisplayModeManager;
 
     private final class SettingsObserver extends ContentObserver {
         private final Uri mDisplayInversionEnabledUri =
@@ -3506,6 +3509,8 @@ public class WindowManagerService extends IWindowManager.Stub
 
         // Make sure the last requested orientation has been applied.
         updateRotationUnchecked(false, false);
+
+        mDisplayModeManager = new DisplayModeManager(this, mContext);
     }
 
     private boolean checkBootAnimationCompleteLocked() {
@@ -4543,6 +4548,27 @@ public class WindowManagerService extends IWindowManager.Stub
         }
         mPolicy.setSafeMode(mSafeMode);
         return mSafeMode;
+    }
+
+    public boolean detectDisableOverlays() {
+        if (!mInputMonitor.waitForInputDevicesReady(
+                INPUT_DEVICES_READY_FOR_SAFE_MODE_DETECTION_TIMEOUT_MILLIS)) {
+            Slog.w(TAG_WM, "Devices still not ready after waiting "
+                   + INPUT_DEVICES_READY_FOR_SAFE_MODE_DETECTION_TIMEOUT_MILLIS
+                   + " milliseconds before attempting to detect safe mode.");
+        }
+
+        int volumeUpState = mInputManager.getKeyCodeState(-1, InputDevice.SOURCE_ANY,
+                KeyEvent.KEYCODE_VOLUME_UP);
+        mDisableOverlays = volumeUpState > 0;
+
+        if (mDisableOverlays) {
+            Log.i(TAG_WM, "All enabled theme overlays will now be disabled.");
+        } else {
+            Log.i(TAG_WM, "System will boot with enabled overlays intact.");
+        }
+
+        return mDisableOverlays;
     }
 
     public void displayReady() {
@@ -7528,6 +7554,20 @@ public class WindowManagerService extends IWindowManager.Stub
                 return UserHandle.USER_NULL;
             }
         }
+
+        @Override
+        public boolean isMinimizedDock() {
+            boolean isMinimizedDock;
+            synchronized (mWindowMap) {
+                try {
+                    boostPriorityForLockedSection();
+                    isMinimizedDock = getDefaultDisplayContentLocked().getDockedDividerController().isMinimizedDock();
+                } finally {
+                    resetPriorityAfterLockedSection();
+                }
+            }
+            return isMinimizedDock;
+        }
     }
 
     void registerAppFreezeListener(AppFreezeListener listener) {
@@ -7713,5 +7753,14 @@ public class WindowManagerService extends IWindowManager.Stub
     @Override
     public void sendCustomAction(Intent intent) {
         mPolicy.sendCustomAction(intent);
+    }
+
+    public void stopLongshotConnection() {
+        mPolicy.stopLongshotConnection();
+    }
+
+    @Override
+    public void takeOPScreenshot(int type, int reason) {
+        mPolicy.takeOPScreenshot(type, reason);
     }
 }

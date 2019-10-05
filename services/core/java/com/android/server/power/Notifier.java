@@ -591,7 +591,7 @@ final class Notifier {
     /**
      * Called when wired charging has started so as to provide user feedback
      */
-    public void onWiredChargingStarted() {
+    public void onWiredChargingStarted(int batteryLevel) {
         if (DEBUG) {
             Slog.d(TAG, "onWiredChargingStarted");
         }
@@ -599,6 +599,7 @@ final class Notifier {
         mSuspendBlocker.acquire();
         Message msg = mHandler.obtainMessage(MSG_WIRED_CHARGING_STARTED);
         msg.setAsynchronous(true);
+        msg.arg1 = batteryLevel;
         mHandler.sendMessage(msg);
     }
 
@@ -761,8 +762,14 @@ final class Notifier {
         mSuspendBlocker.release();
     }
 
-    private void showWiredChargingStarted() {
+    private void showWiredChargingStarted(int batteryLevel) {
+        final boolean animationEnabled = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.CHARGING_ANIMATION, 1) == 1;
+        playWirelessChargingVibration();
         playChargingStartedSound();
+        if (mStatusBarManagerInternal != null && animationEnabled) {
+            mStatusBarManagerInternal.showChargingAnimation(batteryLevel);
+        }
         mSuspendBlocker.release();
     }
 
@@ -773,7 +780,7 @@ final class Notifier {
     private void playWirelessChargingVibration() {
         final boolean vibrateEnabled = Settings.Global.getInt(mContext.getContentResolver(),
                 Settings.Global.CHARGING_VIBRATION_ENABLED, 0) != 0;
-        if (vibrateEnabled && isChargingFeedbackEnabled()) {
+        if (vibrateEnabled) {
             mVibrator.vibrate(WIRELESS_CHARGING_VIBRATION_EFFECT, VIBRATION_ATTRIBUTES);
         }
     }
@@ -811,7 +818,7 @@ final class Notifier {
                     lockProfile(msg.arg1);
                     break;
                 case MSG_WIRED_CHARGING_STARTED:
-                    showWiredChargingStarted();
+                    showWiredChargingStarted(msg.arg1);
                     break;
             }
         }
