@@ -483,6 +483,10 @@ public class NavigationBarView extends FrameLayout implements
         return drawable;
     }
 
+    public KeyButtonDrawable getRecentsDrawable() {
+        return getDrawable(R.drawable.ic_sysbar_recent);
+    }
+
     private void orientBackButton(KeyButtonDrawable drawable) {
         final boolean useAltBack =
                 (mNavigationIconHints & StatusBarManager.NAVIGATION_HINT_BACK_ALT) != 0;
@@ -632,6 +636,9 @@ public class NavigationBarView extends FrameLayout implements
             }
         } else if (pinningActive) {
             disableBack = disableRecent = false;
+        }
+        if (pinningActive && isGesturalMode(mNavBarMode)){
+            disableBack = true;
         }
 
         ViewGroup navButtons = getCurrentView().findViewById(R.id.nav_buttons);
@@ -905,7 +912,7 @@ public class NavigationBarView extends FrameLayout implements
     }
 
     public void showPinningEscapeToast() {
-        mScreenPinningNotify.showEscapeToast(isRecentsButtonVisible());
+        mScreenPinningNotify.showEscapeToast(isRecentsButtonVisible(), isGesturalMode(mNavBarMode));
     }
 
     public boolean isVertical() {

@@ -24,10 +24,17 @@ LOCAL_REQUIRED_MODULES := \
 	AccentColorSpaceOverlay \
 	AccentColorGreenOverlay \
 	AccentColorPurpleOverlay \
+	AccentColorSluttyPinkOverlay \
+	AccentColorBlueMondayOverlay \
+	AccentColorOmniOverlay \
+	AccentColorGoldenShowerOverlay \
 	DisplayCutoutEmulationCornerOverlay \
 	DisplayCutoutEmulationDoubleOverlay \
 	DisplayCutoutEmulationTallOverlay \
+	FontArbutusSourceOverlay \
+	FontArvoLatoOverlay \
 	FontNotoSerifSourceOverlay \
+	FontRubikRubikOverlay \
 	IconPackCircularAndroidOverlay \
 	IconPackCircularLauncherOverlay \
 	IconPackCircularSettingsOverlay \

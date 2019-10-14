@@ -12,22 +12,8 @@
      limitations under the License.
 -->
 <resources>
-    <!-- Device keyhandlers -->
-    <java-symbol type="array" name="config_deviceKeyHandlerLibs" />
-    <java-symbol type="array" name="config_deviceKeyHandlerClasses" />
-
-    <!-- Button backlight -->
-    <java-symbol type="integer" name="config_buttonBrightnessSettingDefault" />
-    <java-symbol type="bool" name="config_deviceHasVariableButtonBrightness" />
-
-    <!-- Proximity check on screen on -->
-    <java-symbol type="bool" name="config_proximityCheckOnWake" />
-
-    <!-- Proximity check timeout -->
-    <java-symbol type="integer" name="config_proximityCheckTimeout" />
-
-    <!-- Proximity check on screen on default -->
-    <java-symbol type="bool" name="config_proximityCheckOnWakeEnabledByDefault" />
+    <!-- Whether to allow process with media UID to access CameraServiceProxy -->
+    <java-symbol type="bool" name="config_allowMediaUidForCameraServiceProxy" />
 
     <!-- Rotation sensor -->
     <java-symbol type="bool" name="config_useSystemClockforRotationSensor" />
@@ -108,5 +94,17 @@
     <java-symbol type="string" name="adb_net_active_notification_title" />
     <java-symbol type="string" name="adb_both_active_notification_title" />
     <java-symbol type="string" name="adb_active_generic_notification_message" />
+
+    <!-- Button backlight -->
+    <java-symbol type="integer" name="config_buttonBrightnessSettingDefault" />
+    <java-symbol type="bool" name="config_deviceHasVariableButtonBrightness" />
+
+  <!-- Whether device ignores the RSSNR signal implementation -->
+  <java-symbol type="bool" name="config_ignoreRssnrSignalLevel" />
+
+    <!-- App error dialog -->
+    <java-symbol type="id" name="aerr_copy" />
+    <java-symbol type="string" name="url_copy_success" />
+    <java-symbol type="string" name="url_copy_failed" />
 
 </resources>

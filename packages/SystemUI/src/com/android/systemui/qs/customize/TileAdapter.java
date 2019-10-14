@@ -92,6 +92,7 @@ public class TileAdapter extends RecyclerView.Adapter<Holder> implements TileSta
     private int mAccessibilityFromIndex;
     private CharSequence mAccessibilityFromLabel;
     private QSTileHost mHost;
+    private boolean mHideLabel;
 
     public TileAdapter(Context context) {
         mContext = context;
@@ -311,6 +312,7 @@ public class TileAdapter extends RecyclerView.Adapter<Holder> implements TileSta
         }
         holder.mTileView.handleStateChanged(info.state);
         holder.mTileView.setShowAppLabel(position > mEditIndex && !info.isSystem);
+        holder.mTileView.setHideLabel(mHideLabel);
 
         final boolean selectable = mAccessibilityAction == ACTION_NONE || position < mEditIndex;
         if (!(mAccessibilityManager.isTouchExplorationEnabled() && selectable)) {
@@ -516,13 +518,18 @@ public class TileAdapter extends RecyclerView.Adapter<Holder> implements TileSta
         }
     }
 
-    private final SpanSizeLookup mSizeLookup = new SpanSizeLookup() {
+    private class OmniSpanSizeLookup extends SpanSizeLookup {
+        private int mColumns = 3;
         @Override
         public int getSpanSize(int position) {
             final int type = getItemViewType(position);
-            return type == TYPE_EDIT || type == TYPE_DIVIDER || type == TYPE_HEADER ? 3 : 1;
+            return type == TYPE_EDIT || type == TYPE_DIVIDER || type == TYPE_HEADER ? mColumns : 1;
         }
-    };
+        public void setColumnCount(int columns) {
+            mColumns = columns;
+        }
+    }
+    private final OmniSpanSizeLookup mSizeLookup = new OmniSpanSizeLookup();
 
     private class TileItemDecoration extends ItemDecoration {
         private final Drawable mDrawable;
@@ -642,4 +649,15 @@ public class TileAdapter extends RecyclerView.Adapter<Holder> implements TileSta
         public void onSwiped(ViewHolder viewHolder, int direction) {
         }
     };
+
+    public void setColumnCount(int columns) {
+        mSizeLookup.setColumnCount(columns);
+    }
+
+    public void setHideLabel(boolean value) {
+        if (mHideLabel != value) {
+            mHideLabel = value;
+            notifyDataSetChanged();
+        }
+    }
 }
