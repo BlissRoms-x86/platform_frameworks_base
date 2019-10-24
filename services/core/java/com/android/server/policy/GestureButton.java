@@ -15,6 +15,7 @@
  */
 package com.android.server.policy;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Resources;
 import android.hardware.input.InputManager;
@@ -27,7 +28,9 @@ import android.os.Message;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
-import android.provider.Settings.System;
+import android.os.Vibrator;
+import android.os.VibrationEffect;
+import android.provider.Settings;
 import android.util.DisplayMetrics;
 import android.util.Slog;
 import android.view.HapticFeedbackConstants;
@@ -51,12 +54,9 @@ public class GestureButton implements PointerEventListener {
     private static final String TAG = "GestureButton";
     private static boolean DEBUG = false;
 
-    private static final int GESTURE_KEY_DISTANCE_TIMEOUT = 250;
-    private static final int GESTURE_KEY_LONG_CLICK_TIMEOUT = 500;
     private static final int MSG_SEND_SWITCH_KEY = 5;
     private static final int MSG_SEND_KEY = 6;
     private static final int MSG_SEND_LONG_PRESS = 7;
-    private static float mRecentMoveTolerance = 5.0f;
 
     private long mDownTime;
     private float mFromX;
@@ -71,15 +71,28 @@ public class GestureButton implements PointerEventListener {
     private int mScreenHeight = -1;
     private int mScreenWidth = -1;
     private boolean mSwipeStartFromEdge;
-    private final int mSwipeStartThreshold;
+    private int mSwipeStartThreshold;
     private boolean mKeyEventHandled;
     private boolean mRecentsTriggered;
     private boolean mLongSwipePossible;
     private int mEventDeviceId;
     private boolean mDismissInputMethod;
     private int mSwipeMinLength;
-    private int mLongPressMaxLength;
+    private int mMoveTolerance;
+    private int mSwipeTriggerTimeout;
+    private int mHapticDuration;
     private Context mContext;
+
+    private Vibrator vibrator;
+    final Handler vibrationHandler = new Handler();
+
+    final Runnable haptic = new Runnable() {
+        public void run() {
+            if (mHapticDuration == 0)
+                return;
+            vibrator.vibrate(VibrationEffect.createOneShot(mHapticDuration, VibrationEffect.DEFAULT_AMPLITUDE));
+       }
+    };
 
     private OnTouchListener mTouchListener = new OnTouchListener() {
         public boolean onTouch(View v, MotionEvent event) {
@@ -99,19 +112,19 @@ public class GestureButton implements PointerEventListener {
                 case MSG_SEND_SWITCH_KEY:
                     if (DEBUG) Slog.i(TAG, "MSG_SEND_SWITCH_KEY");
                     mKeyEventHandled = true;
-                    mPwm.performHapticFeedbackLw(null, HapticFeedbackConstants.VIRTUAL_KEY, false);
+                    vibrationHandler.postDelayed(haptic, 10);
                     toggleRecentApps();
                     break;
                 case MSG_SEND_KEY:
                     if (DEBUG) Slog.i(TAG, "MSG_SEND_KEY " + mPreparedKeycode);
                     mKeyEventHandled = true;
-                    mPwm.performHapticFeedbackLw(null, HapticFeedbackConstants.VIRTUAL_KEY, false);
+                    vibrationHandler.postDelayed(haptic, 10);
                     triggerGestureVirtualKeypress(mPreparedKeycode);
                     break;
                 case MSG_SEND_LONG_PRESS:
                     if (DEBUG) Slog.i(TAG, "MSG_SEND_LONG_PRESS");
                     mKeyEventHandled = true;
-                    mPwm.performHapticFeedbackLw(null, HapticFeedbackConstants.LONG_PRESS, false);
+                    vibrationHandler.postDelayed(haptic, 10);
                     TaskUtils.toggleLastApp(mContext, UserHandle.USER_CURRENT);
                     break;
             }
@@ -122,14 +135,19 @@ public class GestureButton implements PointerEventListener {
         Slog.i(TAG, "GestureButton init");
         mContext = context;
         mPwm = pwm;
+        vibrator = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
         DisplayMetrics displayMetrics = new DisplayMetrics();
         WindowManager windowManager = (WindowManager) context.getSystemService("window");
         windowManager.getDefaultDisplay().getRealMetrics(displayMetrics);
         mScreenHeight = Math.max(displayMetrics.widthPixels, displayMetrics.heightPixels);
         mScreenWidth = Math.min(displayMetrics.widthPixels, displayMetrics.heightPixels);
-        mSwipeStartThreshold = 20;
-        mSwipeMinLength = context.getResources().getDimensionPixelSize(R.dimen.nav_gesture_swipe_min_length);
-        mLongPressMaxLength = context.getResources().getDimensionPixelSize(R.dimen.nav_gesture_long_press_max_length);
+        mSwipeStartThreshold = context.getResources().getInteger(R.integer.config_navgestureswipestart);
+        mSwipeMinLength = getSwipeLengthInPixel(context.getResources().getInteger(R.integer.config_navgestureswipeminlength));
+        mMoveTolerance = context.getResources().getInteger(R.integer.config_navgesturemovethreshold);
+        mSwipeTriggerTimeout  = context.getResources().getInteger(R.integer.config_navgestureswipetimout);
+        mHapticDuration = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.BOTTOM_GESTURE_FEEDBACK_DURATION, 50,
+                UserHandle.USER_CURRENT);
         HandlerThread gestureButtonThread = new HandlerThread("GestureButtonThread", -8);
         gestureButtonThread.start();
         mGestureButtonHandler = new GestureButtonHandler(gestureButtonThread.getLooper());
@@ -191,7 +209,7 @@ public class GestureButton implements PointerEventListener {
                         mKeyEventHandled = false;
                         mRecentsTriggered = false;
                         mLongSwipePossible = false;
-                        if (DEBUG) Slog.i(TAG, "ACTION_DOWN " + mPreparedKeycode);
+                        if (DEBUG) Slog.i(TAG, "ACTION_DOWN " + mPreparedKeycode + " mMoveTolerance = " + mMoveTolerance);
                     }
                     break;
                 case MotionEvent.ACTION_UP:
@@ -199,6 +217,7 @@ public class GestureButton implements PointerEventListener {
                         if (DEBUG)
                             Slog.i(TAG, "ACTION_UP " + mPreparedKeycode + " " + mRecentsTriggered + " " + mKeyEventHandled + " " + mLongSwipePossible);
                         mGestureButtonHandler.removeMessages(MSG_SEND_SWITCH_KEY);
+                        mGestureButtonHandler.removeMessages(MSG_SEND_LONG_PRESS);
                         cancelPreloadRecentApps();
 
                         if (!mKeyEventHandled && mLongSwipePossible) {
@@ -230,14 +249,18 @@ public class GestureButton implements PointerEventListener {
                             moveDistanceSinceLast = Math.abs(mLastX - rawX);
                         }
                         long deltaSinceDown = event.getEventTime() - mDownTime;
-                        if (mPreparedKeycode == KeyEvent.KEYCODE_HOME && moveDistanceSinceDown < mLongPressMaxLength) {
-                            if (deltaSinceDown > GESTURE_KEY_LONG_CLICK_TIMEOUT) {
-                                if (DEBUG) Slog.i(TAG, "long click: moveDistanceSinceDown = " + moveDistanceSinceDown);
-                                mGestureButtonHandler.sendEmptyMessage(MSG_SEND_LONG_PRESS);
+                        if (mPreparedKeycode == KeyEvent.KEYCODE_HOME && moveDistanceSinceDown < mSwipeMinLength) {
+                            if (( moveDistanceSinceDown > 20) && (moveDistanceSinceLast < mMoveTolerance)) {
+                                if (DEBUG) Slog.i(TAG, "long click: moveDistanceSinceLast = " + moveDistanceSinceLast);
+                                mGestureButtonHandler.removeMessages(MSG_SEND_LONG_PRESS);
+                                mGestureButtonHandler.sendEmptyMessageDelayed(MSG_SEND_LONG_PRESS, mSwipeTriggerTimeout);
+                            } else {
+                                mGestureButtonHandler.removeMessages(MSG_SEND_LONG_PRESS);
                             }
                         }
 
                         if (moveDistanceSinceDown > mSwipeMinLength) {
+                            mGestureButtonHandler.removeMessages(MSG_SEND_LONG_PRESS);
                             if (DEBUG) Slog.i(TAG, "swipe: moveDistanceSinceDown = " + moveDistanceSinceDown);
                             mLongSwipePossible = true;
                             if (mPreparedKeycode == KeyEvent.KEYCODE_BACK) {
@@ -245,11 +268,11 @@ public class GestureButton implements PointerEventListener {
                                 //mGestureButtonHandler.sendEmptyMessage(MSG_SEND_KEY);
                             } else if (!mRecentsTriggered) {
                                 // swipe comes to an stop
-                                if (moveDistanceSinceLast < mRecentMoveTolerance) {
+                                if (moveDistanceSinceLast < mMoveTolerance) {
                                     mRecentsTriggered = true;
                                     preloadRecentApps();
                                     mGestureButtonHandler.removeMessages(MSG_SEND_SWITCH_KEY);
-                                    mGestureButtonHandler.sendEmptyMessageDelayed(MSG_SEND_SWITCH_KEY, GESTURE_KEY_DISTANCE_TIMEOUT);
+                                    mGestureButtonHandler.sendEmptyMessageDelayed(MSG_SEND_SWITCH_KEY, mSwipeTriggerTimeout);
                                 }
                             }
                         }
@@ -311,5 +334,29 @@ public class GestureButton implements PointerEventListener {
             }
         }
         return isregion;
+    }
+
+    void updateSettings() {
+        mSwipeTriggerTimeout = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.OMNI_BOTTOM_GESTURE_TRIGGER_TIMEOUT,
+                mContext.getResources().getInteger(R.integer.config_navgestureswipetimout),
+                UserHandle.USER_CURRENT);
+        mSwipeMinLength = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.OMNI_BOTTOM_GESTURE_SWIPE_LIMIT,
+                getSwipeLengthInPixel(mContext.getResources().getInteger(R.integer.config_navgestureswipeminlength)),
+                UserHandle.USER_CURRENT);
+        mHapticDuration = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.BOTTOM_GESTURE_FEEDBACK_DURATION, 50,
+                UserHandle.USER_CURRENT);
+        mSwipeStartThreshold = Settings.System.getIntForUser(mContext.getContentResolver(),
+                Settings.System.BOTTOM_GESTURE_SWIPE_START,
+                getSwipeLengthInPixel(mContext.getResources().getInteger(R.integer.config_navgestureswipestart)),
+                UserHandle.USER_CURRENT);
+
+        if (DEBUG) Slog.i(TAG, "updateSettings mSwipeTriggerTimeout = " + mSwipeTriggerTimeout + " mSwipeMinLength = " + mSwipeMinLength);
+    }
+
+    private int getSwipeLengthInPixel(int value) {
+        return Math.round(value * mContext.getResources().getDisplayMetrics().density);
     }
 }
