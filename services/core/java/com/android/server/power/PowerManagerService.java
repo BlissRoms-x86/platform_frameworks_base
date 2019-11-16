@@ -1518,7 +1518,6 @@ public final class PowerManagerService extends SystemService
 			} catch (IOException e) {
 				Slog.v(TAG, "IOException: " + e);
 			}
-			break;
 
             mLastSleepTime = eventTime;
             mLastSleepReason = reason;
