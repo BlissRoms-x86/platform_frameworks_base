@@ -37,6 +37,7 @@ import android.provider.Settings;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -68,7 +69,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 public class QSFooterImpl extends FrameLayout implements QSFooter,
-        OnClickListener, OnUserInfoChangedListener {
+        OnClickListener, OnLongClickListener, OnUserInfoChangedListener {
 
     private static final String TAG = "QSFooterImpl";
 
@@ -101,14 +102,14 @@ public class QSFooterImpl extends FrameLayout implements QSFooter,
 
     private OnClickListener mExpandClickListener;
 
-    private final ContentObserver mDeveloperSettingsObserver = new ContentObserver(
+    /*private final ContentObserver mDeveloperSettingsObserver = new ContentObserver(
             new Handler(mContext.getMainLooper())) {
         @Override
         public void onChange(boolean selfChange, Uri uri) {
             super.onChange(selfChange, uri);
             setBuildText();
         }
-    };
+    };*/
 
     @Inject
     public QSFooterImpl(@Named(VIEW_CONTEXT) Context context, AttributeSet attrs,
@@ -141,6 +142,7 @@ public class QSFooterImpl extends FrameLayout implements QSFooter,
         mSettingsButton = findViewById(R.id.settings_button);
         mSettingsContainer = findViewById(R.id.settings_button_container);
         mSettingsButton.setOnClickListener(this);
+        mSettingsButton.setOnLongClickListener(this);
 
         mMultiUserSwitch = findViewById(R.id.multi_user_switch);
         mMultiUserAvatar = mMultiUserSwitch.findViewById(R.id.multi_user_avatar);
@@ -159,11 +161,11 @@ public class QSFooterImpl extends FrameLayout implements QSFooter,
                 oldBottom) -> updateAnimator(right - left));
         setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_YES);
         updateEverything();
-        setBuildText();
+        //setBuildText();
     }
 
     private void setBuildText() {
-        TextView v = findViewById(R.id.build);
+        /*TextView v = findViewById(R.id.build);
         if (v == null) return;
         if (DevelopmentSettingsEnabler.isDevelopmentSettingsEnabled(mContext)) {
             v.setText(mContext.getString(
@@ -173,7 +175,7 @@ public class QSFooterImpl extends FrameLayout implements QSFooter,
             v.setVisibility(View.VISIBLE);
         } else {
             v.setVisibility(View.GONE);
-        }
+        }*/
     }
 
     private void updateAnimator(int width) {
@@ -253,16 +255,16 @@ public class QSFooterImpl extends FrameLayout implements QSFooter,
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        mContext.getContentResolver().registerContentObserver(
+        /*mContext.getContentResolver().registerContentObserver(
                 Settings.Global.getUriFor(Settings.Global.DEVELOPMENT_SETTINGS_ENABLED), false,
-                mDeveloperSettingsObserver, UserHandle.USER_ALL);
+                mDeveloperSettingsObserver, UserHandle.USER_ALL);*/
     }
 
     @Override
     @VisibleForTesting
     public void onDetachedFromWindow() {
         setListening(false);
-        mContext.getContentResolver().unregisterContentObserver(mDeveloperSettingsObserver);
+        //mContext.getContentResolver().unregisterContentObserver(mDeveloperSettingsObserver);
         super.onDetachedFromWindow();
     }
 
@@ -383,9 +385,23 @@ public class QSFooterImpl extends FrameLayout implements QSFooter,
         }
     }
 
+    public boolean onLongClick(View v) {
+        if (v == mSettingsButton) {
+            startBlissActivity();
+        }
+        return false;
+    }
+
     private void startSettingsActivity() {
         mActivityStarter.startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS),
                 true /* dismissShade */);
+    }
+
+    private void startBlissActivity() {
+        Intent nIntent = new Intent(Intent.ACTION_MAIN);
+        nIntent.setClassName("com.android.settings",
+            "com.android.settings.Settings$BlissifySettingsActivity");
+        mActivityStarter.startActivity(nIntent, true /* dismissShade */);
     }
 
     @Override

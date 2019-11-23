@@ -263,6 +263,16 @@ public class BatteryStatsHelper {
         mStats = null;
     }
 
+    private void clearAllStats() {
+        clearStats();
+        sStatsXfer = null;
+        sBatteryBroadcastXfer = null;
+        for (File f : sFileXfer.keySet()) {
+            f.delete();
+        }
+        sFileXfer.clear();
+     }
+
     @UnsupportedAppUsage
     public BatteryStats getStats() {
         if (mStats == null) {
@@ -905,7 +915,10 @@ public class BatteryStatsHelper {
             }
         }
 
-        smearScreenBatterySipper(sippers, screenSipper);
+        //Only valid screen power consumption need to smear
+        if(screenSipper != null){
+           smearScreenBatterySipper(sippers, screenSipper);
+        }
 
         return proportionalSmearPowerMah;
     }
@@ -1050,6 +1063,15 @@ public class BatteryStatsHelper {
         if (mCollectBatteryBroadcast) {
             mBatteryBroadcast = mContext.registerReceiver(null,
                     new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        }
+    }
+
+    public void resetStatistics() {
+        try {
+            clearAllStats();
+            mBatteryInfo.resetStatistics();
+        } catch (RemoteException e) {
+            Log.e(TAG, "RemoteException:", e);
         }
     }
 

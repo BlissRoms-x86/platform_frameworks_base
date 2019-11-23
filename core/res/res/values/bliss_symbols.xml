@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     Copyright (C) 2014-2018 The BlissRoms Project
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+          http://www.apache.org/licenses/LICENSE-2.0
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.
+-->
+<resources>
+
+    <!-- Toast animation -->
+    <java-symbol type="style" name="Animation.Toast.Material" />
+
+    <!-- Whether device has dash charging support -->
+    <java-symbol type="bool" name="config_hasDashCharger" />
+
+    <!-- Package Manager -->
+    <java-symbol type="array" name="config_disabledComponents" />
+    <java-symbol type="array" name="config_forceEnabledComponents" />
+
+    <!-- Whether device supports internal audio recording -->
+    <java-symbol type="bool" name="config_hasInternalAudioRecordingSupport" />
+
+    <!-- Whether device ignores the RSSNR signal implementation -->
+    <java-symbol type="bool" name="config_ignoreRssnrSignalLevel" />
+
+    <!-- App error dialog -->
+    <java-symbol type="id" name="aerr_copy" />
+    <java-symbol type="string" name="url_copy_success" />
+    <java-symbol type="string" name="url_copy_failed" />
+
+    <!-- AOKP custom system animations -->
+    <java-symbol type="string" name="action_null"/>
+    <java-symbol type="string" name="animation_fade"/>
+    <java-symbol type="string" name="animation_slide_left"/>
+    <java-symbol type="string" name="animation_slide_right"/>
+    <java-symbol type="string" name="animation_slide_left_no_fade"/>
+    <java-symbol type="string" name="animation_slide_right_no_fade"/>
+    <java-symbol type="string" name="animation_slide_up"/>
+    <java-symbol type="string" name="animation_slide_down"/>
+    <java-symbol type="string" name="animation_default"/>
+    <java-symbol type="string" name="animation_translucent"/>
+    <java-symbol type="string" name="animation_grow_shrink"/>
+    <java-symbol type="string" name="animation_grow_shrink_center"/>
+    <java-symbol type="string" name="animation_grow_shrink_bottom"/>
+    <java-symbol type="string" name="animation_grow_shrink_left"/>
+    <java-symbol type="string" name="animation_grow_shrink_right"/>
+    <java-symbol type="string" name="animation_random"/>
+    <java-symbol type="anim" name="shrink_fade_out_ribbon" />
+    <java-symbol type="anim" name="shrink_fade_out_center_ribbon" />
+    <java-symbol type="anim" name="shrink_fade_out_right_ribbon" />
+    <java-symbol type="anim" name="shrink_fade_out_left_ribbon" />
+    <java-symbol type="anim" name="shrink_fade_out_from_bottom_ribbon" />
+    <java-symbol type="anim" name="grow_fade_in_ribbon" />
+    <java-symbol type="anim" name="grow_fade_in_center_ribbon" />
+    <java-symbol type="anim" name="grow_fade_in_left_ribbon" />
+    <java-symbol type="anim" name="grow_fade_in_right_ribbon" />
+    <java-symbol type="anim" name="grow_fade_in_from_bottom_ribbon" />
+    <java-symbol type="anim" name="translucent_enter_ribbon" />
+    <java-symbol type="anim" name="translucent_exit_ribbon" />
+    <java-symbol type="anim" name="slide_in_down" />
+    <java-symbol type="anim" name="slide_out_up" />
+    <java-symbol type="anim" name="slide_in_right_ribbon" />
+    <java-symbol type="anim" name="slide_out_right_ribbon" />
+    <java-symbol type="anim" name="slide_in_left_ribbon" />
+    <java-symbol type="anim" name="slide_out_left_ribbon" />
+    <java-symbol type="anim" name="slow_fade_in" />
+    <java-symbol type="anim" name="slow_fade_out" />
+    <java-symbol type="anim" name="slide_in_up_ribbon" />
+    <java-symbol type="anim" name="slide_out_down_ribbon" /> 
+    <java-symbol type="anim" name="slide_in_right_no_fade" />
+    <java-symbol type="anim" name="slide_out_left_no_fade" />
+    <java-symbol type="anim" name="slide_in_left_no_fade" />
+    <java-symbol type="anim" name="slide_out_right_no_fade" />
+    <java-symbol type="string" name="animation_ethans"/>
+    <java-symbol type="anim" name="ethans_activity_open_enter" />
+    <java-symbol type="anim" name="ethans_activity_open_exit" />
+    <java-symbol type="anim" name="ethans_activity_close_enter" />
+    <java-symbol type="anim" name="ethans_activity_close_exit" />
+    <java-symbol type="anim" name="ethans_task_open_enter" />
+    <java-symbol type="anim" name="ethans_task_open_exit" />
+    <java-symbol type="anim" name="ethans_task_close_enter" />
+    <java-symbol type="anim" name="ethans_task_close_exit" />
+    <java-symbol type="anim" name="ethans_wallpaper_open_enter" />
+    <java-symbol type="anim" name="ethans_wallpaper_open_exit" />
+    <java-symbol type="anim" name="ethans_wallpaper_close_enter" />
+    <java-symbol type="anim" name="ethans_wallpaper_close_exit" />
+    <java-symbol type="anim" name="ethans_wallpaper_intra_open_enter" />
+    <java-symbol type="anim" name="ethans_wallpaper_intra_open_exit" />
+    <java-symbol type="anim" name="ethans_wallpaper_intra_close_enter" />
+    <java-symbol type="anim" name="ethans_wallpaper_intra_close_exit" />
+    <java-symbol type="anim" name="ethans_launch_task_behind_source" />
+    <java-symbol type="anim" name="ethans_launch_task_behind_target" />
+
+    <!-- Toast Animation -->
+    <java-symbol type="style" name="Animation.Toast.Fade" />
+    <java-symbol type="style" name="Animation.Toast.SlideRight" />
+    <java-symbol type="style" name="Animation.Toast.SlideLeft" />
+    <java-symbol type="style" name="Animation.Toast.Xylon" />
+    <java-symbol type="style" name="Animation.Toast.Toko" />
+    <java-symbol type="style" name="Animation.Toast.Tn" />
+    <java-symbol type="style" name="Animation.Toast.Honami" />
+    <java-symbol type="style" name="Animation.Toast.FastFade" />
+    <java-symbol type="style" name="Animation.Toast.GrowFade" />
+    <java-symbol type="style" name="Animation.Toast.GrowFadeCenter" />
+    <java-symbol type="style" name="Animation.Toast.GrowFadeBottom" />
+    <java-symbol type="style" name="Animation.Toast.Translucent" />
+    <java-symbol type="style" name="Animation.Toast.SlideRightLeft" />
+    <java-symbol type="style" name="Animation.Toast.SlideLeftRight" />
+
+    <!-- Smart charging -->
+    <java-symbol type="integer" name="config_smartChargingBatteryLevel" />
+    <java-symbol type="integer" name="config_smartChargingBatteryResumeLevel" />
+    <java-symbol type="string" name="config_SmartChargingSysfsNode" />
+    <java-symbol type="string" name="config_SmartChargingSupspendValue" />
+    <java-symbol type="string" name="config_SmartChargingResumeValue" />
+
+    <!-- Vendor mismatch fingerprint warning -->
+    <java-symbol type="string" name="system_error_vendorprint" />
+
+    <!-- Whether the device supports Smart Pixels -->
+    <java-symbol type="bool" name="config_enableSmartPixels" />
+
+    <!-- Whether device has a physical display cutout -->
+    <java-symbol type="bool" name="config_physicalDisplayCutout" />
+
+    <!-- Whether device has a big physical display cutout -->
+    <java-symbol type="bool" name="config_bigPhysicalDisplayCutout" />
+
+    <!-- Alert slider. -->
+    <java-symbol type="string" name="alert_slider_state_path" />
+    <java-symbol type="string" name="alert_slider_uevent_match_path" />
+    <java-symbol type="bool" name="config_hasAlertSlider" />
+    <java-symbol type="integer" name="config_alertSliderLocation" />
+
+    <!-- Gaming mode -->
+    <java-symbol type="drawable" name="ic_gaming_notif" />
+    <java-symbol type="string" name="notification_channel_gaming" />
+    <java-symbol type="string" name="gaming_mode_notification_title" />
+    <java-symbol type="string" name="gaming_mode_notification_content" />
+    <java-symbol type="string" name="gaming_mode_enabled_toast" />
+    <java-symbol type="string" name="gaming_mode_disabled_toast" />
+
+    <java-symbol type="array" name="config_blockPackagesSensorDrain" />
+
+    <!-- Screen off delay -->
+    <java-symbol type="integer" name="config_screen_off_delay" />
+</resources>

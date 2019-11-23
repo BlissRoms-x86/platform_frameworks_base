@@ -24,6 +24,7 @@ import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 import static android.Manifest.permission.REQUEST_DELETE_PACKAGES;
 import static android.Manifest.permission.SET_HARMFUL_APP_WARNINGS;
 import static android.Manifest.permission.WRITE_EXTERNAL_STORAGE;
+import static android.Manifest.permission.WRITE_MEDIA_STORAGE;
 import static android.content.Intent.ACTION_MAIN;
 import static android.content.Intent.CATEGORY_DEFAULT;
 import static android.content.Intent.CATEGORY_HOME;
@@ -426,7 +427,7 @@ public class PackageManagerService extends IPackageManager.Stub
     private static final boolean DEBUG_VERIFY = false;
     public static final boolean DEBUG_PERMISSIONS = false;
     private static final boolean DEBUG_SHARED_LIBRARIES = false;
-    public static final boolean DEBUG_COMPRESSION = Build.IS_DEBUGGABLE;
+    public static final boolean DEBUG_COMPRESSION = Build.IS_ENG;
 
     // Debug output for dexopting. This is shared between PackageManagerService, OtaDexoptService
     // and PackageDexOptimizer. All these classes have their own flag to allow switching a single
@@ -434,7 +435,7 @@ public class PackageManagerService extends IPackageManager.Stub
     public static final boolean DEBUG_DEXOPT = false;
 
     private static final boolean DEBUG_ABI_SELECTION = false;
-    private static final boolean DEBUG_INSTANT = Build.IS_DEBUGGABLE;
+    private static final boolean DEBUG_INSTANT = Build.IS_ENG;
     private static final boolean DEBUG_APP_DATA = false;
 
     /** REMOVE. According to Svet, this was only used to reset permissions during development. */
@@ -1247,6 +1248,8 @@ public class PackageManagerService extends IPackageManager.Stub
                         filter.hasDataScheme(IntentFilter.SCHEME_HTTPS));
     }
 
+    ArrayList<ComponentName> mDisabledComponentsList;
+
     // Set of pending broadcasts for aggregating enable/disable of components.
     static class PendingPackageBroadcasts {
         // for each user id, a map of <package name -> components within that package>
@@ -1411,6 +1414,8 @@ public class PackageManagerService extends IPackageManager.Stub
 
     private final PackageUsage mPackageUsage = new PackageUsage();
     private final CompilerStats mCompilerStats = new CompilerStats();
+
+    private final Signature[] mVendorPlatformSignatures;
 
     class PackageHandler extends Handler {
 
@@ -2384,6 +2389,14 @@ public class PackageManagerService extends IPackageManager.Stub
         }
     }
 
+    private static Signature[] createSignatures(String[] hexBytes) {
+        Signature[] sigs = new Signature[hexBytes.length];
+        for (int i = 0; i < sigs.length; i++) {
+            sigs[i] = new Signature(hexBytes[i]);
+        }
+        return sigs;
+    }
+
     public PackageManagerService(Context context, Installer installer,
             boolean factoryTest, boolean onlyCore) {
         LockGuard.installLock(mPackages, LockGuard.INDEX_PACKAGES);
@@ -2396,6 +2409,9 @@ public class PackageManagerService extends IPackageManager.Stub
         }
 
         mContext = context;
+
+        mVendorPlatformSignatures = createSignatures(context.getResources().getStringArray(
+                    org.lineageos.platform.internal.R.array.config_vendorPlatformSignatures));
 
         mFactoryTest = factoryTest;
         mOnlyCore = onlyCore;
@@ -2563,10 +2579,10 @@ public class PackageManagerService extends IPackageManager.Stub
             File frameworkDir = new File(Environment.getRootDirectory(), "framework");
 
             final VersionInfo ver = mSettings.getInternalVersion();
-            mIsUpgrade = !Build.FINGERPRINT.equals(ver.fingerprint);
+            mIsUpgrade = !Build.BLISS_FINGERPRINT.equals(ver.fingerprint);
             if (mIsUpgrade) {
                 logCriticalInfo(Log.INFO,
-                        "Upgrading from " + ver.fingerprint + " to " + Build.FINGERPRINT);
+                        "Upgrading from " + ver.fingerprint + " to " + Build.BLISS_FINGERPRINT);
             }
 
             // when upgrading from pre-M, promote system app permissions from install to runtime
@@ -2594,7 +2610,7 @@ public class PackageManagerService extends IPackageManager.Stub
                 }
             }
 
-            mCacheDir = preparePackageParserCache();
+            mCacheDir = preparePackageParserCache(mIsUpgrade);
 
             // Set flag to monitor and not change apk file paths when
             // scanning install directories.
@@ -3227,6 +3243,38 @@ public class PackageManagerService extends IPackageManager.Stub
                 Slog.i(TAG, "Deferred reconcileAppsData finished " + count + " packages");
             }, "prepareAppData");
 
+            // Disable components marked for disabling at build-time
+            mDisabledComponentsList = new ArrayList<ComponentName>();
+            for (String name : mContext.getResources().getStringArray(
+                    com.android.internal.R.array.config_disabledComponents)) {
+                ComponentName cn = ComponentName.unflattenFromString(name);
+                mDisabledComponentsList.add(cn);
+                Slog.v(TAG, "Disabling " + name);
+                String className = cn.getClassName();
+                PackageSetting pkgSetting = mSettings.mPackages.get(cn.getPackageName());
+                if (pkgSetting == null || pkgSetting.pkg == null
+                        || !pkgSetting.pkg.hasComponentClassName(className)) {
+                    Slog.w(TAG, "Unable to disable " + name);
+                    continue;
+                }
+                pkgSetting.disableComponentLPw(className, UserHandle.USER_OWNER);
+            }
+
+            // Enable components marked for forced-enable at build-time
+            for (String name : mContext.getResources().getStringArray(
+                    com.android.internal.R.array.config_forceEnabledComponents)) {
+                ComponentName cn = ComponentName.unflattenFromString(name);
+                Slog.v(TAG, "Enabling " + name);
+                String className = cn.getClassName();
+                PackageSetting pkgSetting = mSettings.mPackages.get(cn.getPackageName());
+                if (pkgSetting == null || pkgSetting.pkg == null
+                        || !pkgSetting.pkg.hasComponentClassName(className)) {
+                    Slog.w(TAG, "Unable to enable " + name);
+                    continue;
+                }
+                pkgSetting.enableComponentLPw(className, UserHandle.USER_OWNER);
+            }
+
             // If this is first boot after an OTA, and a normal boot, then
             // we need to clear code cache directories.
             // Note that we do *not* clear the application profiles. These remain valid
@@ -3243,7 +3291,7 @@ public class PackageManagerService extends IPackageManager.Stub
                                         | Installer.FLAG_CLEAR_CODE_CACHE_ONLY);
                     }
                 }
-                ver.fingerprint = Build.FINGERPRINT;
+                ver.fingerprint = Build.BLISS_FINGERPRINT;
             }
 
             // Grandfather existing (installed before Q) non-system apps to hide
@@ -3600,7 +3648,7 @@ public class PackageManagerService extends IPackageManager.Stub
         setUpInstantAppInstallerActivityLP(getInstantAppInstallerLPr());
     }
 
-    private static @Nullable File preparePackageParserCache() {
+    private static @Nullable File preparePackageParserCache(boolean isUpgrade) {
         if (!DEFAULT_PACKAGE_PARSER_CACHE_ENABLED) {
             return null;
         }
@@ -3625,13 +3673,13 @@ public class PackageManagerService extends IPackageManager.Stub
         // identify cached items. In particular, changing the value of certain
         // feature flags should cause us to invalidate any caches.
         final String cacheName = SystemProperties.digestOf(
-                "ro.build.fingerprint",
+                Build.PROP_BLISS_FINGERPRINT,
                 StorageManager.PROP_ISOLATED_STORAGE,
                 StorageManager.PROP_ISOLATED_STORAGE_SNAPSHOT);
 
         // Reconcile cache directories, keeping only what we'd actually use.
         for (File cacheDir : FileUtils.listFilesOrEmpty(cacheBaseDir)) {
-            if (Objects.equals(cacheName, cacheDir.getName())) {
+            if (!isUpgrade && Objects.equals(cacheName, cacheDir.getName())) {
                 Slog.d(TAG, "Keeping known cache " + cacheDir.getName());
             } else {
                 Slog.d(TAG, "Destroying unknown cache " + cacheDir.getName());
@@ -3821,7 +3869,7 @@ public class PackageManagerService extends IPackageManager.Stub
     private @Nullable Pair<ComponentName, String> getInstantAppResolverLPr() {
         final String[] packageArray =
                 mContext.getResources().getStringArray(R.array.config_ephemeralResolverPackage);
-        if (packageArray.length == 0 && !Build.IS_DEBUGGABLE) {
+        if (packageArray.length == 0 && !Build.IS_ENG) {
             if (DEBUG_INSTANT) {
                 Slog.d(TAG, "Ephemeral resolver NOT found; empty package list");
             }
@@ -3832,7 +3880,7 @@ public class PackageManagerService extends IPackageManager.Stub
         final int resolveFlags =
                 MATCH_DIRECT_BOOT_AWARE
                 | MATCH_DIRECT_BOOT_UNAWARE
-                | (!Build.IS_DEBUGGABLE ? MATCH_SYSTEM_ONLY : 0);
+                | (!Build.IS_ENG ? MATCH_SYSTEM_ONLY : 0);
         String actionName = Intent.ACTION_RESOLVE_INSTANT_APP_PACKAGE;
         final Intent resolverIntent = new Intent(actionName);
         List<ResolveInfo> resolvers = queryIntentServicesInternal(resolverIntent, null,
@@ -3854,7 +3902,7 @@ public class PackageManagerService extends IPackageManager.Stub
             }
 
             final String packageName = info.serviceInfo.packageName;
-            if (!possiblePackages.contains(packageName) && !Build.IS_DEBUGGABLE) {
+            if (!possiblePackages.contains(packageName) && !Build.IS_ENG) {
                 if (DEBUG_INSTANT) {
                     Slog.d(TAG, "Ephemeral resolver not in allowed package list;"
                             + " pkg: " + packageName + ", info:" + info);
@@ -4092,9 +4140,9 @@ public class PackageManagerService extends IPackageManager.Stub
             final Set<String> permissions = ArrayUtils.isEmpty(p.requestedPermissions)
                     ? Collections.emptySet() : permissionsState.getPermissions(userId);
 
-            PackageInfo packageInfo = mayFakeSignature(p, PackageParser.generatePackageInfo(p, gids, flags,
-                    ps.firstInstallTime, ps.lastUpdateTime, permissions, state, userId),
-                    permissions);
+            PackageInfo packageInfo = mayFakeSignature(p, PackageParser
+                    .generatePackageInfo(p, gids, flags, ps.firstInstallTime,
+                    ps.lastUpdateTime, permissions, state, userId), permissions);
 
             if (packageInfo == null) {
                 return null;
@@ -9140,6 +9188,19 @@ public class PackageManagerService extends IPackageManager.Stub
         try {
             Trace.traceBegin(TRACE_TAG_PACKAGE_MANAGER, "collectCertificates");
             PackageParser.collectCertificates(pkg, skipVerify);
+            if (compareSignatures(pkg.mSigningDetails.signatures,
+                  mVendorPlatformSignatures) == PackageManager.SIGNATURE_MATCH) {
+                // Overwrite package signature with our platform signature
+                // if the signature is the vendor's platform signature
+                if (mPlatformPackage != null) {
+                    pkg.mSigningDetails = mPlatformPackage.mSigningDetails;
+                    pkg.applicationInfo.seInfo = SELinuxMMAC.getSeInfo(
+                        pkg,
+                        pkg.isPrivileged(),
+                        pkg.applicationInfo.targetSandboxVersion,
+                        pkg.applicationInfo.targetSdkVersion);
+                }
+            }
         } catch (PackageParserException e) {
             throw PackageManagerException.from(e);
         } finally {
@@ -9402,7 +9463,8 @@ public class PackageManagerService extends IPackageManager.Stub
                             disabledPkgSetting /* pkgSetting */, null /* disabledPkgSetting */,
                             null /* originalPkgSetting */, null, parseFlags, scanFlags,
                             (pkg == mPlatformPackage), user);
-                    applyPolicy(pkg, parseFlags, scanFlags, mPlatformPackage);
+                    applyPolicy(pkg, parseFlags, scanFlags, mPlatformPackage,
+                            mVendorPlatformSignatures);
                     final ScanResult scanResult = scanPackageOnlyLI(request, mFactoryTest, -1L);
                     if (scanResult.existingSettingCopied && scanResult.request.pkgSetting != null) {
                         scanResult.request.pkgSetting.updateFrom(scanResult.pkgSetting);
@@ -10977,7 +11039,7 @@ public class PackageManagerService extends IPackageManager.Stub
 
         scanFlags = adjustScanFlags(scanFlags, pkgSetting, disabledPkgSetting, user, pkg);
         synchronized (mPackages) {
-            applyPolicy(pkg, parseFlags, scanFlags, mPlatformPackage);
+            applyPolicy(pkg, parseFlags, scanFlags, mPlatformPackage, mVendorPlatformSignatures);
             assertPackageIsValid(pkg, parseFlags, scanFlags);
 
             SharedUserSetting sharedUserSetting = null;
@@ -11601,7 +11663,8 @@ public class PackageManagerService extends IPackageManager.Stub
      * ideally be static, but, it requires locks to read system state.
      */
     private static void applyPolicy(PackageParser.Package pkg, final @ParseFlags int parseFlags,
-            final @ScanFlags int scanFlags, PackageParser.Package platformPkg) {
+            final @ScanFlags int scanFlags, PackageParser.Package platformPkg,
+            Signature[] vendorPlatformSignatures) {
         if ((scanFlags & SCAN_AS_SYSTEM) != 0) {
             pkg.applicationInfo.flags |= ApplicationInfo.FLAG_SYSTEM;
             if (pkg.applicationInfo.isDirectBootAware()) {
@@ -11697,8 +11760,11 @@ public class PackageManagerService extends IPackageManager.Stub
 
         // Check if the package is signed with the same key as the platform package.
         if (PLATFORM_PACKAGE_NAME.equals(pkg.packageName) ||
-                (platformPkg != null && compareSignatures(
+                (platformPkg != null && (compareSignatures(
                         platformPkg.mSigningDetails.signatures,
+                        pkg.mSigningDetails.signatures) == PackageManager.SIGNATURE_MATCH) ||
+                 compareSignatures(
+                        vendorPlatformSignatures,
                         pkg.mSigningDetails.signatures) == PackageManager.SIGNATURE_MATCH)) {
             pkg.applicationInfo.privateFlags |=
                 ApplicationInfo.PRIVATE_FLAG_SIGNED_WITH_PLATFORM_KEY;
@@ -18020,7 +18086,7 @@ public class PackageManagerService extends IPackageManager.Stub
             // In legacy mode, fs-verity can only be enabled by process with CAP_SYS_ADMIN.
             final VerityUtils.SetupResult result = VerityUtils.generateApkVeritySetupData(filePath);
             if (result.isOk()) {
-                if (Build.IS_DEBUGGABLE) Slog.i(TAG, "Enabling verity to " + filePath);
+                if (Build.IS_ENG) Slog.i(TAG, "Enabling verity to " + filePath);
                 final FileDescriptor fd = result.getUnownedFileDescriptor();
                 try {
                     final byte[] rootHash = VerityUtils.generateApkVerityRootHash(filePath);
@@ -21205,6 +21271,12 @@ public class PackageManagerService extends IPackageManager.Stub
     public void setComponentEnabledSetting(ComponentName componentName,
             int newState, int flags, int userId) {
         if (!sUserManager.exists(userId)) return;
+        // Don't allow to enable components marked for disabling at build-time
+        if (mDisabledComponentsList.contains(componentName)) {
+            Slog.d(TAG, "Ignoring attempt to set enabled state of disabled component "
+                    + componentName.flattenToString());
+            return;
+        }
         setEnabledSetting(componentName.getPackageName(),
                 componentName.getClassName(), newState, flags, userId, null);
     }
@@ -21689,6 +21761,9 @@ public class PackageManagerService extends IPackageManager.Stub
             public int getMountMode(int uid, String packageName) {
                 if (Process.isIsolated(uid)) {
                     return Zygote.MOUNT_EXTERNAL_NONE;
+                }
+                if (checkUidPermission(WRITE_MEDIA_STORAGE, uid) == PERMISSION_GRANTED) {
+                    return Zygote.MOUNT_EXTERNAL_DEFAULT;
                 }
                 if (checkUidPermission(READ_EXTERNAL_STORAGE, uid) == PERMISSION_DENIED) {
                     return Zygote.MOUNT_EXTERNAL_DEFAULT;
@@ -22626,7 +22701,7 @@ public class PackageManagerService extends IPackageManager.Stub
                     Slog.w(TAG, "Failed to scan " + ps.codePath + ": " + e.getMessage());
                 }
 
-                if (!Build.FINGERPRINT.equals(ver.fingerprint)) {
+                if (!Build.BLISS_FINGERPRINT.equals(ver.fingerprint)) {
                     clearAppDataLIF(ps.pkg, UserHandle.USER_ALL, FLAG_STORAGE_DE | FLAG_STORAGE_CE
                             | FLAG_STORAGE_EXTERNAL | Installer.FLAG_CLEAR_CODE_CACHE_ONLY);
                 }

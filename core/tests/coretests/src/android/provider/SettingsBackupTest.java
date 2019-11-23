@@ -71,6 +71,7 @@ public class SettingsBackupTest {
                     Settings.System.POINTER_LOCATION, // backup candidate?
                     Settings.System.DEBUG_ENABLE_ENHANCED_CALL_BLOCKING, // used for testing only
                     Settings.System.RINGTONE_CACHE, // internal cache
+                    Settings.System.RINGTONE2_CACHE, // internal cache
                     Settings.System.SCREEN_BRIGHTNESS, // removed in P
                     Settings.System.SETUP_WIZARD_HAS_RUN, // Only used by SuW
                     Settings.System.SHOW_GTALK_SERVICE_STATUS, // candidate for backup?
@@ -716,6 +717,7 @@ public class SettingsBackupTest {
                  Settings.Secure.PACKAGES_TO_CLEAR_DATA_BEFORE_FULL_RESTORE,
                  Settings.Secure.FLASHLIGHT_AVAILABLE,
                  Settings.Secure.FLASHLIGHT_ENABLED,
+                 Settings.Secure.MANAGED_PROVISIONING_DPC_DOWNLOADED,
                  Settings.Secure.CROSS_PROFILE_CALENDAR_ENABLED,
                  Settings.Secure.LOCATION_ACCESS_CHECK_INTERVAL_MILLIS,
                  Settings.Secure.LOCATION_ACCESS_CHECK_DELAY_MILLIS,

@@ -1985,7 +1985,7 @@ public class DevicePolicyManagerService extends BaseIDevicePolicyManager {
         }
 
         boolean isBuildDebuggable() {
-            return Build.IS_DEBUGGABLE;
+            return Build.IS_ENG;
         }
 
         LockPatternUtils newLockPatternUtils() {
@@ -7695,6 +7695,31 @@ public class DevicePolicyManagerService extends BaseIDevicePolicyManager {
                 .setBoolean(parent)
                 .write();
     }
+
+    /**
+     * @hide
+     */
+    @Override
+    public boolean requireSecureKeyguard(int userHandle) {
+        if (!mHasFeature) {
+            return false;
+        }
+
+        int passwordQuality = getPasswordQuality(null, userHandle, false);
+        if (passwordQuality > DevicePolicyManager.PASSWORD_QUALITY_UNSPECIFIED) {
+            return true;
+        }
+
+        int encryptionStatus = getStorageEncryptionStatus(null, userHandle);
+        if (encryptionStatus == DevicePolicyManager.ENCRYPTION_STATUS_ACTIVE
+                || encryptionStatus == DevicePolicyManager.ENCRYPTION_STATUS_ACTIVATING) {
+            return true;
+        }
+
+        final int keyguardDisabledFeatures = getKeyguardDisabledFeatures(null, userHandle, false);
+        return (keyguardDisabledFeatures & DevicePolicyManager.KEYGUARD_DISABLE_TRUST_AGENTS) != 0;
+    }
+
 
     /**
      * Gets the disabled state for features in keyguard for the given admin,

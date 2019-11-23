@@ -138,6 +138,7 @@ import com.android.internal.util.FastXmlSerializer;
 import com.android.internal.util.HexDump;
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.Preconditions;
+import com.android.internal.widget.ILockSettings;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.server.storage.AppFuseBridge;
 import com.android.server.wm.ActivityTaskManagerInternal;
@@ -1097,7 +1098,7 @@ class StorageManagerService extends IStorageManager.Stub
         config.setLocale(locale);
         try {
             ActivityManager.getService().updatePersistentConfiguration(config);
-        } catch (RemoteException e) {
+        } catch (Exception e) {
             Slog.e(TAG, "Error setting system locale from mount service", e);
         }
 
@@ -1283,6 +1284,8 @@ class StorageManagerService extends IStorageManager.Stub
             // Adoptable public disks are visible to apps, since they meet
             // public API requirement of being in a stable location.
             if (vol.disk.isAdoptable()) {
+                vol.mountFlags |= VolumeInfo.MOUNT_FLAG_VISIBLE;
+            } else if (vol.disk.isSd()) {
                 vol.mountFlags |= VolumeInfo.MOUNT_FLAG_VISIBLE;
             }
 
@@ -1861,8 +1864,10 @@ class StorageManagerService extends IStorageManager.Stub
                     final long destroy = extras.getLong("destroy");
 
                     final DropBoxManager dropBox = mContext.getSystemService(DropBoxManager.class);
-                    dropBox.addText(TAG_STORAGE_BENCHMARK, scrubPath(path)
-                            + " " + ident + " " + create + " " + run + " " + destroy);
+                    if (dropBox != null) {
+                        dropBox.addText(TAG_STORAGE_BENCHMARK, scrubPath(path)
+                                + " " + ident + " " + create + " " + run + " " + destroy);
+                    }
 
                     synchronized (mLock) {
                         final VolumeRecord rec = findRecordForPath(path);
@@ -1926,6 +1931,8 @@ class StorageManagerService extends IStorageManager.Stub
         Preconditions.checkNotNull(fsUuid);
         synchronized (mLock) {
             final VolumeRecord rec = mRecords.get(fsUuid);
+            if (rec == null)
+                return;
             rec.nickname = nickname;
             mCallbacks.notifyVolumeRecordChanged(rec);
             writeSettingsLocked();
@@ -1939,6 +1946,8 @@ class StorageManagerService extends IStorageManager.Stub
         Preconditions.checkNotNull(fsUuid);
         synchronized (mLock) {
             final VolumeRecord rec = mRecords.get(fsUuid);
+            if (rec == null)
+                return;
             rec.userFlags = (rec.userFlags & ~mask) | (flags & mask);
             mCallbacks.notifyVolumeRecordChanged(rec);
             writeSettingsLocked();
@@ -2024,7 +2033,9 @@ class StorageManagerService extends IStorageManager.Stub
                         final long time = extras.getLong("time");
 
                         final DropBoxManager dropBox = mContext.getSystemService(DropBoxManager.class);
-                        dropBox.addText(TAG_STORAGE_TRIM, scrubPath(path) + " " + bytes + " " + time);
+                        if (dropBox != null) {
+                           dropBox.addText(TAG_STORAGE_TRIM, scrubPath(path) + " " + bytes + " " + time);
+                        }
 
                         synchronized (mLock) {
                             final VolumeRecord rec = findRecordForPath(path);
@@ -2510,8 +2521,22 @@ class StorageManagerService extends IStorageManager.Stub
             Slog.i(TAG, "changing encryption password...");
         }
 
+        ILockSettings lockSettings = ILockSettings.Stub.asInterface(
+                        ServiceManager.getService("lock_settings"));
+        String currentPassword="default_password";
         try {
-            mVold.fdeChangePassword(type, password);
+            currentPassword = lockSettings.getPassword();
+        } catch (Exception e) {
+            Slog.wtf(TAG, "Couldn't get password" + e);
+        }
+
+        try {
+            mVold.fdeChangePassword(type, currentPassword, password);
+            try {
+                lockSettings.sanitizePassword();
+            } catch (Exception e) {
+                Slog.wtf(TAG, "Couldn't sanitize password" + e);
+            }
             return 0;
         } catch (Exception e) {
             Slog.wtf(TAG, e);

@@ -47,6 +47,7 @@ import java.util.UUID;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.android.internal.util.custom.recorder.RecorderConstants;
 
 /** Platform implementation of the cast controller. **/
 @Singleton
@@ -177,6 +178,10 @@ public class CastControllerImpl implements CastController {
         }
 
         synchronized (mProjectionLock) {
+            if (mProjection != null && mProjection.getPackageName().equals(
+                    RecorderConstants.APP_PACKAGE_NAME)){
+                mProjection = null;
+            }
             if (mProjection != null) {
                 final CastDevice device = new CastDevice();
                 device.id = mProjection.getPackageName();
@@ -193,7 +198,7 @@ public class CastControllerImpl implements CastController {
 
     @Override
     public void startCasting(CastDevice device) {
-        if (device == null || device.tag == null) return;
+        if (device == null || !(device.tag instanceof RouteInfo)) return;
         final RouteInfo route = (RouteInfo) device.tag;
         if (DEBUG) Log.d(TAG, "startCasting: " + routeToString(route));
         mMediaRouter.selectRoute(ROUTE_TYPE_REMOTE_DISPLAY, route);

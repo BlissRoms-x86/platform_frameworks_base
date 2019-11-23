@@ -24,6 +24,7 @@ import static com.android.systemui.SysUiServiceProvider.getComponent;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.content.res.Resources;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.util.AttributeSet;
@@ -53,8 +54,17 @@ public class PhoneStatusBarView extends PanelBar {
     private static final String TAG = "PhoneStatusBarView";
     private static final boolean DEBUG = StatusBar.DEBUG;
     private static final boolean DEBUG_GESTURES = false;
+    private boolean mShowNotchView;
+
     private static final int NO_VALUE = Integer.MIN_VALUE;
     private final CommandQueue mCommandQueue;
+
+    private int mBasePaddingBottom;
+    private int mBasePaddingLeft;
+    private int mBasePaddingRight;
+    private int mBasePaddingTop;
+
+    private ViewGroup mStatusBarContents;
 
     StatusBar mBar;
 
@@ -103,12 +113,30 @@ public class PhoneStatusBarView extends PanelBar {
         mScrimController = scrimController;
     }
 
+    public void swiftStatusBarItems(int horizontalShift, int verticalShift) {
+        if (mStatusBarContents == null) {
+            return;
+        }
+
+        mStatusBarContents.setPaddingRelative(mBasePaddingLeft + horizontalShift,
+                                              mBasePaddingTop + verticalShift,
+                                              mBasePaddingRight + horizontalShift,
+                                              mBasePaddingBottom - verticalShift);
+        invalidate();
+    }
+
     @Override
     public void onFinishInflate() {
         mBarTransitions.init();
         mBattery = findViewById(R.id.battery);
         mCutoutSpace = findViewById(R.id.cutout_space_view);
         mCenterIconSpace = findViewById(R.id.centered_icon_area);
+        mStatusBarContents = (ViewGroup) findViewById(R.id.status_bar_contents);
+
+        mBasePaddingLeft = mStatusBarContents.getPaddingStart();
+        mBasePaddingTop = mStatusBarContents.getPaddingTop();
+        mBasePaddingRight = mStatusBarContents.getPaddingEnd();
+        mBasePaddingBottom = mStatusBarContents.getPaddingBottom();
 
         updateResources();
     }
@@ -322,7 +350,12 @@ public class PhoneStatusBarView extends PanelBar {
         }
 
         mCenterIconSpace.setVisibility(View.GONE);
-        mCutoutSpace.setVisibility(View.VISIBLE);
+        mShowNotchView = getResources().getBoolean(R.bool.hide_view_behind_notch);
+        if (!mShowNotchView) {
+            mCutoutSpace.setVisibility(View.VISIBLE);
+        } else {
+            mCutoutSpace.setVisibility(View.GONE);
+        }
         LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) mCutoutSpace.getLayoutParams();
 
         Rect bounds = new Rect();

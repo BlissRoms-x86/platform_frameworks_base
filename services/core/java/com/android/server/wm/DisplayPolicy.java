@@ -118,10 +118,12 @@ import android.app.ActivityThread;
 import android.app.LoadedApk;
 import android.app.ResourcesManager;
 import android.app.StatusBarManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.database.ContentObserver;
 import android.graphics.Insets;
 import android.graphics.PixelFormat;
 import android.graphics.Rect;
@@ -134,6 +136,7 @@ import android.os.Message;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.util.ArraySet;
 import android.util.Pair;
 import android.util.PrintWriterPrinter;
@@ -176,6 +179,8 @@ import com.android.server.policy.WindowOrientationListener;
 import com.android.server.statusbar.StatusBarManagerInternal;
 import com.android.server.wallpaper.WallpaperManagerInternal;
 import com.android.server.wm.utils.InsetUtils;
+
+import lineageos.providers.LineageSettings;
 
 import java.io.PrintWriter;
 
@@ -253,6 +258,7 @@ public class DisplayPolicy {
 
     private volatile boolean mHasStatusBar;
     private volatile boolean mHasNavigationBar;
+    private volatile int mForceNavbar = -1;
     // Can the navigation bar ever move to the side?
     private volatile boolean mNavigationBarCanMove;
     private volatile boolean mNavigationBarLetsThroughTaps;
@@ -373,6 +379,8 @@ public class DisplayPolicy {
 
     private PointerLocationView mPointerLocationView;
 
+    private SettingsObserver mSettingsObserver;
+
     /**
      * The area covered by system windows which belong to another display. Forwarded insets is set
      * in case this is a virtual display, this is displayed on another display that has insets, and
@@ -424,6 +432,24 @@ public class DisplayPolicy {
                     disablePointerLocation();
                     break;
             }
+        }
+    }
+
+    private class SettingsObserver extends ContentObserver {
+        public SettingsObserver(Handler handler) {
+            super(handler);
+
+            ContentResolver resolver = mContext.getContentResolver();
+            resolver.registerContentObserver(LineageSettings.System.getUriFor(
+                    LineageSettings.System.FORCE_SHOW_NAVBAR), false, this,
+                    UserHandle.USER_ALL);
+
+            updateSettings();
+        }
+
+        @Override
+        public void onChange(boolean selfChange) {
+            updateSettings();
         }
     }
 
@@ -607,6 +633,8 @@ public class DisplayPolicy {
         mRefreshRatePolicy = new RefreshRatePolicy(mService,
                 mDisplayContent.getDisplayInfo(),
                 mService.mHighRefreshRateBlacklist);
+
+        mSettingsObserver = new SettingsObserver(mHandler);
     }
 
     void systemReady() {
@@ -614,6 +642,14 @@ public class DisplayPolicy {
         if (mService.mPointerLocationEnabled) {
             setPointerLocationEnabled(true);
         }
+    }
+
+    public void updateSettings() {
+        ContentResolver resolver = mContext.getContentResolver();
+
+        mForceNavbar = LineageSettings.System.getIntForUser(resolver,
+                LineageSettings.System.FORCE_SHOW_NAVBAR, 0,
+                UserHandle.USER_CURRENT);
     }
 
     private int getDisplayId() {
@@ -671,7 +707,7 @@ public class DisplayPolicy {
     }
 
     public boolean hasNavigationBar() {
-        return mHasNavigationBar;
+        return mHasNavigationBar || mForceNavbar == 1;
     }
 
     public boolean hasStatusBar() {
@@ -720,6 +756,11 @@ public class DisplayPolicy {
 
     public ScreenOnListener getScreenOnListener() {
         return mScreenOnListener;
+    }
+
+    public int getTopFullscreenOpaqueWindowStatePrivateFlags() {
+        return mTopFullscreenOpaqueWindowState != null ?
+                mTopFullscreenOpaqueWindowState.getAttrs().privateFlags : 0;
     }
 
     public void screenTurnedOn(ScreenOnListener screenOnListener) {
@@ -860,7 +901,57 @@ public class DisplayPolicy {
                 attrs.hideTimeoutMilliseconds = mAccessibilityManager.getRecommendedTimeoutMillis(
                         (int) attrs.hideTimeoutMilliseconds,
                         AccessibilityManager.FLAG_CONTENT_TEXT);
-                attrs.windowAnimations = com.android.internal.R.style.Animation_Toast;
+                switch(Settings.Global.getInt(mContext.getContentResolver(),
+                        Settings.Global.TOAST_ANIMATION, 1)) {
+                    case 0:
+                        attrs.windowAnimations = -1;
+                        break;
+                    case 1:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast;
+                        break;
+                    case 2:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_Fade;
+                        break;
+                    case 3:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_SlideRight;
+                        break;
+                    case 4:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_SlideLeft;
+                        break;
+                    case 5:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_Xylon;
+                        break;
+                    case 6:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_Toko;
+                        break;
+                    case 7:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_Tn;
+                        break;
+                    case 8:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_Honami;
+                        break;
+                    case 9:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_FastFade;
+                        break;
+                    case 10:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_GrowFade;
+                        break;
+                    case 11:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_GrowFadeCenter;
+                        break;
+                    case 12:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_GrowFadeBottom;
+                        break;
+                    case 13:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_Translucent;
+                        break;
+                    case 14:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_SlideLeftRight;
+                        break;
+                    case 15:
+                        attrs.windowAnimations = com.android.internal.R.style.Animation_Toast_SlideRightLeft;
+                        break;
+                }
                 // Toast can show with below conditions when the screen is locked.
                 if (canToastShowWhenLocked(callingPid)) {
                     attrs.flags |= WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED;

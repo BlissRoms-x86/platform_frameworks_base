@@ -226,6 +226,7 @@ public class SettingsProvider extends ContentProvider {
     private static final Set<String> CRITICAL_SECURE_SETTINGS = new ArraySet<>();
     static {
         CRITICAL_SECURE_SETTINGS.add(Settings.Secure.USER_SETUP_COMPLETE);
+        CRITICAL_SECURE_SETTINGS.add(Settings.Secure.TV_USER_SETUP_COMPLETE);
     }
 
     // Per user secure settings that moved to the for all users global settings.
@@ -767,6 +768,9 @@ public class SettingsProvider extends ContentProvider {
         if (Settings.System.RINGTONE_CACHE_URI.equals(uri)) {
             cacheRingtoneSetting = Settings.System.RINGTONE;
             cacheName = Settings.System.RINGTONE_CACHE;
+        } else if (Settings.System.RINGTONE2_CACHE_URI.equals(uri)) {
+            cacheRingtoneSetting = Settings.System.RINGTONE2;
+            cacheName = Settings.System.RINGTONE2_CACHE;
         } else if (Settings.System.NOTIFICATION_SOUND_CACHE_URI.equals(uri)) {
             cacheRingtoneSetting = Settings.System.NOTIFICATION_SOUND;
             cacheName = Settings.System.NOTIFICATION_SOUND_CACHE;
@@ -1724,6 +1728,8 @@ public class SettingsProvider extends ContentProvider {
         String cacheName = null;
         if (Settings.System.RINGTONE.equals(name)) {
             cacheName = Settings.System.RINGTONE_CACHE;
+        } else if (Settings.System.RINGTONE2.equals(name)) {
+            cacheName = Settings.System.RINGTONE2_CACHE;
         } else if (Settings.System.NOTIFICATION_SOUND.equals(name)) {
             cacheName = Settings.System.NOTIFICATION_SOUND_CACHE;
         } else if (Settings.System.ALARM_ALERT.equals(name)) {
@@ -2190,7 +2196,7 @@ public class SettingsProvider extends ContentProvider {
 
     private static boolean isCallerSystemOrShellOrRootOnDebuggableBuild() {
         final int appId = UserHandle.getAppId(Binder.getCallingUid());
-        return appId == SYSTEM_UID || (Build.IS_DEBUGGABLE
+        return appId == SYSTEM_UID || (Build.IS_ENG
                 && (appId == SHELL_UID || appId == ROOT_UID));
     }
 
@@ -3225,7 +3231,7 @@ public class SettingsProvider extends ContentProvider {
                         } catch (SecurityException e) {
                             Slog.w(LOG_TAG, "Failed to notify for " + userId + ": " + uri, e);
                         }
-                        if (DEBUG || true) {
+                        if (DEBUG) {
                             Slog.v(LOG_TAG, "Notifying for " + userId + ": " + uri);
                         }
                     } break;
@@ -3739,6 +3745,18 @@ public class SettingsProvider extends ContentProvider {
 
                 if (currentVersion == 144) {
                     // Version 145: Removed
+                    // Repurpose for AndroidTV devices coming from N
+                    final SettingsState secureSettings = getSecureSettingsLocked(userId);
+                    String defaultTvSetupSetting = (getContext().getResources().getString(
+                            R.string.def_tv_user_setup_complete));
+                    String currentUserSetupSetting = secureSettings.getSettingLocked(
+                            Settings.Secure.USER_SETUP_COMPLETE).getValue();
+                    if (defaultTvSetupSetting != null && !defaultTvSetupSetting.isEmpty() &&
+                            currentUserSetupSetting == "1") {
+                        secureSettings.insertSettingLocked(
+                                Settings.Secure.TV_USER_SETUP_COMPLETE, "1",
+                                null, true, SettingsState.SYSTEM_PACKAGE_NAME);
+                    }
                     currentVersion = 145;
                 }
 

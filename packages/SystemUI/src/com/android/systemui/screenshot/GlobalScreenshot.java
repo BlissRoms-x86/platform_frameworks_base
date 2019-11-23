@@ -29,7 +29,9 @@ import android.animation.AnimatorListenerAdapter;
 import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.animation.ValueAnimator.AnimatorUpdateListener;
+import android.app.ActivityManager;
 import android.app.ActivityOptions;
+import android.app.KeyguardManager;
 import android.app.Notification;
 import android.app.Notification.BigPictureStyle;
 import android.app.NotificationManager;
@@ -42,6 +44,8 @@ import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -56,6 +60,8 @@ import android.graphics.PixelFormat;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.media.MediaActionSound;
+import android.media.Ringtone;
+import android.media.RingtoneManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
@@ -63,14 +69,17 @@ import android.os.PowerManager;
 import android.os.Process;
 import android.os.UserHandle;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.DisplayMetrics;
 import android.util.Slog;
 import android.view.Display;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.SurfaceControl;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.animation.Interpolator;
@@ -89,9 +98,11 @@ import libcore.io.IoUtils;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -128,6 +139,7 @@ class SaveImageInBackgroundTask extends AsyncTask<Void, Void, Void> {
     private static final String TAG = "SaveImageInBackgroundTask";
 
     private static final String SCREENSHOT_FILE_NAME_TEMPLATE = "Screenshot_%s.png";
+    private static final String SCREENSHOT_FILE_NAME_TEMPLATE_APPNAME = "Screenshot_%s_%s.png";
     private static final String SCREENSHOT_SHARE_SUBJECT_TEMPLATE = "Screenshot (%s)";
 
     private final SaveImageInBackgroundData mParams;
@@ -139,6 +151,23 @@ class SaveImageInBackgroundTask extends AsyncTask<Void, Void, Void> {
     private final int mImageWidth;
     private final int mImageHeight;
 
+    private static CharSequence getRunningActivityName(Context context) {
+        final ActivityManager am = context.getSystemService(ActivityManager.class);
+        final PackageManager pm = context.getPackageManager();
+
+        List<ActivityManager.RunningTaskInfo> tasks = am.getRunningTasks(1);
+        if (tasks != null && !tasks.isEmpty()) {
+            ActivityManager.RunningTaskInfo top = tasks.get(0);
+            try {
+                ActivityInfo info = pm.getActivityInfo(top.topActivity, 0);
+                return pm.getApplicationLabel(info.applicationInfo);
+            } catch (PackageManager.NameNotFoundException e) {
+            }
+        }
+
+        return null;
+    }
+
     SaveImageInBackgroundTask(Context context, SaveImageInBackgroundData data,
             NotificationManager nManager) {
         Resources r = context.getResources();
@@ -147,7 +176,26 @@ class SaveImageInBackgroundTask extends AsyncTask<Void, Void, Void> {
         mParams = data;
         mImageTime = System.currentTimeMillis();
         String imageDate = new SimpleDateFormat("yyyyMMdd-HHmmss").format(new Date(mImageTime));
-        mImageFileName = String.format(SCREENSHOT_FILE_NAME_TEMPLATE, imageDate);
+        CharSequence appName = getRunningActivityName(context);
+        boolean onKeyguard = context.getSystemService(KeyguardManager.class).isKeyguardLocked();
+        if (!onKeyguard && appName != null) {
+            String appNameString = appName.toString();
+            try {
+                // With some languages like Virgin Islands English, the Settings app gets a weird
+                // long name and some special voodoo chars, so we convert the string to utf-8 to get
+                // a  char instead, easy to remove it then
+                final String temp = new String(appNameString.getBytes("ISO-8859-15"), "UTF-8");
+                appNameString = temp.replaceAll("[]+", "");
+            } catch (UnsupportedEncodingException e) {
+                // Do nothing
+            }
+            // Now replace all spaces and special chars with an underscore
+            appNameString = appNameString.replaceAll("[\\\\/:*?\"<>|\\s]+", "_");
+            mImageFileName = String.format(SCREENSHOT_FILE_NAME_TEMPLATE_APPNAME,
+                    imageDate, appNameString);
+        } else {
+            mImageFileName = String.format(SCREENSHOT_FILE_NAME_TEMPLATE, imageDate);
+        }
 
         // Create the large notification icon
         mImageWidth = data.image.getWidth();
@@ -490,8 +538,12 @@ class GlobalScreenshot {
 
     private AsyncTask<Void, Void, Void> mSaveInBgTask;
 
-    private MediaActionSound mCameraSound;
+    private Ringtone  mScreenshotSound;
 
+    public static boolean mPartialShotStarted;
+    public static boolean mPartialShot;
+    private float mTouchDownX;
+    private float mTouchDownY;
 
     /**
      * @param context everything needs a context :(
@@ -558,9 +610,9 @@ class GlobalScreenshot {
         mPreviewWidth = panelWidth;
         mPreviewHeight = r.getDimensionPixelSize(R.dimen.notification_max_height);
 
-        // Setup the Camera shutter sound
-        mCameraSound = new MediaActionSound();
-        mCameraSound.load(MediaActionSound.SHUTTER_CLICK);
+        // Setup the Screenshot sound
+        mScreenshotSound= RingtoneManager.getRingtone(mContext,
+                    Uri.parse("file://" + "/system/media/audio/ui/camera_click.ogg"));
     }
 
     /**
@@ -609,6 +661,7 @@ class GlobalScreenshot {
     }
 
     void takeScreenshot(Runnable finisher, boolean statusBarVisible, boolean navBarVisible) {
+        mPartialShot = false;
         mDisplay.getRealMetrics(mDisplayMetrics);
         takeScreenshot(finisher, statusBarVisible, navBarVisible,
                 new Rect(0, 0, mDisplayMetrics.widthPixels, mDisplayMetrics.heightPixels));
@@ -620,23 +673,33 @@ class GlobalScreenshot {
     void takeScreenshotPartial(final Runnable finisher, final boolean statusBarVisible,
             final boolean navBarVisible) {
         mWindowManager.addView(mScreenshotLayout, mWindowLayoutParams);
+        mPartialShotStarted = false;
+        mPartialShot = true;
+        ViewConfiguration vc = ViewConfiguration.get(mContext);
+        final int touchSlop = vc.getScaledTouchSlop();
         mScreenshotSelectorView.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 ScreenshotSelectorView view = (ScreenshotSelectorView) v;
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
+                        mPartialShotStarted = true;
+                        mTouchDownX = event.getRawX();
+                        mTouchDownY = event.getRawY();
                         view.startSelection((int) event.getX(), (int) event.getY());
                         return true;
                     case MotionEvent.ACTION_MOVE:
                         view.updateSelection((int) event.getX(), (int) event.getY());
                         return true;
                     case MotionEvent.ACTION_UP:
+                        float x = event.getRawX();
+                        float y = event.getRawY();
                         view.setVisibility(View.GONE);
                         mWindowManager.removeView(mScreenshotLayout);
-                        final Rect rect = view.getSelectionRect();
-                        if (rect != null) {
-                            if (rect.width() != 0 && rect.height() != 0) {
+                        if (Math.abs(mTouchDownX - x) > touchSlop ||
+                            Math.abs(mTouchDownY - y) > touchSlop) {
+                            final Rect rect = view.getSelectionRect();
+                            if (rect != null && !rect.isEmpty()) {
                                 // Need mScreenshotLayout to handle it after the view disappears
                                 mScreenshotLayout.post(new Runnable() {
                                     public void run() {
@@ -644,11 +707,16 @@ class GlobalScreenshot {
                                                 rect);
                                     }
                                 });
+                                view.stopSelection();
+                                return true;
                             }
                         }
-
+                        finisher.run();
                         view.stopSelection();
                         return true;
+                    case MotionEvent.ACTION_CANCEL:
+                        stopScreenshot();
+                        finisher.run();
                 }
 
                 return false;
@@ -669,8 +737,11 @@ class GlobalScreenshot {
     void stopScreenshot() {
         // If the selector layer still presents on screen, we remove it and resets its state.
         if (mScreenshotSelectorView.getSelectionRect() != null) {
-            mWindowManager.removeView(mScreenshotLayout);
-            mScreenshotSelectorView.stopSelection();
+            try {
+                mWindowManager.removeView(mScreenshotLayout);
+                mScreenshotSelectorView.stopSelection();
+            } catch (IllegalArgumentException ignored) {
+            }
         }
     }
 
@@ -720,7 +791,12 @@ class GlobalScreenshot {
             @Override
             public void run() {
                 // Play the shutter sound to notify that we've taken a screenshot
-                mCameraSound.play(MediaActionSound.SHUTTER_CLICK);
+                if (Settings.System.getIntForUser(mContext.getContentResolver(),
+                        Settings.System.SCREENSHOT_SOUND, 1, UserHandle.USER_CURRENT) == 1) {
+                    if (mScreenshotSound != null) {
+                        mScreenshotSound.play();
+                    }
+                }
 
                 mScreenshotView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
                 mScreenshotView.buildLayer();
@@ -871,6 +947,11 @@ class GlobalScreenshot {
     }
 
     static void notifyScreenshotError(Context context, NotificationManager nManager, int msgResId) {
+        // do nothing - it was a partial screenshot and no selection was made
+        if (mPartialShot && !mPartialShotStarted) {
+            return;
+        }
+
         Resources r = context.getResources();
         String errorMsg = r.getString(msgResId);
 
@@ -961,6 +1042,7 @@ class GlobalScreenshot {
 
             // Clear the notification when the image is deleted
             cancelScreenshotNotification(context);
+            Toast.makeText(context, R.string.delete_screenshot_toast, Toast.LENGTH_SHORT).show();
 
             // And delete the image from the media store
             final Uri uri = Uri.parse(intent.getStringExtra(SCREENSHOT_URI_ID));

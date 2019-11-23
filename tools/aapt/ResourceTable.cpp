@@ -1470,6 +1470,11 @@ status_t compileResourceFile(Bundle* bundle,
                     }
                 }
             } else if (strcmp16(block.getElementName(&len), string_array16.string()) == 0) {
+                // Note the existence and locale of every string array we process
+                char rawLocale[RESTABLE_MAX_LOCALE_LEN];
+                curParams.getBcp47Locale(rawLocale);
+                String8 locale(rawLocale);
+                String16 name;
                 // Check whether these strings need valid formats.
                 // (simplified form of what string16 does above)
                 bool isTranslatable = false;
@@ -1480,7 +1485,9 @@ status_t compileResourceFile(Bundle* bundle,
                 for (size_t i = 0; i < n; i++) {
                     size_t length;
                     const char16_t* attr = block.getAttributeName(i, &length);
-                    if (strcmp16(attr, formatted16.string()) == 0) {
+                    if (strcmp16(attr, name16.string()) == 0) {
+                        name.setTo(block.getAttributeStringValue(i, &length));
+                    } else if (strcmp16(attr, formatted16.string()) == 0) {
                         const char16_t* value = block.getAttributeStringValue(i, &length);
                         if (strcmp16(value, false16.string()) == 0) {
                             curIsFormatted = false;
@@ -1489,6 +1496,15 @@ status_t compileResourceFile(Bundle* bundle,
                         const char16_t* value = block.getAttributeStringValue(i, &length);
                         if (strcmp16(value, false16.string()) == 0) {
                             isTranslatable = false;
+                            // Untranslatable string arrays must only exist
+                            // in the default [empty] locale
+                            if (locale.size() > 0) {
+                                SourcePos(in->getPrintableSource(), block.getLineNumber()).warning(
+                                        "string-array '%s' marked untranslatable but exists"
+                                        " in locale '%s'\n", String8(name).string(),
+                                        locale.string());
+                                // hasErrors = localHasErrors = true;
+                            }
                         }
                     }
                 }
@@ -2893,8 +2909,9 @@ status_t ResourceTable::flatten(Bundle* bundle, const sp<const ResourceFilter>& 
     for (size_t i = 0; i < basePackageCount; i++) {
         size_t packageId = table.getBasePackageId(i);
         String16 packageName(table.getBasePackageName(i));
-        if (packageId > 0x01 && packageId != 0x7f &&
-                packageName != String16("android")) {
+        if (packageId > 0x01 && packageId != 0x7f && packageId != 0x3f &&
+                packageName != String16("android")
+                && packageName != String16("lineageos.platform")) {
             libraryPackages.add(sp<Package>(new Package(packageName, packageId)));
         }
     }

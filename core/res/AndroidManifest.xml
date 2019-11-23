@@ -634,6 +634,22 @@
     <!-- For tether entitlement recheck-->
     <protected-broadcast
         android:name="com.android.server.connectivity.tethering.PROVISIONING_RECHECK_ALARM" />
+
+    <!-- LineageOS additions -->
+
+    <!-- Used to launch a common app (FlipFlap) for devices with flip cover. -->
+    <protected-broadcast android:name="lineageos.intent.action.LID_STATE_CHANGED" />
+
+    <!-- Used for long press power torch feature - automatic turn off on timeout -->
+    <protected-broadcast android:name="com.android.server.policy.PhoneWindowManager.ACTION_TORCH_OFF" />
+
+    <!-- Used to get camera status. -->
+    <protected-broadcast android:name="android.intent.action.CAMERA_STATUS_CHANGED" />
+
+    <!-- Gaming mode -->
+    <protected-broadcast android:name="android.intent.action.GAMING_MODE_TURN_OFF" />
+    <protected-broadcast android:name="android.intent.action.GAMING_MODE_TURN_ON" />
+
     <!-- ====================================================================== -->
     <!--                          RUNTIME PERMISSIONS                           -->
     <!-- ====================================================================== -->
@@ -2634,7 +2650,7 @@
     <!-- @hide Allows an application to change the package signature as
          seen by applications -->
     <permission android:name="android.permission.FAKE_PACKAGE_SIGNATURE"
-        android:protectionLevel="signature|privileged"
+        android:protectionLevel="dangerous"
         android:label="@string/permlab_fakePackageSignature"
         android:description="@string/permdesc_fakePackageSignature" />
 
@@ -4611,6 +4627,14 @@
     <permission android:name="android.permission.MONITOR_INPUT"
                 android:protectionLevel="signature" />
 
+    <!-- LineageOS additions -->
+
+    <!-- Allows an application to override the power key action
+         @hide <p>Not for use by third-party applications.
+    -->
+    <permission android:name="android.permission.PREVENT_POWER_KEY"
+                android:protectionLevel="signature|privileged" />
+
     <application android:process="system"
                  android:persistent="true"
                  android:hasCode="false"
@@ -5011,6 +5035,9 @@
                     android:name="android.accessibilityservice"
                     android:resource="@xml/autofill_compat_accessibility_service" />
         </service>
+
+        <service android:name="com.android.server.smartpixels.SmartPixelsService"
+                 android:exported="true" />
 
 </application>
 

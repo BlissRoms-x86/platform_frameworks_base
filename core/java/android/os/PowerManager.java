@@ -370,6 +370,15 @@ public final class PowerManager {
     public static final int GO_TO_SLEEP_REASON_MIN = 0;
 
     /**
+     * @hide
+     * User activity flag: Certain hardware buttons are not supposed to
+     * activate hardware button illumination.  This flag indicates a
+     * button event from one of those buttons.
+     * @hide
+     */
+    public static final int USER_ACTIVITY_FLAG_NO_BUTTON_LIGHTS = 1 << 2;
+
+    /**
      * Go to sleep reason code: Going to sleep due by application request.
      * @hide
      */
@@ -590,6 +599,20 @@ public final class PowerManager {
      * @hide
      */
     public static final String REBOOT_RECOVERY_UPDATE = "recovery-update";
+
+    /**
+     * The value to pass as the 'reason' argument to reboot() to
+     * reboot into bootloader mode
+     * @hide
+     */
+    public static final String REBOOT_BOOTLOADER = "bootloader";
+
+    /**
+     * The value to pass as the 'reason' argument to reboot() to
+     * reboot into download mode
+     * @hide
+     */
+    public static final String REBOOT_DOWNLOAD = "download";
 
     /**
      * The value to pass as the 'reason' argument to reboot() when device owner requests a reboot on
@@ -905,6 +928,15 @@ public final class PowerManager {
     }
 
     /**
+     * Gets the default button brightness value.
+     * @hide
+     */
+    public int getDefaultButtonBrightness() {
+        return mContext.getResources().getInteger(
+                com.android.internal.R.integer.config_buttonBrightnessSettingDefault);
+    }
+
+    /**
      * Creates a new wake lock with the specified level and flags.
      * <p>
      * The {@code levelAndFlags} parameter specifies a wake lock level and optional flags
@@ -1212,6 +1244,22 @@ public final class PowerManager {
     }
 
     /**
+     * Forces the device to wake up from sleep only if
+     * nothing is blocking the proximity sensor
+     *
+     * @see #wakeUp
+     *
+     * @hide
+     */
+    public void wakeUpWithProximityCheck(long time, @WakeReason int reason, String details) {
+        try {
+            mService.wakeUpWithProximityCheck(time, reason, details, mContext.getOpPackageName());
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
      * Forces the device to start napping.
      * <p>
      * If the device is currently awake, starts dreaming, otherwise does nothing.
@@ -1393,6 +1441,24 @@ public final class PowerManager {
     public void reboot(String reason) {
         try {
             mService.reboot(false, reason, true);
+        } catch (RemoteException e) {
+            throw e.rethrowFromSystemServer();
+        }
+    }
+
+    /**
+     * Reboot the device.  Will not return if the reboot is successful.
+     * <p>
+     * Requires the {@link android.Manifest.permission#REBOOT} permission.
+     * </p>
+     *
+     * @param reason code to pass to the kernel (e.g., "recovery", "bootloader", "download") to
+     *               request special boot modes, or null.
+     * @hide
+     */
+    public void rebootCustom(String reason) {
+        try {
+            mService.rebootCustom(false, reason, true);
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -2376,5 +2442,18 @@ public final class PowerManager {
                 }
             };
         }
+    }
+
+    /**
+     * @hide
+     */
+    public String getSeenWakeLocks() {
+        try {
+            if (mService != null) {
+                return mService.getSeenWakeLocks();
+            }
+        } catch (RemoteException e) {
+        }
+        return null;
     }
 }

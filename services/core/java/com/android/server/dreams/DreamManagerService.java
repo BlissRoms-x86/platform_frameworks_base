@@ -110,7 +110,7 @@ public final class DreamManagerService extends SystemService {
     @Override
     public void onBootPhase(int phase) {
         if (phase == SystemService.PHASE_THIRD_PARTY_APPS_CAN_START) {
-            if (Build.IS_DEBUGGABLE) {
+            if (Build.IS_ENG) {
                 SystemProperties.addChangeCallback(mSystemPropertiesChanged);
             }
             mContext.registerReceiver(new BroadcastReceiver() {
@@ -158,6 +158,12 @@ public final class DreamManagerService extends SystemService {
         synchronized (mLock) {
             return mCurrentDreamToken != null && !mCurrentDreamIsTest
                     && !mCurrentDreamIsWaking;
+        }
+    }
+
+    private boolean isDozingInternal() {
+        synchronized (mLock) {
+            return mCurrentDreamIsDozing;
         }
     }
 
@@ -551,6 +557,18 @@ public final class DreamManagerService extends SystemService {
         }
 
         @Override // Binder call
+        public boolean isDozing() {
+            checkPermission(android.Manifest.permission.READ_DREAM_STATE);
+
+            final long ident = Binder.clearCallingIdentity();
+            try {
+                return isDozingInternal();
+            } finally {
+                Binder.restoreCallingIdentity(ident);
+            }
+        }
+
+        @Override // Binder call
         public void dream() {
             checkPermission(android.Manifest.permission.WRITE_DREAM_STATE);
 
@@ -670,6 +688,11 @@ public final class DreamManagerService extends SystemService {
         @Override
         public boolean isDreaming() {
             return isDreamingInternal();
+        }
+
+        @Override
+        public boolean isDozing() {
+            return isDozingInternal();
         }
     }
 

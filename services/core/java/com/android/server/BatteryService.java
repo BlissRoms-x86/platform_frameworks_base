@@ -69,9 +69,15 @@ import com.android.server.am.BatteryStatsService;
 import com.android.server.lights.Light;
 import com.android.server.lights.LightsManager;
 
+import org.lineageos.internal.notification.LedValues;
+import org.lineageos.internal.notification.LineageBatteryLights;
+
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
@@ -170,6 +176,10 @@ public final class BatteryService extends SystemService {
 
     private boolean mBatteryLevelLow;
 
+    private boolean mDashCharger;
+    private boolean mHasDashCharger;
+    private boolean mLastDashCharger;
+
     private long mDischargeStartTime;
     private int mDischargeStartLevel;
 
@@ -192,6 +202,8 @@ public final class BatteryService extends SystemService {
 
     private MetricsLogger mMetricsLogger;
 
+    private LineageBatteryLights mLineageBatteryLights;
+
     public BatteryService(Context context) {
         super(context);
 
@@ -200,6 +212,9 @@ public final class BatteryService extends SystemService {
         mLed = new Led(context, getLocalService(LightsManager.class));
         mBatteryStats = BatteryStatsService.getService();
         mActivityManagerInternal = LocalServices.getService(ActivityManagerInternal.class);
+
+        mHasDashCharger = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_hasDashCharger);
 
         mCriticalBatteryLevel = mContext.getResources().getInteger(
                 com.android.internal.R.integer.config_criticalBatteryWarningLevel);
@@ -261,6 +276,16 @@ public final class BatteryService extends SystemService {
                         false, obs, UserHandle.USER_ALL);
                 updateBatteryWarningLevelLocked();
             }
+        } else if (phase == PHASE_BOOT_COMPLETED) {
+            mLineageBatteryLights = new LineageBatteryLights(mContext,
+                    new LineageBatteryLights.LedUpdater() {
+                public void update() {
+                    updateLedPulse();
+                }
+            });
+
+            // Update light state now that mLineageBatteryLights has been initialized.
+            updateLedPulse();
         }
     }
 
@@ -492,6 +517,8 @@ public final class BatteryService extends SystemService {
         shutdownIfNoPowerLocked();
         shutdownIfOverTempLocked();
 
+        mDashCharger = mHasDashCharger && isDashCharger();
+
         if (force || (mHealthInfo.batteryStatus != mLastBatteryStatus ||
                 mHealthInfo.batteryHealth != mLastBatteryHealth ||
                 mHealthInfo.batteryPresent != mLastBatteryPresent ||
@@ -502,7 +529,8 @@ public final class BatteryService extends SystemService {
                 mHealthInfo.maxChargingCurrent != mLastMaxChargingCurrent ||
                 mHealthInfo.maxChargingVoltage != mLastMaxChargingVoltage ||
                 mHealthInfo.batteryChargeCounter != mLastChargeCounter ||
-                mInvalidCharger != mLastInvalidCharger)) {
+                mInvalidCharger != mLastInvalidCharger ||
+                mDashCharger != mLastDashCharger)) {
 
             if (mPlugType != mLastPlugType) {
                 if (mLastPlugType == BATTERY_PLUGGED_NONE) {
@@ -673,6 +701,7 @@ public final class BatteryService extends SystemService {
             mLastChargeCounter = mHealthInfo.batteryChargeCounter;
             mLastBatteryLevelCritical = mBatteryLevelCritical;
             mLastInvalidCharger = mInvalidCharger;
+            mLastDashCharger = mDashCharger;
         }
     }
 
@@ -700,6 +729,7 @@ public final class BatteryService extends SystemService {
         intent.putExtra(BatteryManager.EXTRA_MAX_CHARGING_CURRENT, mHealthInfo.maxChargingCurrent);
         intent.putExtra(BatteryManager.EXTRA_MAX_CHARGING_VOLTAGE, mHealthInfo.maxChargingVoltage);
         intent.putExtra(BatteryManager.EXTRA_CHARGE_COUNTER, mHealthInfo.batteryChargeCounter);
+        intent.putExtra(BatteryManager.EXTRA_DASH_CHARGER, mDashCharger);
         if (DEBUG) {
             Slog.d(TAG, "Sending ACTION_BATTERY_CHANGED. scale:" + BATTERY_SCALE
                     + ", info:" + mHealthInfo.toString());
@@ -750,6 +780,20 @@ public final class BatteryService extends SystemService {
         mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
                 android.Manifest.permission.BATTERY_STATS);
         mLastBatteryLevelChangedSentMs = SystemClock.elapsedRealtime();
+    }
+
+    private boolean isDashCharger() {
+        try {
+            FileReader file = new FileReader("/sys/class/power_supply/battery/fastchg_status");
+            BufferedReader br = new BufferedReader(file);
+            String state = br.readLine();
+            br.close();
+            file.close();
+            return "1".equals(state);
+        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
+        }
+        return false;
     }
 
     // TODO: Current code doesn't work since "--unplugged" flag in BSS was purposefully removed.
@@ -1062,6 +1106,10 @@ public final class BatteryService extends SystemService {
         Trace.traceEnd(Trace.TRACE_TAG_SYSTEM_SERVER);
     }
 
+    private synchronized void updateLedPulse() {
+        mLed.updateLightsLocked();
+    }
+
     private final class Led {
         private final Light mBatteryLight;
 
@@ -1090,29 +1138,37 @@ public final class BatteryService extends SystemService {
          * Synchronize on BatteryService.
          */
         public void updateLightsLocked() {
-            final int level = mHealthInfo.batteryLevel;
-            final int status = mHealthInfo.batteryStatus;
-            if (level < mLowBatteryWarningLevel) {
-                if (status == BatteryManager.BATTERY_STATUS_CHARGING) {
-                    // Solid red when battery is charging
-                    mBatteryLight.setColor(mBatteryLowARGB);
-                } else {
-                    // Flash red when battery is low and not charging
-                    mBatteryLight.setFlashing(mBatteryLowARGB, Light.LIGHT_FLASH_TIMED,
-                            mBatteryLedOn, mBatteryLedOff);
+            // mHealthInfo could be null on startup (called by SettingsObserver)
+            if (mHealthInfo == null) {
+                Slog.w(TAG, "updateLightsLocked: mHealthInfo is null; skipping");
+                return;
+            }
+            // mLineageBatteryLights is initialized during PHASE_BOOT_COMPLETED
+            // This means we don't have Lineage battery settings yet so skip.
+            if (mLineageBatteryLights == null) {
+                if (DEBUG) {
+                    Slog.w(TAG, "updateLightsLocked: mLineageBatteryLights is not yet ready; "
+                            + "skipping");
                 }
-            } else if (status == BatteryManager.BATTERY_STATUS_CHARGING
-                    || status == BatteryManager.BATTERY_STATUS_FULL) {
-                if (status == BatteryManager.BATTERY_STATUS_FULL || level >= 90) {
-                    // Solid green when full or charging and nearly full
-                    mBatteryLight.setColor(mBatteryFullARGB);
-                } else {
-                    // Solid orange when charging and halfway full
-                    mBatteryLight.setColor(mBatteryMediumARGB);
-                }
-            } else {
-                // No lights if not charging and not low
+                return;
+            }
+            if (!mLineageBatteryLights.isSupported()) {
+                return;
+            }
+
+            LedValues ledValues = new LedValues(0 /* color */, mBatteryLedOn, mBatteryLedOff);
+            mLineageBatteryLights.calcLights(ledValues, mHealthInfo.batteryLevel,
+                    mHealthInfo.batteryStatus, mHealthInfo.batteryLevel <= mLowBatteryWarningLevel);
+
+            if (!ledValues.isEnabled()) {
                 mBatteryLight.turnOff();
+            } else if (ledValues.isPulsed()) {
+                mBatteryLight.setModes(ledValues.getBrightness());
+                mBatteryLight.setFlashing(ledValues.getColor(), Light.LIGHT_FLASH_TIMED,
+                        ledValues.getOnMs(), ledValues.getOffMs());
+            } else {
+                mBatteryLight.setModes(ledValues.getBrightness());
+                mBatteryLight.setColor(ledValues.getColor());
             }
         }
     }
@@ -1235,14 +1291,21 @@ public final class BatteryService extends SystemService {
         }
         @Override
         public void scheduleUpdate() throws RemoteException {
-            traceBegin("HealthScheduleUpdate");
-            try {
-                IHealth service = mHealthServiceWrapper.getLastService();
-                if (service == null) throw new RemoteException("no health service");
-                service.update();
-            } finally {
-                traceEnd();
-            }
+            mHealthServiceWrapper.getHandlerThread().getThreadHandler().post(() -> {
+                traceBegin("HealthScheduleUpdate");
+                try {
+                    IHealth service = mHealthServiceWrapper.getLastService();
+                    if (service == null) {
+                        Slog.e(TAG, "no health service");
+                        return;
+                    }
+                    service.update();
+                } catch (RemoteException ex) {
+                    Slog.e(TAG, "Cannot call update on health HAL", ex);
+                } finally {
+                    traceEnd();
+                }
+            });
         }
     }
 
@@ -1319,7 +1382,7 @@ public final class BatteryService extends SystemService {
                 Arrays.asList(INSTANCE_VENDOR, INSTANCE_HEALTHD);
 
         private final IServiceNotification mNotification = new Notification();
-        private final HandlerThread mHandlerThread = new HandlerThread("HealthServiceRefresh");
+        private final HandlerThread mHandlerThread = new HandlerThread("HealthServiceHwbinder");
         // These variables are fixed after init.
         private Callback mCallback;
         private IHealthSupplier mHealthSupplier;

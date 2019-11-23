@@ -701,6 +701,8 @@ public class WindowManagerService extends IWindowManager.Stub
                 Settings.Global.getUriFor(Settings.Global.POLICY_CONTROL);
         private final Uri mPointerLocationUri =
                 Settings.System.getUriFor(Settings.System.POINTER_LOCATION);
+        private final Uri mDisableAnimationsUri =
+                Settings.Global.getUriFor(Settings.Global.DISABLE_TRANSITION_ANIMATIONS);
 
         public SettingsObserver() {
             super(new Handler());
@@ -717,6 +719,8 @@ public class WindowManagerService extends IWindowManager.Stub
                     UserHandle.USER_ALL);
             resolver.registerContentObserver(mPolicyControlUri, false, this, UserHandle.USER_ALL);
             resolver.registerContentObserver(mPointerLocationUri, false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(mDisableAnimationsUri, false, this,
+                    UserHandle.USER_ALL);
         }
 
         @Override
@@ -738,6 +742,14 @@ public class WindowManagerService extends IWindowManager.Stub
             if (mPointerLocationUri.equals(uri)) {
                 updatePointerLocation();
                 return;
+            }
+
+            if (mDisableAnimationsUri.equals(uri))  {
+                mAnimationsForceDisabled = Settings.Global.getInt(
+                    mContext.getContentResolver(), Settings.Global.DISABLE_TRANSITION_ANIMATIONS, 0) != 0;
+                synchronized (mWindowMap) {
+                    dispatchNewAnimatorScaleLocked(null);
+                }
             }
 
             @UpdateAnimationScaleMode
@@ -792,6 +804,7 @@ public class WindowManagerService extends IWindowManager.Stub
     private float mAnimatorDurationScaleSetting = 0.25f;
     private boolean mAnimationsDisabled = false;
     boolean mPointerLocationEnabled = false;
+    private boolean mAnimationsForceDisabled = false;
 
     final InputManagerService mInputManager;
     final DisplayManagerInternal mDisplayManagerInternal;
@@ -3039,11 +3052,15 @@ public class WindowManagerService extends IWindowManager.Stub
     }
 
     public float getWindowAnimationScaleLocked() {
-        return mAnimationsDisabled ? 0 : mWindowAnimationScaleSetting;
+        if (mAnimationsDisabled || mAnimationsForceDisabled)
+            return 0;
+        return mWindowAnimationScaleSetting;
     }
 
     public float getTransitionAnimationScaleLocked() {
-        return mAnimationsDisabled ? 0 : mTransitionAnimationScaleSetting;
+        if (mAnimationsDisabled || mAnimationsForceDisabled)
+            return 0;
+        return mTransitionAnimationScaleSetting;
     }
 
     @Override
@@ -3065,7 +3082,9 @@ public class WindowManagerService extends IWindowManager.Stub
     @Override
     public float getCurrentAnimatorScale() {
         synchronized (mGlobalLock) {
-            return mAnimationsDisabled ? 0 : mAnimatorDurationScaleSetting;
+            if (mAnimationsDisabled || mAnimationsForceDisabled)
+                return 0;
+            return mAnimatorDurationScaleSetting;
         }
     }
 
@@ -3153,6 +3172,14 @@ public class WindowManagerService extends IWindowManager.Stub
         // Pass in the UI context, since ShutdownThread requires it (to show UI).
         ShutdownThread.reboot(ActivityThread.currentActivityThread().getSystemUiContext(),
                 PowerManager.SHUTDOWN_USER_REQUESTED, confirm);
+    }
+
+    // Called by window manager policy.  Not exposed externally.
+    @Override
+    public void reboot(boolean confirm, String reason) {
+        // Pass in the UI context, since ShutdownThread requires it (to show UI).
+        ShutdownThread.rebootCustom(ActivityThread.currentActivityThread().getSystemUiContext(),
+                reason, confirm);
     }
 
     // Called by window manager policy.  Not exposed externally.
@@ -5814,6 +5841,11 @@ public class WindowManagerService extends IWindowManager.Stub
             }
             return dc.getDisplayPolicy().hasNavigationBar();
         }
+    }
+
+    @Override
+    public void sendCustomAction(Intent intent) {
+        mPolicy.sendCustomAction(intent);
     }
 
     @Override

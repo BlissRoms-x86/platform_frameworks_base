@@ -31,32 +31,46 @@ import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.AlarmClock;
+import android.provider.DeviceConfig;
+import android.provider.CalendarContract;
 import android.provider.Settings;
 import android.service.notification.ZenModeConfig;
 import android.text.format.DateUtils;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.Pair;
+import android.util.StatsLog;
 import android.view.ContextThemeWrapper;
 import android.view.DisplayCutout;
 import android.view.View;
 import android.view.WindowInsets;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.Space;
 import android.widget.TextView;
 
 import androidx.annotation.VisibleForTesting;
 
+import com.android.internal.config.sysui.SystemUiDeviceConfigFlags;
 import com.android.settingslib.Utils;
 import com.android.systemui.BatteryMeterView;
+import com.android.systemui.Dependency;
 import com.android.systemui.DualToneHandler;
 import com.android.systemui.R;
 import com.android.systemui.plugins.ActivityStarter;
 import com.android.systemui.plugins.DarkIconDispatcher;
 import com.android.systemui.plugins.DarkIconDispatcher.DarkReceiver;
+import com.android.systemui.privacy.OngoingPrivacyChip;
+import com.android.systemui.privacy.PrivacyDialogBuilder;
+import com.android.systemui.privacy.PrivacyItem;
+import com.android.systemui.privacy.PrivacyItemController;
+import com.android.systemui.privacy.PrivacyItemControllerKt;
 import com.android.systemui.qs.QSDetail.Callback;
 import com.android.systemui.statusbar.phone.PhoneStatusBarView;
 import com.android.systemui.statusbar.phone.StatusBarIconController;
@@ -66,7 +80,10 @@ import com.android.systemui.statusbar.policy.Clock;
 import com.android.systemui.statusbar.policy.DateView;
 import com.android.systemui.statusbar.policy.NextAlarmController;
 import com.android.systemui.statusbar.policy.ZenModeController;
+import com.android.systemui.tuner.TunerService;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
@@ -80,7 +97,7 @@ import javax.inject.Named;
  */
 public class QuickStatusBarHeader extends RelativeLayout implements
         View.OnClickListener, NextAlarmController.NextAlarmChangeCallback,
-        ZenModeController.Callback {
+        ZenModeController.Callback, TunerService.Tunable {
     private static final String TAG = "QuickStatusBarHeader";
     private static final boolean DEBUG = false;
 
@@ -108,6 +125,7 @@ public class QuickStatusBarHeader extends RelativeLayout implements
     private TintedIconManager mIconManager;
     private TouchAnimator mStatusIconsAlphaAnimator;
     private TouchAnimator mHeaderTextContainerAlphaAnimator;
+    private TouchAnimator mPrivacyChipAlphaAnimator;
     private DualToneHandler mDualToneHandler;
 
     private View mSystemIconsView;
@@ -127,7 +145,19 @@ public class QuickStatusBarHeader extends RelativeLayout implements
     private View mRingerContainer;
     private Clock mClockView;
     private DateView mDateView;
+    private OngoingPrivacyChip mPrivacyChip;
+    private Space mSpace;
     private BatteryMeterView mBatteryRemainingIcon;
+    private boolean mPermissionsHubEnabled;
+
+    private PrivacyItemController mPrivacyItemController;
+
+    private static final String SHOW_QS_CLOCK =
+            "system:" + Settings.System.SHOW_QS_CLOCK;
+    private static final String QS_BATTERY_MODE =
+            "system:" + Settings.System.QS_BATTERY_MODE;
+    public static final String STATUS_BAR_BATTERY_STYLE =
+            "system:" + Settings.System.STATUS_BAR_BATTERY_STYLE;
 
     private final BroadcastReceiver mRingerReceiver = new BroadcastReceiver() {
         @Override
@@ -137,17 +167,41 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         }
     };
     private boolean mHasTopCutout = false;
+    private boolean mPrivacyChipLogged = false;
+
+    private final DeviceConfig.OnPropertyChangedListener mPropertyListener =
+            new DeviceConfig.OnPropertyChangedListener() {
+                @Override
+                public void onPropertyChanged(String namespace, String name, String value) {
+                    if (DeviceConfig.NAMESPACE_PRIVACY.equals(namespace)
+                            && SystemUiDeviceConfigFlags.PROPERTY_PERMISSIONS_HUB_ENABLED.equals(
+                            name)) {
+                        mPermissionsHubEnabled = Boolean.valueOf(value);
+                        StatusIconContainer iconContainer = findViewById(R.id.statusIcons);
+                        iconContainer.setIgnoredSlots(getIgnoredIconSlots());
+                    }
+                }
+            };
+
+    private PrivacyItemController.Callback mPICCallback = new PrivacyItemController.Callback() {
+        @Override
+        public void privacyChanged(List<PrivacyItem> privacyItems) {
+            mPrivacyChip.setPrivacyList(privacyItems);
+            setChipVisibility(!privacyItems.isEmpty());
+        }
+    };
 
     @Inject
     public QuickStatusBarHeader(@Named(VIEW_CONTEXT) Context context, AttributeSet attrs,
             NextAlarmController nextAlarmController, ZenModeController zenModeController,
             StatusBarIconController statusBarIconController,
-            ActivityStarter activityStarter) {
+            ActivityStarter activityStarter, PrivacyItemController privacyItemController) {
         super(context, attrs);
         mAlarmController = nextAlarmController;
         mZenController = zenModeController;
         mStatusBarIconController = statusBarIconController;
         mActivityStarter = activityStarter;
+        mPrivacyItemController = privacyItemController;
         mDualToneHandler = new DualToneHandler(
                 new ContextThemeWrapper(context, R.style.QSHeaderTheme));
     }
@@ -160,6 +214,8 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         mSystemIconsView = findViewById(R.id.quick_status_bar_system_icons);
         mQuickQsStatusIcons = findViewById(R.id.quick_qs_status_icons);
         StatusIconContainer iconContainer = findViewById(R.id.statusIcons);
+        // Ignore privacy icons because they show in the space above QQS
+        iconContainer.addIgnoredSlots(getIgnoredIconSlots());
         iconContainer.setShouldRestrictIcons(false);
         mIconManager = new TintedIconManager(iconContainer);
 
@@ -173,6 +229,9 @@ public class QuickStatusBarHeader extends RelativeLayout implements
         mRingerModeIcon = findViewById(R.id.ringer_mode_icon);
         mRingerModeTextView = findViewById(R.id.ringer_mode_text);
         mRingerContainer = findViewById(R.id.ringer_container);
+        mRingerContainer.setOnClickListener(this::onClick);
+        mPrivacyChip = findViewById(R.id.privacy_chip);
+        mPrivacyChip.setOnClickListener(this::onClick);
         mCarrierGroup = findViewById(R.id.carrier_group);
 
 
@@ -194,17 +253,43 @@ public class QuickStatusBarHeader extends RelativeLayout implements
 
         mClockView = findViewById(R.id.clock);
         mClockView.setOnClickListener(this);
+        mClockView.setQsHeader();
         mDateView = findViewById(R.id.date);
+        mSpace = findViewById(R.id.space);
+        mDateView.setOnClickListener(this);
 
         // Tint for the battery icons are handled in setupHost()
         mBatteryRemainingIcon = findViewById(R.id.batteryRemainingIcon);
         // Don't need to worry about tuner settings for this icon
         mBatteryRemainingIcon.setIgnoreTunerUpdates(true);
-        // QS will always show the estimate, and BatteryMeterView handles the case where
-        // it's unavailable or charging
-        mBatteryRemainingIcon.setPercentShowMode(BatteryMeterView.MODE_ESTIMATE);
+        mBatteryRemainingIcon.setPercentShowMode(BatteryMeterView.MODE_ON);
+        mBatteryRemainingIcon.setOnClickListener(this);
         mRingerModeTextView.setSelected(true);
         mNextAlarmTextView.setSelected(true);
+
+        mPermissionsHubEnabled = PrivacyItemControllerKt.isPermissionsHubEnabled();
+        // Change the ignored slots when DeviceConfig flag changes
+        DeviceConfig.addOnPropertyChangedListener(DeviceConfig.NAMESPACE_PRIVACY,
+                mContext.getMainExecutor(), mPropertyListener);
+
+        Dependency.get(TunerService.class).addTunable(this,
+                SHOW_QS_CLOCK,
+                QS_BATTERY_MODE,
+                STATUS_BAR_BATTERY_STYLE);
+    }
+
+    private List<String> getIgnoredIconSlots() {
+        ArrayList<String> ignored = new ArrayList<>();
+        ignored.add(mContext.getResources().getString(
+                com.android.internal.R.string.status_bar_camera));
+        ignored.add(mContext.getResources().getString(
+                com.android.internal.R.string.status_bar_microphone));
+        if (mPermissionsHubEnabled) {
+            ignored.add(mContext.getResources().getString(
+                    com.android.internal.R.string.status_bar_location));
+        }
+
+        return ignored;
     }
 
     private void updateStatusText() {
@@ -215,6 +300,21 @@ public class QuickStatusBarHeader extends RelativeLayout implements
             boolean ringerVisible = mRingerModeTextView.getVisibility() == View.VISIBLE;
             mStatusSeparator.setVisibility(alarmVisible && ringerVisible ? View.VISIBLE
                     : View.GONE);
+        }
+    }
+
+    private void setChipVisibility(boolean chipVisible) {
+        if (chipVisible && mPermissionsHubEnabled) {
+            mPrivacyChip.setVisibility(View.VISIBLE);
+            // Makes sure that the chip is logged as viewed at most once each time QS is opened
+            // mListening makes sure that the callback didn't return after the user closed QS
+            if (!mPrivacyChipLogged && mListening) {
+                mPrivacyChipLogged = true;
+                StatsLog.write(StatsLog.PRIVACY_INDICATORS_INTERACTED,
+                        StatsLog.PRIVACY_INDICATORS_INTERACTED__TYPE__CHIP_VIEWED);
+            }
+        } else {
+            mPrivacyChip.setVisibility(View.GONE);
         }
     }
 
@@ -324,6 +424,7 @@ public class QuickStatusBarHeader extends RelativeLayout implements
 
         updateStatusIconAlphaAnimator();
         updateHeaderTextContainerAlphaAnimator();
+        updatePrivacyChipAlphaAnimator();
     }
 
     private void updateStatusIconAlphaAnimator() {
@@ -335,6 +436,12 @@ public class QuickStatusBarHeader extends RelativeLayout implements
     private void updateHeaderTextContainerAlphaAnimator() {
         mHeaderTextContainerAlphaAnimator = new TouchAnimator.Builder()
                 .addFloat(mHeaderTextContainerView, "alpha", 0, 0, 1)
+                .build();
+    }
+
+    private void updatePrivacyChipAlphaAnimator() {
+        mPrivacyChipAlphaAnimator = new TouchAnimator.Builder()
+                .addFloat(mPrivacyChip, "alpha", 1, 0, 1)
                 .build();
     }
 
@@ -376,6 +483,10 @@ public class QuickStatusBarHeader extends RelativeLayout implements
                 mHeaderTextContainerView.setVisibility(INVISIBLE);
             }
         }
+        if (mPrivacyChipAlphaAnimator != null) {
+            mPrivacyChip.setExpanded(expansionFraction > 0.5);
+            mPrivacyChipAlphaAnimator.setPosition(keyguardExpansionFraction);
+        }
     }
 
     public void disable(int state1, int state2, boolean animate) {
@@ -408,6 +519,21 @@ public class QuickStatusBarHeader extends RelativeLayout implements
             mSystemIconsView.setPadding(padding.first, 0, padding.second, 0);
 
         }
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) mSpace.getLayoutParams();
+        if (cutout != null) {
+            Rect topCutout = cutout.getBoundingRectTop();
+            if (topCutout.isEmpty()) {
+                mHasTopCutout = false;
+                lp.width = 0;
+                mSpace.setVisibility(View.GONE);
+            } else {
+                mHasTopCutout = true;
+                lp.width = topCutout.width();
+                mSpace.setVisibility(View.VISIBLE);
+            }
+        }
+        mSpace.setLayoutParams(lp);
+        setChipVisibility(mPrivacyChip.getVisibility() == View.VISIBLE);
         return super.onApplyWindowInsets(insets);
     }
 
@@ -432,16 +558,19 @@ public class QuickStatusBarHeader extends RelativeLayout implements
             mAlarmController.addCallback(this);
             mContext.registerReceiver(mRingerReceiver,
                     new IntentFilter(AudioManager.INTERNAL_RINGER_MODE_CHANGED_ACTION));
+            mPrivacyItemController.addCallback(mPICCallback);
         } else {
             mZenController.removeCallback(this);
             mAlarmController.removeCallback(this);
+            mPrivacyItemController.removeCallback(mPICCallback);
             mContext.unregisterReceiver(mRingerReceiver);
+            mPrivacyChipLogged = false;
         }
     }
 
     @Override
     public void onClick(View v) {
-        if (v == mClockView) {
+        if (v == mClockView || v == mNextAlarmTextView) {
             mActivityStarter.postStartActivityDismissingKeyguard(new Intent(
                     AlarmClock.ACTION_SHOW_ALARMS), 0);
         } else if (v == mNextAlarmContainer && mNextAlarmContainer.isVisibleToUser()) {
@@ -453,9 +582,30 @@ public class QuickStatusBarHeader extends RelativeLayout implements
                 mActivityStarter.postStartActivityDismissingKeyguard(new Intent(
                         AlarmClock.ACTION_SHOW_ALARMS), 0);
             }
+        } else if (v == mPrivacyChip) {
+            // Makes sure that the builder is grabbed as soon as the chip is pressed
+            PrivacyDialogBuilder builder = mPrivacyChip.getBuilder();
+            if (builder.getAppsAndTypes().size() == 0) return;
+            Handler mUiHandler = new Handler(Looper.getMainLooper());
+            StatsLog.write(StatsLog.PRIVACY_INDICATORS_INTERACTED,
+                    StatsLog.PRIVACY_INDICATORS_INTERACTED__TYPE__CHIP_CLICKED);
+            mUiHandler.post(() -> {
+                mActivityStarter.postStartActivityDismissingKeyguard(
+                        new Intent(Intent.ACTION_REVIEW_ONGOING_PERMISSION_USAGE), 0);
+                mHost.collapsePanels();
+            });
         } else if (v == mRingerContainer && mRingerContainer.isVisibleToUser()) {
             mActivityStarter.postStartActivityDismissingKeyguard(new Intent(
                     Settings.ACTION_SOUND_SETTINGS), 0);
+        } else if (v == mDateView) {
+            Uri.Builder builder = CalendarContract.CONTENT_URI.buildUpon();
+            builder.appendPath("time");
+            builder.appendPath(Long.toString(System.currentTimeMillis()));
+            Intent todayIntent = new Intent(Intent.ACTION_VIEW, builder.build());
+            mActivityStarter.postStartActivityDismissingKeyguard(todayIntent, 0);
+        } else if (v == mBatteryRemainingIcon) {
+            mActivityStarter.postStartActivityDismissingKeyguard(new Intent(
+                Intent.ACTION_POWER_USAGE_SUMMARY), 0);
         }
     }
 
@@ -530,6 +680,45 @@ public class QuickStatusBarHeader extends RelativeLayout implements
             RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) v.getLayoutParams();
             lp.leftMargin = sideMargins;
             lp.rightMargin = sideMargins;
+        }
+    }
+
+    @Override
+    public void onTuningChanged(String key, String newValue) {
+        switch (key) {
+            case SHOW_QS_CLOCK:
+                boolean showClock =
+                        TunerService.parseIntegerSwitch(newValue, true);
+                mClockView.setClockVisibleByUser(showClock);
+                break;
+            case QS_BATTERY_MODE:
+                int showEstimate =
+                        TunerService.parseInteger(newValue, 1);
+                if (showEstimate == 0) {
+                    mBatteryRemainingIcon.mShowBatteryPercent = 0;
+                    mBatteryRemainingIcon.setPercentShowMode(BatteryMeterView.MODE_OFF);
+                } else if (showEstimate == 1) {
+                    mBatteryRemainingIcon.mShowBatteryPercent = 0;
+                    mBatteryRemainingIcon.setPercentShowMode(BatteryMeterView.MODE_ON);
+                } else if (showEstimate == 2) {
+                    mBatteryRemainingIcon.mShowBatteryPercent = 1;
+                    mBatteryRemainingIcon.setPercentShowMode(BatteryMeterView.MODE_OFF);
+                } else if (showEstimate == 3) {
+                    mBatteryRemainingIcon.mShowBatteryPercent = 0;
+                    mBatteryRemainingIcon.setPercentShowMode(BatteryMeterView.MODE_ESTIMATE);
+                }
+                mBatteryRemainingIcon.updatePercentView();
+                mBatteryRemainingIcon.updateVisibility();
+                break;
+            case STATUS_BAR_BATTERY_STYLE:
+                mBatteryRemainingIcon.mBatteryStyle =
+                        TunerService.parseInteger(newValue, 0);
+                mBatteryRemainingIcon.updateBatteryStyle();
+                mBatteryRemainingIcon.updatePercentView();
+                mBatteryRemainingIcon.updateVisibility();
+                break;
+            default:
+                break;
         }
     }
 }

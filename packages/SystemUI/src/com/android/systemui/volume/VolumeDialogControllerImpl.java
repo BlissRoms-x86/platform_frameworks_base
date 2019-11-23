@@ -73,6 +73,8 @@ import java.util.Objects;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.android.internal.util.custom.recorder.InternalAudioRecorder;
+
 /**
  *  Source of truth for all state / events related to the volume dialog.  No presentation.
  *
@@ -137,6 +139,7 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
     private UserActivityListener mUserActivityListener;
 
     protected final VC mVolumeController = new VC();
+    private boolean mIsInternalAudioRecordingSupported;
 
     @Inject
     public VolumeDialogControllerImpl(Context context) {
@@ -165,6 +168,8 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
         mVolumeController.setA11yMode(accessibilityVolumeStreamActive ?
                     VolumePolicy.A11Y_MODE_INDEPENDENT_A11Y_VOLUME :
                         VolumePolicy.A11Y_MODE_MEDIA_A11Y_VOLUME);
+
+        mIsInternalAudioRecordingSupported = InternalAudioRecorder.isSupported(context);
     }
 
     public AudioManager getAudioManager() {
@@ -981,7 +986,6 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
             if (ZEN_MODE_CONFIG_URI.equals(uri)) {
                 changed |= updateZenConfig();
             }
-
             if (changed) {
                 mCallbacks.onStateChanged(mState);
             }
@@ -997,6 +1001,7 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
             filter.addAction(AudioManager.RINGER_MODE_CHANGED_ACTION);
             filter.addAction(AudioManager.INTERNAL_RINGER_MODE_CHANGED_ACTION);
             filter.addAction(AudioManager.STREAM_MUTE_CHANGED_ACTION);
+            filter.addAction(AudioManager.VOLUME_STEPS_CHANGED_ACTION);
             filter.addAction(NotificationManager.ACTION_EFFECTS_SUPPRESSOR_CHANGED);
             filter.addAction(Intent.ACTION_CONFIGURATION_CHANGED);
             filter.addAction(Intent.ACTION_SCREEN_OFF);
@@ -1026,10 +1031,24 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
                         .getIntExtra(AudioManager.EXTRA_VOLUME_STREAM_DEVICES, -1);
                 final int oldDevices = intent
                         .getIntExtra(AudioManager.EXTRA_PREV_VOLUME_STREAM_DEVICES, -1);
+                final boolean routedToSubmixAndEarphone = mIsInternalAudioRecordingSupported &&
+                        (mAudio.getDevicesForStream(AudioManager.STREAM_MUSIC) &
+                            AudioManager.DEVICE_OUT_REMOTE_SUBMIX) != 0 &&
+                                (mAudio.getDevicesForStream(AudioManager.STREAM_MUSIC) &
+                                    (AudioManager.DEVICE_OUT_BLUETOOTH_A2DP |
+                                    AudioManager.DEVICE_OUT_BLUETOOTH_A2DP_HEADPHONES |
+                                    AudioManager.DEVICE_OUT_BLUETOOTH_A2DP_SPEAKER |
+                                    AudioManager.DEVICE_OUT_WIRED_HEADSET |
+                                    AudioManager.DEVICE_OUT_WIRED_HEADPHONE |
+                                    AudioManager.DEVICE_OUT_USB_HEADSET)) != 0;
                 if (D.BUG) Log.d(TAG, "onReceive STREAM_DEVICES_CHANGED_ACTION stream="
                         + stream + " devices=" + devices + " oldDevices=" + oldDevices);
                 changed = checkRoutedToBluetoothW(stream);
                 changed |= onVolumeChangedW(stream, 0);
+                if (routedToSubmixAndEarphone != mState.routedToSubmixAndEarphone){
+                    mState.routedToSubmixAndEarphone = routedToSubmixAndEarphone;
+                    changed = true;
+                }
             } else if (action.equals(AudioManager.RINGER_MODE_CHANGED_ACTION)) {
                 final int rm = intent.getIntExtra(AudioManager.EXTRA_RINGER_MODE, -1);
                 if (isInitialStickyBroadcast()) mState.ringerModeExternal = rm;
@@ -1049,6 +1068,8 @@ public class VolumeDialogControllerImpl implements VolumeDialogController, Dumpa
                 if (D.BUG) Log.d(TAG, "onReceive STREAM_MUTE_CHANGED_ACTION stream=" + stream
                         + " muted=" + muted);
                 changed = updateStreamMuteW(stream, muted);
+            } else if (action.equals(AudioManager.VOLUME_STEPS_CHANGED_ACTION)) {
+                getState();
             } else if (action.equals(NotificationManager.ACTION_EFFECTS_SUPPRESSOR_CHANGED)) {
                 if (D.BUG) Log.d(TAG, "onReceive ACTION_EFFECTS_SUPPRESSOR_CHANGED");
                 changed = updateEffectsSuppressorW(mNoMan.getEffectsSuppressor());

@@ -498,11 +498,16 @@ public class PackageInstallerService extends IPackageInstaller.Stub implements
             }
         }
 
-        if (Build.IS_DEBUGGABLE || isDowngradeAllowedForCaller(callingUid)) {
+        if (Build.IS_ENG || isDowngradeAllowedForCaller(callingUid)) {
             params.installFlags |= PackageManager.INSTALL_ALLOW_DOWNGRADE;
         } else {
             params.installFlags &= ~PackageManager.INSTALL_ALLOW_DOWNGRADE;
             params.installFlags &= ~PackageManager.INSTALL_REQUEST_DOWNGRADE;
+        }
+
+        if (callingUid != Process.SYSTEM_UID) {
+            // Only system_server can use INSTALL_DISABLE_VERIFICATION.
+            params.installFlags &= ~PackageManager.INSTALL_DISABLE_VERIFICATION;
         }
 
         boolean isApex = (params.installFlags & PackageManager.INSTALL_APEX) != 0;

@@ -23,10 +23,13 @@ import android.annotation.StringRes;
 import android.annotation.UnsupportedAppUsage;
 import android.app.INotificationManager;
 import android.app.ITransientNotification;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.PixelFormat;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
@@ -34,6 +37,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -71,6 +75,8 @@ import java.lang.annotation.RetentionPolicy;
 public class Toast {
     static final String TAG = "Toast";
     static final boolean localLOGV = false;
+
+    private boolean mShowIcon;
 
     /** @hide */
     @IntDef(prefix = { "LENGTH_" }, value = {
@@ -391,7 +397,7 @@ public class Toast {
             params.height = WindowManager.LayoutParams.WRAP_CONTENT;
             params.width = WindowManager.LayoutParams.WRAP_CONTENT;
             params.format = PixelFormat.TRANSLUCENT;
-            params.windowAnimations = com.android.internal.R.style.Animation_Toast;
+            params.windowAnimations = com.android.internal.R.style.Animation_Toast_Material;
             params.type = WindowManager.LayoutParams.TYPE_TOAST;
             params.setTitle("Toast");
             params.flags = WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
@@ -481,6 +487,22 @@ public class Toast {
                 if (context == null) {
                     context = mView.getContext();
                 }
+
+                boolean mShowIcon = Settings.System.getInt(context.getContentResolver(), Settings.System.TOAST_ICON, 1) == 1;
+
+                ImageView appIcon = (ImageView) mView.findViewById(android.R.id.icon);
+                if (appIcon != null) {
+                    PackageManager pm = context.getPackageManager();
+                    Drawable icon = null;
+                    try {
+                        icon = pm.getApplicationIcon(packageName);
+                    } catch (PackageManager.NameNotFoundException e) {
+                        // nothing to do
+                    }
+                    appIcon.setImageDrawable(icon);
+				    appIcon.setVisibility(mShowIcon ? View.VISIBLE : View.GONE);
+                }
+
                 mWM = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
                 // We can resolve the Gravity here by using the Locale for getting
                 // the layout direction

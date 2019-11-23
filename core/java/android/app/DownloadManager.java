@@ -132,6 +132,9 @@ public class DownloadManager {
      */
     public final static String COLUMN_STATUS = Downloads.Impl.COLUMN_STATUS;
 
+    /** {@hide} */
+    public static final String COLUMN_FILE_NAME_HINT = Downloads.Impl.COLUMN_FILE_NAME_HINT;
+
     /**
      * Provides more detail on the status of the download.  Its meaning depends on the value of
      * {@link #COLUMN_STATUS}.
@@ -172,6 +175,9 @@ public class DownloadManager {
     /** @hide */
     @TestApi
     public static final String COLUMN_MEDIASTORE_URI = Downloads.Impl.COLUMN_MEDIASTORE_URI;
+
+    /** {@hide} */
+    public static final String COLUMN_DESTINATION = Downloads.Impl.COLUMN_DESTINATION;
 
     /**
      * @hide
@@ -289,6 +295,13 @@ public class DownloadManager {
     public final static int PAUSED_UNKNOWN = 4;
 
     /**
+     * Value of {@link #COLUMN_REASON} when the download is paused manually.
+     *
+     * @hide
+     */
+    public final static int PAUSED_MANUAL = 5;
+
+    /**
      * Broadcast intent action sent by the download manager when a download completes.
      */
     @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
@@ -340,26 +353,22 @@ public class DownloadManager {
      */
     @UnsupportedAppUsage
     public static final String[] UNDERLYING_COLUMNS = new String[] {
-        Downloads.Impl._ID,
-        Downloads.Impl._DATA + " AS " + COLUMN_LOCAL_FILENAME,
-        Downloads.Impl.COLUMN_MEDIAPROVIDER_URI,
-        Downloads.Impl.COLUMN_DESTINATION,
-        Downloads.Impl.COLUMN_TITLE,
-        Downloads.Impl.COLUMN_DESCRIPTION,
-        Downloads.Impl.COLUMN_URI,
-        Downloads.Impl.COLUMN_STATUS,
-        Downloads.Impl.COLUMN_FILE_NAME_HINT,
-        Downloads.Impl.COLUMN_MIME_TYPE + " AS " + COLUMN_MEDIA_TYPE,
-        Downloads.Impl.COLUMN_TOTAL_BYTES + " AS " + COLUMN_TOTAL_SIZE_BYTES,
-        Downloads.Impl.COLUMN_LAST_MODIFICATION + " AS " + COLUMN_LAST_MODIFIED_TIMESTAMP,
-        Downloads.Impl.COLUMN_CURRENT_BYTES + " AS " + COLUMN_BYTES_DOWNLOADED_SO_FAR,
-        Downloads.Impl.COLUMN_ALLOW_WRITE,
-        /* add the following 'computed' columns to the cursor.
-         * they are not 'returned' by the database, but their inclusion
-         * eliminates need to have lot of methods in CursorTranslator
-         */
-        "'placeholder' AS " + COLUMN_LOCAL_URI,
-        "'placeholder' AS " + COLUMN_REASON
+        DownloadManager.COLUMN_ID,
+        DownloadManager.COLUMN_LOCAL_FILENAME,
+        DownloadManager.COLUMN_MEDIAPROVIDER_URI,
+        DownloadManager.COLUMN_DESTINATION,
+        DownloadManager.COLUMN_TITLE,
+        DownloadManager.COLUMN_DESCRIPTION,
+        DownloadManager.COLUMN_URI,
+        DownloadManager.COLUMN_STATUS,
+        DownloadManager.COLUMN_FILE_NAME_HINT,
+        DownloadManager.COLUMN_MEDIA_TYPE,
+        DownloadManager.COLUMN_TOTAL_SIZE_BYTES,
+        DownloadManager.COLUMN_LAST_MODIFIED_TIMESTAMP,
+        DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR,
+        DownloadManager.COLUMN_ALLOW_WRITE,
+        DownloadManager.COLUMN_LOCAL_URI,
+        DownloadManager.COLUMN_REASON
     };
 
     /**
@@ -985,6 +994,7 @@ public class DownloadManager {
                     parts.add(statusClause("=", Downloads.Impl.STATUS_WAITING_TO_RETRY));
                     parts.add(statusClause("=", Downloads.Impl.STATUS_WAITING_FOR_NETWORK));
                     parts.add(statusClause("=", Downloads.Impl.STATUS_QUEUED_FOR_WIFI));
+                    parts.add(statusClause("=", Downloads.Impl.STATUS_PAUSED_MANUAL));
                 }
                 if ((mStatusFlags & STATUS_SUCCESSFUL) != 0) {
                     parts.add(statusClause("=", Downloads.Impl.STATUS_SUCCESS));
@@ -1241,6 +1251,34 @@ public class DownloadManager {
         values.put(Downloads.Impl.COLUMN_CONTROL, Downloads.Impl.CONTROL_RUN);
         values.put(Downloads.Impl.COLUMN_BYPASS_RECOMMENDED_SIZE_LIMIT, 1);
         mResolver.update(mBaseUri, values, getWhereClauseForIds(ids), getWhereArgsForIds(ids));
+    }
+
+    /**
+     * Pause the given running download manually.
+     *
+     * @param id the ID of the download to be paused
+     * @return the number of downloads actually updated
+     * @hide
+     */
+    public int pauseDownload(long id) {
+        ContentValues values = new ContentValues();
+        values.put(Downloads.Impl.COLUMN_STATUS, Downloads.Impl.STATUS_PAUSED_MANUAL);
+
+        return mResolver.update(ContentUris.withAppendedId(mBaseUri, id), values, null, null);
+    }
+
+    /**
+     * Resume the given paused download manually.
+     *
+     * @param id the ID of the download to be resumed
+     * @return the number of downloads actually updated
+     * @hide
+     */
+    public int resumeDownload(long id) {
+        ContentValues values = new ContentValues();
+        values.put(Downloads.Impl.COLUMN_STATUS, Downloads.Impl.STATUS_RUNNING);
+
+        return mResolver.update(ContentUris.withAppendedId(mBaseUri, id), values, null, null);
     }
 
     /**
@@ -1680,6 +1718,9 @@ public class DownloadManager {
                 case Downloads.Impl.STATUS_QUEUED_FOR_WIFI:
                     return PAUSED_QUEUED_FOR_WIFI;
 
+                case Downloads.Impl.STATUS_PAUSED_MANUAL:
+                    return PAUSED_MANUAL;
+
                 default:
                     return PAUSED_UNKNOWN;
             }
@@ -1735,6 +1776,7 @@ public class DownloadManager {
                 case Downloads.Impl.STATUS_WAITING_TO_RETRY:
                 case Downloads.Impl.STATUS_WAITING_FOR_NETWORK:
                 case Downloads.Impl.STATUS_QUEUED_FOR_WIFI:
+                case Downloads.Impl.STATUS_PAUSED_MANUAL:
                     return STATUS_PAUSED;
 
                 case Downloads.Impl.STATUS_SUCCESS:

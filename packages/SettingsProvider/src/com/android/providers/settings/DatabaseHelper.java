@@ -716,6 +716,10 @@ class DatabaseHelper extends SQLiteOpenHelper {
                    Secure.LOCK_PATTERN_ENABLED,
                    Secure.LOCK_PATTERN_VISIBLE,
                    Secure.LOCK_PATTERN_TACTILE_FEEDBACK_ENABLED,
+                   Secure.LOCK_PATTERN_SIZE,
+                   Secure.LOCK_DOTS_VISIBLE,
+                   Secure.LOCK_SHOW_ERROR_PATH,
+                   "lock_screen_pass_to_security_view",
                    "lockscreen.password_type",
                    "lockscreen.lockoutattemptdeadline",
                    "lockscreen.patterneverchosen",
@@ -1991,8 +1995,9 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 // Convert lock pattern
                 try {
                     LockPatternUtils lpu = new LockPatternUtils(mContext);
+                    byte size = lpu.getLockPatternSize(mUserHandle);
                     List<LockPatternView.Cell> cellPattern =
-                            LockPatternUtils.stringToPattern(lockPattern);
+                            LockPatternUtils.stringToPattern(lockPattern, size);
                     lpu.saveLockPattern(cellPattern, null, UserHandle.USER_SYSTEM);
                 } catch (IllegalArgumentException e) {
                     // Don't want corrupted lock pattern to hang the reboot process
@@ -2621,6 +2626,9 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 defaultLidBehavior = 0;
             }
             loadSetting(stmt, Settings.Global.LID_BEHAVIOR, defaultLidBehavior);
+
+            loadIntegerSetting(stmt, Settings.Global.OTA_DISABLE_AUTOMATIC_UPDATE,
+                    R.integer.def_ota_disable_automatic_update);
 
             /*
              * IMPORTANT: Do not add any more upgrade steps here as the global,

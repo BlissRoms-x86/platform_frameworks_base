@@ -152,6 +152,13 @@ public class NavigationBarView extends FrameLayout implements
      */
     private ScreenPinningNotify mScreenPinningNotify;
 
+    private int mBasePaddingBottom;
+    private int mBasePaddingLeft;
+    private int mBasePaddingRight;
+    private int mBasePaddingTop;
+
+    private ViewGroup mNavigationBarContents;
+
     private class NavTransitionListener implements TransitionListener {
         private boolean mBackTransitioning;
         private boolean mHomeAppearing;
@@ -348,6 +355,10 @@ public class NavigationBarView extends FrameLayout implements
         return super.onTouchEvent(event);
     }
 
+    void onSystemUiVisibilityChanged(int systemUiVisibility) {
+        mEdgeBackGestureHandler.onSystemUiVisibilityChanged(systemUiVisibility);
+    }
+
     void onBarTransition(int newMode) {
         if (newMode == MODE_OPAQUE) {
             // If the nav bar background is opaque, stop auto tinting since we know the icons are
@@ -483,6 +494,10 @@ public class NavigationBarView extends FrameLayout implements
                 : getDrawable(R.drawable.ic_sysbar_home);
         orientHomeButton(drawable);
         return drawable;
+    }
+
+    public KeyButtonDrawable getRecentsDrawable() {
+        return getDrawable(R.drawable.ic_sysbar_recent);
     }
 
     private void orientBackButton(KeyButtonDrawable drawable) {
@@ -639,6 +654,9 @@ public class NavigationBarView extends FrameLayout implements
         } else if (pinningActive) {
             disableBack = disableRecent = false;
         }
+        if (pinningActive && isGesturalMode(mNavBarMode)){
+            disableBack = true;
+        }
 
         ViewGroup navButtons = getCurrentView().findViewById(R.id.nav_buttons);
         if (navButtons != null) {
@@ -765,7 +783,7 @@ public class NavigationBarView extends FrameLayout implements
      */
     public void updateSlippery() {
         setSlippery(!isQuickStepSwipeUpEnabled() ||
-                (mPanelView.isFullyExpanded() && !mPanelView.isCollapsing()));
+                (mPanelView != null && mPanelView.isFullyExpanded() && !mPanelView.isCollapsing()));
     }
 
     private void setSlippery(boolean slippery) {
@@ -808,6 +826,11 @@ public class NavigationBarView extends FrameLayout implements
         }
     }
 
+    @Override
+    public void onSettingsChanged() {
+        mEdgeBackGestureHandler.onSettingsChanged();
+    }
+
     public void setAccessibilityButtonState(final boolean visible, final boolean longClickable) {
         mLongClickableAccessibilityButton = longClickable;
         getAccessibilityButton().setLongClickable(longClickable);
@@ -818,12 +841,31 @@ public class NavigationBarView extends FrameLayout implements
         mRecentsOnboarding.hide(true);
     }
 
+    public void swiftNavigationBarItems(int horizontalShift, int verticalShift) {
+        if (mNavigationBarContents == null) {
+            return;
+        }
+
+        mNavigationBarContents.setPaddingRelative(mBasePaddingLeft + horizontalShift,
+                                              mBasePaddingTop + verticalShift,
+                                              mBasePaddingRight + horizontalShift,
+                                              mBasePaddingBottom - verticalShift);
+        invalidate();
+    }
+
     @Override
     public void onFinishInflate() {
         mNavigationInflaterView = findViewById(R.id.navigation_inflater);
         mNavigationInflaterView.setButtonDispatchers(mButtonDispatchers);
 
         getImeSwitchButton().setOnClickListener(mImeSwitcherClickListener);
+
+        mNavigationBarContents = (ViewGroup) findViewById(R.id.nav_buttons);
+
+        mBasePaddingLeft = mNavigationBarContents.getPaddingStart();
+        mBasePaddingTop = mNavigationBarContents.getPaddingTop();
+        mBasePaddingRight = mNavigationBarContents.getPaddingEnd();
+        mBasePaddingBottom = mNavigationBarContents.getPaddingBottom();
 
         DockedStackExistsListener.register(mDockedListener);
         updateOrientationViews();
@@ -920,7 +962,7 @@ public class NavigationBarView extends FrameLayout implements
     }
 
     public void showPinningEscapeToast() {
-        mScreenPinningNotify.showEscapeToast(isRecentsButtonVisible());
+        mScreenPinningNotify.showEscapeToast(isRecentsButtonVisible(), isGesturalMode(mNavBarMode));
     }
 
     public boolean isVertical() {

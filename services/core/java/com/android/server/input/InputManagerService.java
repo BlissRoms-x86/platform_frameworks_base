@@ -96,6 +96,8 @@ import com.android.server.LocalServices;
 import com.android.server.Watchdog;
 import com.android.server.policy.WindowManagerPolicy;
 
+import lineageos.providers.LineageSettings;
+
 import libcore.io.IoUtils;
 import libcore.io.Streams;
 
@@ -223,6 +225,7 @@ public class InputManagerService extends IInputManager.Stub
     private static native void nativeSetFocusedDisplay(long ptr, int displayId);
     private static native void nativeSetPointerSpeed(long ptr, int speed);
     private static native void nativeSetShowTouches(long ptr, boolean enabled);
+    private static native void nativeSetVolumeKeysRotation(long ptr, int mode);
     private static native void nativeSetInteractive(long ptr, boolean interactive);
     private static native void nativeReloadCalibration(long ptr);
     private static native void nativeVibrate(long ptr, int deviceId, long[] pattern,
@@ -363,6 +366,7 @@ public class InputManagerService extends IInputManager.Stub
         registerPointerSpeedSettingObserver();
         registerShowTouchesSettingObserver();
         registerAccessibilityLargePointerSettingObserver();
+        registerVolumeKeysRotationSettingObserver();
 
         mContext.registerReceiver(new BroadcastReceiver() {
             @Override
@@ -370,12 +374,14 @@ public class InputManagerService extends IInputManager.Stub
                 updatePointerSpeedFromSettings();
                 updateShowTouchesFromSettings();
                 updateAccessibilityLargePointerFromSettings();
+                updateVolumeKeysRotationFromSettings();
             }
         }, new IntentFilter(Intent.ACTION_USER_SWITCHED), null, mHandler);
 
         updatePointerSpeedFromSettings();
         updateShowTouchesFromSettings();
         updateAccessibilityLargePointerFromSettings();
+        updateVolumeKeysRotationFromSettings();
     }
 
     // TODO(BT) Pass in parameter for bluetooth system
@@ -1639,6 +1645,33 @@ public class InputManagerService extends IInputManager.Stub
             result = Settings.System.getIntForUser(mContext.getContentResolver(),
                     Settings.System.SHOW_TOUCHES, UserHandle.USER_CURRENT);
         } catch (SettingNotFoundException snfe) {
+        }
+        return result;
+    }
+
+    public void updateVolumeKeysRotationFromSettings() {
+        int mode = getVolumeKeysRotationSetting(0);
+        nativeSetVolumeKeysRotation(mPtr, mode);
+    }
+
+    public void registerVolumeKeysRotationSettingObserver() {
+        mContext.getContentResolver().registerContentObserver(
+                LineageSettings.System.getUriFor(
+                        LineageSettings.System.SWAP_VOLUME_KEYS_ON_ROTATION), false,
+                new ContentObserver(mHandler) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        updateVolumeKeysRotationFromSettings();
+                    }
+                });
+    }
+
+    private int getVolumeKeysRotationSetting(int defaultValue) {
+        int result = defaultValue;
+        try {
+            result = LineageSettings.System.getIntForUser(mContext.getContentResolver(),
+                    LineageSettings.System.SWAP_VOLUME_KEYS_ON_ROTATION, UserHandle.USER_CURRENT);
+        } catch (LineageSettings.LineageSettingNotFoundException snfe) {
         }
         return result;
     }

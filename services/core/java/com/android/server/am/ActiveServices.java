@@ -2920,7 +2920,9 @@ public final class ActiveServices {
                     } catch (Exception e) {
                         Slog.w(TAG, "Exception when unbinding service "
                                 + r.shortInstanceName, e);
+                        needOomAdj = false;
                         serviceProcessGoneLocked(r);
+                        break;
                     }
                 }
             }
@@ -3381,6 +3383,10 @@ public final class ActiveServices {
                 sr.isolatedProc = null;
                 mPendingServices.remove(i);
                 i--;
+                if (proc.isPersistent() && !proc.isolated) {
+                    mRestartingServices.add(sr);
+                    continue;
+                }
                 bringDownServiceLocked(sr);
             }
         }

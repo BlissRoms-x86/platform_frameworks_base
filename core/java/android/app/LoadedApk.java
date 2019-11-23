@@ -1208,7 +1208,7 @@ public final class LoadedApk {
 
         try {
             java.lang.ClassLoader cl = getClassLoader();
-            if (!mPackageName.equals("android")) {
+            if (!ActivityThread.isSystem()) {
                 Trace.traceBegin(Trace.TRACE_TAG_ACTIVITY_MANAGER,
                         "initializeJavaContextClassLoader");
                 initializeJavaContextClassLoader();
@@ -1247,7 +1247,7 @@ public final class LoadedApk {
         final int N = packageIdentifiers.size();
         for (int i = 0; i < N; i++) {
             final int id = packageIdentifiers.keyAt(i);
-            if (id == 0x01 || id == 0x7f) {
+            if (id == 0x01 || id == 0x7f || id == 0x3f) {
                 continue;
             }
 

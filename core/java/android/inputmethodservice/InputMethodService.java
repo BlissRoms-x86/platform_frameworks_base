@@ -45,8 +45,11 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.os.ResultReceiver;
+import android.os.ServiceManager;
 import android.os.SystemClock;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.text.InputType;
 import android.text.Layout;
@@ -88,6 +91,7 @@ import com.android.internal.inputmethod.IInputMethodPrivilegedOperations;
 import com.android.internal.inputmethod.InputMethodPrivilegedOperations;
 import com.android.internal.inputmethod.InputMethodPrivilegedOperationsRegistry;
 
+import com.android.internal.statusbar.IStatusBarService;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.lang.annotation.Retention;
@@ -427,9 +431,21 @@ public class InputMethodService extends AbstractInputMethodService {
     @GuardedBy("mLock")
     private boolean mNotifyUserActionSent;
 
+    Handler mHandler;
+
+    boolean mForcedAutoRotate;
+
+    private IStatusBarService mStatusBarService;
+    private Object mServiceAquireLock = new Object();
+
     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.P, trackingBug = 115609023)
     final Insets mTmpInsets = new Insets();
     final int[] mTmpLocation = new int[2];
+
+    int mVolumeKeyCursorControl;
+    private static final int VOLUME_CURSOR_OFF = 0;
+    private static final int VOLUME_CURSOR_ON = 1;
+    private static final int VOLUME_CURSOR_ON_REVERSE = 2;
 
     final ViewTreeObserver.OnComputeInternalInsetsListener mInsetsComputer = info -> {
         if (isExtractViewShown()) {
@@ -542,6 +558,7 @@ public class InputMethodService extends AbstractInputMethodService {
             if (DEBUG) Log.v(TAG, "unbindInput(): binding=" + mInputBinding
                     + " ic=" + mInputConnection);
             onUnbindInput();
+            mInputStarted = false;
             mInputBinding = null;
             mInputConnection = null;
         }
@@ -896,6 +913,9 @@ public class InputMethodService extends AbstractInputMethodService {
             service.getContentResolver().registerContentObserver(
                     Settings.Secure.getUriFor(Settings.Secure.SHOW_IME_WITH_HARD_KEYBOARD),
                     false, observer);
+            service.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.VOLUME_KEY_CURSOR_CONTROL),
+                    false, observer);
             return observer;
         }
 
@@ -936,6 +956,9 @@ public class InputMethodService extends AbstractInputMethodService {
                 // state as if configuration was changed.
                 mService.resetStateForNewConfiguration();
             }
+
+            mService.mVolumeKeyCursorControl = Settings.System.getInt(mService.getContentResolver(),
+                    Settings.System.VOLUME_KEY_CURSOR_CONTROL, 0);
         }
 
         @Override
@@ -997,6 +1020,8 @@ public class InputMethodService extends AbstractInputMethodService {
         super.onCreate();
         mImm = (InputMethodManager)getSystemService(INPUT_METHOD_SERVICE);
         mSettingsObserver = SettingsObserver.createAndRegister(this);
+        mVolumeKeyCursorControl = Settings.System.getInt(getContentResolver(),
+                Settings.System.VOLUME_KEY_CURSOR_CONTROL, 0);
         // TODO(b/111364446) Need to address context lifecycle issue if need to re-create
         // for update resources & configuration correctly when show soft input
         // in non-default display.
@@ -1065,6 +1090,8 @@ public class InputMethodService extends AbstractInputMethodService {
         mCandidatesVisibility = getCandidatesHiddenVisibility();
         mCandidatesFrame.setVisibility(mCandidatesVisibility);
         mInputFrame.setVisibility(View.GONE);
+
+        mHandler = new Handler();
     }
 
     @Override public void onDestroy() {
@@ -1301,7 +1328,15 @@ public class InputMethodService extends AbstractInputMethodService {
      * is currently running in fullscreen mode.
      */
     public void updateFullscreenMode() {
-        boolean isFullscreen = mShowInputRequested && onEvaluateFullscreenMode();
+        boolean fullScreenOverride = Settings.System.getIntForUser(getContentResolver(),
+                Settings.System.ENABLE_FULLSCREEN_KEYBOARD, 1,
+                UserHandle.USER_CURRENT_OR_SELF) != 0;
+        boolean isFullscreen;
+        if (fullScreenOverride) {
+            isFullscreen = false;
+        } else {
+            isFullscreen = mShowInputRequested && onEvaluateFullscreenMode();
+        }
         boolean changed = mLastShowInputRequested != mShowInputRequested;
         if (mIsFullscreen != isFullscreen || !mFullscreenApplied) {
             changed = true;
@@ -1907,6 +1942,28 @@ public class InputMethodService extends AbstractInputMethodService {
         maybeNotifyPreRendered();
         mDecorViewWasVisible = true;
         mInShowWindow = false;
+
+        IStatusBarService statusbar = getStatusBarService();
+        int mKeyboardRotationTimeout = Settings.System.getIntForUser(getContentResolver(),
+                Settings.System.KEYBOARD_ROTATION_TIMEOUT, 0, UserHandle.USER_CURRENT_OR_SELF);
+        if (mKeyboardRotationTimeout > 0) {
+            mHandler.removeCallbacks(restoreAutoRotation);
+            if (!mForcedAutoRotate) {
+                boolean isAutoRotate = (Settings.System.getIntForUser(getContentResolver(),
+                    Settings.System.ACCELEROMETER_ROTATION, 0,
+                    UserHandle.USER_CURRENT_OR_SELF) == 1);
+                if (!isAutoRotate) {
+                    try {
+                        if (statusbar != null) {
+                            statusbar.setAutoRotate(true);
+                            mForcedAutoRotate = true;
+                        }
+                    } catch (RemoteException e) {
+                        mStatusBarService = null;
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -2013,7 +2070,30 @@ public class InputMethodService extends AbstractInputMethodService {
             mDecorViewWasVisible = false;
         }
         updateFullscreenMode();
+
+        int mKeyboardRotationTimeout = Settings.System.getIntForUser(getContentResolver(),
+                Settings.System.KEYBOARD_ROTATION_TIMEOUT, 0, UserHandle.USER_CURRENT_OR_SELF);
+        if (mKeyboardRotationTimeout > 0) {
+            mHandler.removeCallbacks(restoreAutoRotation);
+            if (mForcedAutoRotate) {
+                mHandler.postDelayed(restoreAutoRotation, mKeyboardRotationTimeout);
+            }
+        }
     }
+
+    final Runnable restoreAutoRotation = new Runnable() {
+        @Override public void run() {
+            try {
+                IStatusBarService statusbar = getStatusBarService();
+                if (statusbar != null) {
+                    statusbar.setAutoRotate(false);
+                }
+                mForcedAutoRotate = false;
+            } catch (RemoteException e) {
+                mStatusBarService = null;
+            }
+        }
+    };
 
     /**
      * Called immediately before the input method window is shown to the user.
@@ -2347,6 +2427,22 @@ public class InputMethodService extends AbstractInputMethodService {
             }
             return false;
         }
+        if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP) {
+            if (isInputViewShown() && mVolumeKeyCursorControl != VOLUME_CURSOR_OFF) {
+                sendDownUpKeyEvents(mVolumeKeyCursorControl == VOLUME_CURSOR_ON_REVERSE
+                        ? KeyEvent.KEYCODE_DPAD_RIGHT : KeyEvent.KEYCODE_DPAD_LEFT);
+                return true;
+            }
+            return false;
+        }
+        if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            if (isInputViewShown() && mVolumeKeyCursorControl != VOLUME_CURSOR_OFF) {
+                sendDownUpKeyEvents(mVolumeKeyCursorControl == VOLUME_CURSOR_ON_REVERSE
+                        ? KeyEvent.KEYCODE_DPAD_LEFT : KeyEvent.KEYCODE_DPAD_RIGHT);
+                return true;
+            }
+            return false;
+        }
         return doMovementKey(keyCode, event, MOVEMENT_DOWN);
     }
 
@@ -2396,6 +2492,10 @@ public class InputMethodService extends AbstractInputMethodService {
             if (event.isTracking() && !event.isCanceled()) {
                 return handleBack(true);
             }
+        }
+        if (event.getKeyCode() == KeyEvent.KEYCODE_VOLUME_UP
+                 || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            return isInputViewShown() && mVolumeKeyCursorControl != VOLUME_CURSOR_OFF;
         }
         return doMovementKey(keyCode, event, MOVEMENT_UP);
     }
@@ -2720,6 +2820,16 @@ public class InputMethodService extends AbstractInputMethodService {
             ic.performContextMenuAction(id);
         }
         return true;
+    }
+
+    IStatusBarService getStatusBarService() {
+        synchronized (mServiceAquireLock) {
+            if (mStatusBarService == null) {
+                mStatusBarService = IStatusBarService.Stub.asInterface(
+                        ServiceManager.getService("statusbar"));
+            }
+            return mStatusBarService;
+        }
     }
 
     /**

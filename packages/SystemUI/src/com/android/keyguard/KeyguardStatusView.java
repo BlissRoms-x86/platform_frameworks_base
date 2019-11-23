@@ -19,12 +19,14 @@ package com.android.keyguard;
 import android.app.ActivityManager;
 import android.app.IActivityManager;
 import android.content.Context;
+import android.content.ContentResolver;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.AttributeSet;
@@ -40,6 +42,7 @@ import androidx.core.graphics.ColorUtils;
 
 import com.android.internal.widget.LockPatternUtils;
 import com.android.systemui.Dependency;
+import com.android.systemui.omni.CurrentWeatherView;
 import com.android.systemui.statusbar.policy.ConfigurationController;
 
 import java.io.FileDescriptor;
@@ -68,6 +71,9 @@ public class KeyguardStatusView extends GridLayout implements
     private boolean mPulsing;
     private float mDarkAmount = 0;
     private int mTextColor;
+    private CurrentWeatherView mWeatherView;
+    private boolean mShowWeather;
+    private boolean mOmniStyle;
 
     /**
      * Bottom margin that defines the margin between bottom of smart space and top of notification
@@ -96,6 +102,7 @@ public class KeyguardStatusView extends GridLayout implements
                 refreshTime();
                 updateOwnerInfo();
                 updateLogoutView();
+                updateSettings();
             }
         }
 
@@ -114,6 +121,7 @@ public class KeyguardStatusView extends GridLayout implements
             refreshFormat();
             updateOwnerInfo();
             updateLogoutView();
+            updateSettings();
         }
 
         @Override
@@ -188,11 +196,12 @@ public class KeyguardStatusView extends GridLayout implements
 
         mClockView = findViewById(R.id.keyguard_clock_container);
         mClockView.setShowCurrentUserTime(true);
-        if (KeyguardClockAccessibilityDelegate.isNeeded(mContext)) {
-            mClockView.setAccessibilityDelegate(new KeyguardClockAccessibilityDelegate(mContext));
-        }
         mOwnerInfo = findViewById(R.id.owner_info);
         mKeyguardSlice = findViewById(R.id.keyguard_status_area);
+
+        mWeatherView = (CurrentWeatherView) findViewById(R.id.weather_container);
+        updateSettings();
+
         mTextColor = mClockView.getCurrentTextColor();
 
         mKeyguardSlice.setContentChangeListener(this::onSliceContentChanged);
@@ -204,6 +213,12 @@ public class KeyguardStatusView extends GridLayout implements
         updateOwnerInfo();
         updateLogoutView();
         updateDark();
+        updateSettings();
+
+    }
+
+    public KeyguardSliceView getKeyguardSliceView() {
+        return mKeyguardSlice;
     }
 
     /**
@@ -242,6 +257,9 @@ public class KeyguardStatusView extends GridLayout implements
         if (mOwnerInfo != null) {
             mOwnerInfo.setTextSize(TypedValue.COMPLEX_UNIT_PX,
                     getResources().getDimensionPixelSize(R.dimen.widget_label_font_size));
+        }
+        if (mWeatherView != null) {
+            mWeatherView.onDensityOrFontScaleChanged();
         }
         loadBottomMargin();
     }
@@ -378,10 +396,6 @@ public class KeyguardStatusView extends GridLayout implements
 
             clockView24 = DateFormat.getBestDateTimePattern(locale, clockView24Skel);
 
-            // Use fancy colon.
-            clockView24 = clockView24.replace(':', '\uee01');
-            clockView12 = clockView12.replace(':', '\uee01');
-
             cacheKey = key;
         }
     }
@@ -454,4 +468,28 @@ public class KeyguardStatusView extends GridLayout implements
             Log.e(TAG, "Failed to logout user", re);
         }
     }
+
+    private void updateSettings() {
+        final ContentResolver resolver = getContext().getContentResolver();
+        final Resources res = getContext().getResources();
+        mShowWeather = Settings.System.getIntForUser(resolver,
+                Settings.System.OMNI_LOCKSCREEN_WEATHER_ENABLED, 0,
+                UserHandle.USER_CURRENT) == 1;
+
+        mOmniStyle = Settings.System.getIntForUser(resolver,
+                Settings.System.LOCKSCREEN_WEATHER_STYLE, 0,
+                UserHandle.USER_CURRENT) == 0;
+
+        if (mWeatherView != null) {
+            if (mShowWeather && mOmniStyle) {
+                mWeatherView.setVisibility(View.VISIBLE);
+                mWeatherView.enableUpdates();
+            }
+            if (!mShowWeather || !mOmniStyle) {
+                mWeatherView.setVisibility(View.GONE);
+                mWeatherView.disableUpdates();
+            }
+        }
+    }
+
 }

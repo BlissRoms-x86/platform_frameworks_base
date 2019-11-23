@@ -27,7 +27,11 @@ LOCAL_REQUIRED_MODULES := \
 	DisplayCutoutEmulationCornerOverlay \
 	DisplayCutoutEmulationDoubleOverlay \
 	DisplayCutoutEmulationTallOverlay \
+	FontArbutusSourceOverlay \
+	FontArvoLatoOverlay \
+	FontGoogleSansOverlay \
 	FontNotoSerifSourceOverlay \
+	FontRubikRubikOverlay \
 	IconPackCircularAndroidOverlay \
 	IconPackCircularLauncherOverlay \
 	IconPackCircularSettingsOverlay \
@@ -42,7 +46,7 @@ LOCAL_REQUIRED_MODULES := \
 	IconPackRoundedLauncherOverlay \
 	IconPackRoundedSettingsOverlay \
 	IconPackRoundedSystemUIOverlay \
-	IconPackRoundedThemePickerUIOverlay \
+	IconPackRoundedThemePickerOverlay \
 	IconShapeRoundedRectOverlay \
 	IconShapeSquircleOverlay \
 	IconShapeTeardropOverlay \

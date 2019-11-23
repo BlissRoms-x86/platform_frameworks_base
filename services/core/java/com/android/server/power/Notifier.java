@@ -61,6 +61,8 @@ import com.android.server.inputmethod.InputMethodManagerInternal;
 import com.android.server.policy.WindowManagerPolicy;
 import com.android.server.statusbar.StatusBarManagerInternal;
 
+import lineageos.providers.LineageSettings;
+
 /**
  * Sends broadcasts about important power state changes.
  * <p>
@@ -94,6 +96,7 @@ public class Notifier {
     private static final int MSG_SCREEN_BRIGHTNESS_BOOST_CHANGED = 4;
     private static final int MSG_PROFILE_TIMED_OUT = 5;
     private static final int MSG_WIRED_CHARGING_STARTED = 6;
+    private static final int MSG_WIRED_CHARGING_DISCONNECTED = 7;
 
     private static final long[] WIRELESS_VIBRATION_TIME = {
             40, 40, 40, 40, 40, 40, 40, 40, 40, // ramp-up sampling rate = 40ms
@@ -123,6 +126,7 @@ public class Notifier {
     @Nullable private final StatusBarManagerInternal mStatusBarManagerInternal;
     private final TrustManager mTrustManager;
     private final Vibrator mVibrator;
+    private final AudioManager mAudioManager;
 
     private final NotifierHandler mHandler;
     private final Intent mScreenOnIntent;
@@ -171,6 +175,7 @@ public class Notifier {
         mStatusBarManagerInternal = LocalServices.getService(StatusBarManagerInternal.class);
         mTrustManager = mContext.getSystemService(TrustManager.class);
         mVibrator = mContext.getSystemService(Vibrator.class);
+        mAudioManager = mContext.getSystemService(AudioManager.class);
 
         mHandler = new NotifierHandler(looper);
         mScreenOnIntent = new Intent(Intent.ACTION_SCREEN_ON);
@@ -647,7 +652,7 @@ public class Notifier {
     /**
      * Called when wired charging has started - to provide user feedback
      */
-    public void onWiredChargingStarted(@UserIdInt int userId) {
+    public void onWiredChargingStarted(@UserIdInt int userId,int batteryLevel) {
         if (DEBUG) {
             Slog.d(TAG, "onWiredChargingStarted");
         }
@@ -656,6 +661,23 @@ public class Notifier {
         Message msg = mHandler.obtainMessage(MSG_WIRED_CHARGING_STARTED);
         msg.setAsynchronous(true);
         msg.arg1 = userId;
+        msg.arg2 = batteryLevel;
+        mHandler.sendMessage(msg);
+    }
+
+    /**
+     * Called when wired charging has been disconnected so as to provide user feedback
+     */
+    public void onWiredChargingDisconnected(@UserIdInt int userId,int batteryLevel) {
+        if (DEBUG) {
+            Slog.d(TAG, "onWiredChargingDisconnected");
+        }
+
+        mSuspendBlocker.acquire();
+        Message msg = mHandler.obtainMessage(MSG_WIRED_CHARGING_DISCONNECTED);
+        msg.setAsynchronous(true);
+        msg.arg1 = userId;
+        msg.arg2 = batteryLevel;
         mHandler.sendMessage(msg);
     }
 
@@ -796,10 +818,10 @@ public class Notifier {
      */
     private void playChargingStartedFeedback(@UserIdInt int userId) {
         playChargingStartedVibration(userId);
-        final String soundPath = Settings.Global.getString(mContext.getContentResolver(),
-                Settings.Global.CHARGING_STARTED_SOUND);
-        if (isChargingFeedbackEnabled(userId) && soundPath != null) {
-            final Uri soundUri = Uri.parse("file://" + soundPath);
+        final String soundPath = LineageSettings.Global.getString(mContext.getContentResolver(),
+                LineageSettings.Global.POWER_NOTIFICATIONS_RINGTONE);
+        if (isChargingFeedbackEnabled(userId) && soundPath != null && !soundPath.equals("silent")) {
+            final Uri soundUri = Uri.parse(soundPath);
             if (soundUri != null) {
                 final Ringtone sfx = RingtoneManager.getRingtone(mContext, soundUri);
                 if (sfx != null) {
@@ -818,8 +840,14 @@ public class Notifier {
         mSuspendBlocker.release();
     }
 
-    private void showWiredChargingStarted(@UserIdInt int userId) {
+    private void showWiredChargingStarted(@UserIdInt int userId,int batteryLevel) {
+        final boolean animationEnabled = Settings.System.getInt(mContext.getContentResolver(),
+                Settings.System.WIRELESS_CHARGING_ANIMATION, 0) == 1;
+        playChargingStartedVibration(userId);
         playChargingStartedFeedback(userId);
+        if (mStatusBarManagerInternal != null && animationEnabled) {
+            mStatusBarManagerInternal.showChargingAnimation(batteryLevel);
+        }
         mSuspendBlocker.release();
     }
 
@@ -828,8 +856,8 @@ public class Notifier {
     }
 
     private void playChargingStartedVibration(@UserIdInt int userId) {
-        final boolean vibrateEnabled = Settings.Secure.getIntForUser(mContext.getContentResolver(),
-                Settings.Secure.CHARGING_VIBRATION_ENABLED, 1, userId) != 0;
+        final boolean vibrateEnabled = LineageSettings.Global.getInt(mContext.getContentResolver(),
+                LineageSettings.Global.POWER_NOTIFICATIONS_VIBRATE, 0) == 1;
         if (vibrateEnabled && isChargingFeedbackEnabled(userId)) {
             mVibrator.vibrate(WIRELESS_CHARGING_VIBRATION_EFFECT, VIBRATION_ATTRIBUTES);
         }
@@ -841,7 +869,9 @@ public class Notifier {
         final boolean dndOff = Settings.Global.getInt(mContext.getContentResolver(),
                 Settings.Global.ZEN_MODE, Settings.Global.ZEN_MODE_IMPORTANT_INTERRUPTIONS)
                 == Settings.Global.ZEN_MODE_OFF;
-        return enabled && dndOff;
+        final boolean silentMode = mAudioManager.getRingerModeInternal()
+                == AudioManager.RINGER_MODE_SILENT;
+        return enabled && dndOff && !silentMode;
     }
 
     private final class NotifierHandler extends Handler {
@@ -868,7 +898,8 @@ public class Notifier {
                     lockProfile(msg.arg1);
                     break;
                 case MSG_WIRED_CHARGING_STARTED:
-                    showWiredChargingStarted(msg.arg1);
+                case MSG_WIRED_CHARGING_DISCONNECTED:
+                    showWiredChargingStarted(msg.arg1, msg.arg2);
                     break;
             }
         }

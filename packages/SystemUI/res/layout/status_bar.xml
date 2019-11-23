@@ -57,9 +57,6 @@
 
             <include layout="@layout/heads_up_status_bar_layout" />
 
-            <!-- The alpha of the left side is controlled by PhoneStatusBarTransitions, and the
-             individual views are controlled by StatusBarManager disable flags DISABLE_CLOCK and
-             DISABLE_NOTIFICATION_ICONS, respectively -->
             <LinearLayout
                 android:id="@+id/status_bar_left_side"
                 android:layout_height="match_parent"
@@ -72,16 +69,31 @@
                     android:layout_height="match_parent"
                     android:layout="@layout/operator_name" />
 
-                <com.android.systemui.statusbar.policy.Clock
-                    android:id="@+id/clock"
+                <com.android.keyguard.AlphaOptimizedLinearLayout
+                    android:id="@+id/left_icon_area"
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
-                    android:textAppearance="@style/TextAppearance.StatusBar.Clock"
-                    android:singleLine="true"
-                    android:paddingStart="@dimen/status_bar_left_clock_starting_padding"
-                    android:paddingEnd="@dimen/status_bar_left_clock_end_padding"
-                    android:gravity="center_vertical|start"
-                />
+                    android:orientation="horizontal" >
+
+                    <com.android.systemui.bliss.logo.LogoImageView
+                        android:id="@+id/bliss_logo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:paddingEnd="1dip"
+                        android:scaleType="center"
+                        android:visibility="gone" />
+
+                    <com.android.systemui.statusbar.policy.Clock
+                        android:id="@+id/clock"
+                        android:layout_width="wrap_content"
+                        android:layout_height="match_parent"
+                        android:textAppearance="@style/TextAppearance.StatusBar.Clock"
+                        android:singleLine="true"
+                        android:paddingStart="@dimen/status_bar_left_clock_starting_padding"
+                        android:paddingEnd="@dimen/status_bar_left_clock_end_padding"
+                        android:gravity="center_vertical|start"
+                    />
+                </com.android.keyguard.AlphaOptimizedLinearLayout>
 
                 <com.android.systemui.statusbar.AlphaOptimizedFrameLayout
                     android:id="@+id/notification_icon_area"
@@ -90,7 +102,6 @@
                     android:layout_weight="1"
                     android:orientation="horizontal"
                     android:clipChildren="false"/>
-
             </LinearLayout>
         </FrameLayout>
 
@@ -113,7 +124,7 @@
         <com.android.keyguard.AlphaOptimizedLinearLayout android:id="@+id/system_icon_area"
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="1"
+            android:layout_weight="@integer/system_icon_area_weight"
             android:orientation="horizontal"
             android:gravity="center_vertical|end"
             >
@@ -122,11 +133,35 @@
         </com.android.keyguard.AlphaOptimizedLinearLayout>
     </LinearLayout>
 
+    <com.android.keyguard.AlphaOptimizedLinearLayout
+        android:id="@+id/center_clock_layout"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        >
+        <com.android.systemui.statusbar.policy.Clock
+            android:id="@+id/clock_center"
+            android:textAppearance="@style/TextAppearance.StatusBar.Clock"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:singleLine="true"
+            android:gravity="center"
+            android:visibility="gone"
+        />
+    </com.android.keyguard.AlphaOptimizedLinearLayout>
+
     <ViewStub
         android:id="@+id/emergency_cryptkeeper_text"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
         android:layout="@layout/emergency_cryptkeeper_text"
     />
+
+    <com.android.systemui.bliss.batterybar.BatteryBarController
+        android:id="@+id/battery_bar"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        systemui:viewLocation="1" />
 
 </com.android.systemui.statusbar.phone.PhoneStatusBarView>

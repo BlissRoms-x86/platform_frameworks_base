@@ -30,7 +30,7 @@
 
     <!-- Component to be used as the status bar service.  Must implement the IStatusBar
      interface.  This name is in the ComponentName flattened format (package/class)  -->
-    <string name="config_statusBarComponent" translatable="false">com.android.systemui.statusbar.phone.StatusBar</string>
+    <string name="config_statusBarComponent" translatable="false">com.google.android.systemui.statusbar.phone.StatusBarGoogle</string>
 
     <!-- Component to be used as the recents implementation.  Must implement the
      RecentsImplementation interface.  This name is in the ComponentName flattened format
@@ -99,10 +99,10 @@
     <bool name="quick_settings_wide">false</bool>
 
     <!-- The number of columns in the QuickSettings -->
-    <integer name="quick_settings_num_columns">3</integer>
+    <integer name="quick_settings_num_columns">3</integer> <!-- DEPRECATED SINCE Q -->
 
     <!-- The number of rows in the QuickSettings -->
-    <integer name="quick_settings_max_rows">3</integer>
+    <integer name="quick_settings_max_rows">5</integer>
 
     <!-- The number of columns that the top level tiles span in the QuickSettings -->
     <integer name="quick_settings_user_time_settings_tile_span">1</integer>
@@ -117,7 +117,7 @@
 
     <!-- Tiles native to System UI. Order should match "quick_settings_tiles_default" -->
     <string name="quick_settings_tiles_stock" translatable="false">
-        wifi,cell,battery,dnd,flashlight,rotation,bt,airplane,location,hotspot,inversion,saver,dark,work,cast,night
+        wifi,cell,battery,dnd,flashlight,rotation,bt,airplane,nfc,location,hotspot,inversion,saver,dark,work,cast,night,adb_network,ambient_display,caffeine,heads_up,livedisplay,reading_mode,sync,usb_tether,volume_panel,profiles
     </string>
 
     <!-- The tiles to display in QuickSettings -->
@@ -196,9 +196,6 @@
     <!-- Doze: duration to avoid false pickup gestures triggered by notification vibrations -->
     <integer name="doze_pickup_vibration_threshold">2000</integer>
 
-    <!-- Doze: can we assume the pickup sensor includes a proximity check? -->
-    <bool name="doze_pickup_performs_proximity_check">false</bool>
-
     <!-- Type of a sensor that provides a low-power estimate of the desired display
          brightness, suitable to listen to while the device is asleep (e.g. during
          always-on display) -->
@@ -272,7 +269,7 @@
     <bool name="config_enableFullscreenUserSwitcher">false</bool>
 
     <!-- SystemUIFactory component -->
-    <string name="config_systemUIFactoryComponent" translatable="false">com.android.systemui.SystemUIFactory</string>
+    <string name="config_systemUIFactoryComponent" translatable="false">com.google.android.systemui.SystemUIGoogleFactory</string>
 
     <!-- SystemUI Services: The classes of the stuff to start. -->
     <string-array name="config_systemUIServiceComponents" translatable="false">
@@ -296,6 +293,7 @@
         <item>com.android.systemui.globalactions.GlobalActionsComponent</item>
         <item>com.android.systemui.ScreenDecorations</item>
         <item>com.android.systemui.biometrics.BiometricDialogImpl</item>
+        <item>com.android.systemui.biometrics.FODCircleViewImpl</item>
         <item>com.android.systemui.SliceBroadcastRelayHandler</item>
         <item>com.android.systemui.SizeCompatModeActivityController</item>
         <item>com.android.systemui.statusbar.notification.InstantAppNotifier</item>
@@ -418,6 +416,9 @@
         <item>30</item>
         <item>60</item>
         <item>120</item>
+		<item>300</item>
+		<item>720</item>
+		<item>1440</item>
     </integer-array>
 
     <!-- Smart replies in notifications: Whether smart replies in notifications are enabled. -->
@@ -485,4 +486,9 @@
     <!-- Preferred refresh rate at keyguard, if supported by the display -->
     <integer name="config_keyguardRefreshRate">-1</integer>
 
+    <!-- The CPU temperature sensor path, defaults to empty -->
+    <string name="config_cpuTempSensor" translatable="false"></string>
+
+    <!-- The CPU temperature divider, if needed -->
+    <integer name="config_cpuTempDivider" translatable="false">1</integer>
 </resources>

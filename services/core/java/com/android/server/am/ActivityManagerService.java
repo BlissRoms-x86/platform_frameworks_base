@@ -327,6 +327,7 @@ import com.android.internal.util.DumpUtils;
 import com.android.internal.util.FastPrintWriter;
 import com.android.internal.util.MemInfoReader;
 import com.android.internal.util.Preconditions;
+import com.android.internal.util.bliss.GamingModeController;
 import com.android.internal.util.function.QuadFunction;
 import com.android.internal.util.function.TriFunction;
 import com.android.server.AlarmManagerInternal;
@@ -363,6 +364,7 @@ import com.android.server.wm.ActivityTaskManagerInternal;
 import com.android.server.wm.ActivityTaskManagerService;
 import com.android.server.wm.WindowManagerService;
 import com.android.server.wm.WindowProcessController;
+import com.android.server.ActivityTriggerService;
 
 import dalvik.system.VMRuntime;
 
@@ -743,6 +745,10 @@ public class ActivityManagerService extends IActivityManager.Stub
             synchronized (this) {
                 mPidMap.put(app.pid, app);
             }
+            ActivityTriggerService atService = LocalServices.getService(ActivityTriggerService.class);
+            if(atService != null) {
+                atService.updateRecord(app.hostingRecord, app.info, app.pid, ActivityTriggerService.PROC_ADDED_NOTIFICATION);
+            }
             mAtmInternal.onProcessMapped(app.pid, app.getWindowProcessController());
         }
 
@@ -761,6 +767,10 @@ public class ActivityManagerService extends IActivityManager.Stub
                 }
             }
             if (removed) {
+                ActivityTriggerService atService = LocalServices.getService(ActivityTriggerService.class);
+                if(atService != null) {
+                    atService.updateRecord(app.hostingRecord, app.info, app.pid, ActivityTriggerService.PROC_REMOVED_NOTIFICATION);
+                }
                 mAtmInternal.onProcessUnMapped(app.pid);
             }
         }
@@ -1065,6 +1075,7 @@ public class ActivityManagerService extends IActivityManager.Stub
 
     CoreSettingsObserver mCoreSettingsObserver;
 
+/*
     DevelopmentSettingsObserver mDevelopmentSettingsObserver;
 
     private final class DevelopmentSettingsObserver extends ContentObserver {
@@ -1097,7 +1108,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                             : PackageManager.COMPONENT_ENABLED_STATE_DEFAULT,
                     0);
         }
-    }
+    }*/
 
     /**
      * Thread-local storage used to carry caller permissions over through
@@ -1542,6 +1553,10 @@ public class ActivityManagerService extends IActivityManager.Stub
 
     long mLastMemUsageReportTime = 0;
 
+    // Process in same process Group keep in same cgroup
+    boolean mEnableProcessGroupCgroupFollow =
+            SystemProperties.getBoolean("ro.vendor.qti.cgroup_follow.enable",false);
+
     /**
      * Flag whether the current user is a "monkey", i.e. whether
      * the UI is driven by a UI automation tool.
@@ -1572,6 +1587,12 @@ public class ActivityManagerService extends IActivityManager.Stub
     private ParcelFileDescriptor[] mLifeMonitorFds;
 
     static final HostingRecord sNullHostingRecord = new HostingRecord(null);
+
+    final SwipeToScreenshotObserver mSwipeToScreenshotObserver;
+    private boolean mIsSwipeToScrenshotEnabled;
+
+    private GamingModeController mGamingModeController;
+
     /**
      * Used to notify activity lifecycle events.
      */
@@ -1607,10 +1628,16 @@ public class ActivityManagerService extends IActivityManager.Stub
                     }
                     AppErrorResult res = (AppErrorResult) data.get("result");
                     if (mAtmInternal.showStrictModeViolationDialog()) {
-                        Dialog d = new StrictModeViolationDialog(mUiContext,
-                                ActivityManagerService.this, res, proc);
-                        d.show();
-                        proc.crashDialog = d;
+                        if (Settings.System.getInt(mContext.getContentResolver(),
+                                Settings.System.ENABLE_FC_NOTIFICATIONS, 1) != 0) {;
+                             Dialog d = new StrictModeViolationDialog(mUiContext,
+                                    ActivityManagerService.this, res, proc);
+                            d.show();
+                            proc.crashDialog = d;
+                        } else {
+                            Slog.w(TAG, "Skipping crash dialog of " + proc + ": disabled");
+                            res.set(0);
+                        }
                     } else {
                         // The device is asleep, so just pretend that the user
                         // saw a crash dialog and hit "force quit".
@@ -2428,6 +2455,7 @@ public class ActivityManagerService extends IActivityManager.Stub
         mProcStartHandler = null;
         mHiddenApiBlacklist = null;
         mFactoryTest = FACTORY_TEST_OFF;
+        mSwipeToScreenshotObserver = null;
     }
 
     // Note: This method is invoked on the main thread but may need to attach various
@@ -2581,6 +2609,7 @@ public class ActivityManagerService extends IActivityManager.Stub
             Slog.w(TAG, "Setting background thread cpuset failed");
         }
 
+        mSwipeToScreenshotObserver = new SwipeToScreenshotObserver(mHandler, mContext);
     }
 
     public void setSystemServiceManager(SystemServiceManager mgr) {
@@ -7558,7 +7587,7 @@ public class ActivityManagerService extends IActivityManager.Stub
         mConstants.start(mContext.getContentResolver());
         mCoreSettingsObserver = new CoreSettingsObserver(this);
         mActivityTaskManager.installSystemProviders();
-        mDevelopmentSettingsObserver = new DevelopmentSettingsObserver();
+        //mDevelopmentSettingsObserver = new DevelopmentSettingsObserver();
         SettingsToPropertiesMapper.start(mContext.getContentResolver());
         mOomAdjuster.initSettings();
 
@@ -7567,6 +7596,9 @@ public class ActivityManagerService extends IActivityManager.Stub
         RescueParty.onSettingsProviderPublished(mContext);
 
         //mUsageStatsService.monitorPackages();
+
+        // Gaming mode provider
+        mGamingModeController = new GamingModeController(mContext);
     }
 
     void startPersistentApps(int matchFlags) {
@@ -8113,8 +8145,8 @@ public class ActivityManagerService extends IActivityManager.Stub
 
     @Override
     public void requestSystemServerHeapDump() {
-        if (!Build.IS_DEBUGGABLE) {
-            Slog.wtf(TAG, "requestSystemServerHeapDump called on a user build");
+        if (!Build.IS_ENG) {
+            Slog.wtf(TAG, "requestSystemServerHeapDump called on a non eng build.");
             return;
         }
         if (Binder.getCallingUid() != SYSTEM_UID) {
@@ -8929,6 +8961,7 @@ public class ActivityManagerService extends IActivityManager.Stub
             mWaitForNetworkTimeoutMs = waitForNetworkTimeoutMs;
             mPssDeferralTime = pssDeferralMs;
         }
+        mSwipeToScreenshotObserver.registerObserver();
     }
 
     public void systemReady(final Runnable goingCallback, TimingsTraceLog traceLog) {
@@ -15033,6 +15066,9 @@ public class ActivityManagerService extends IActivityManager.Stub
                                         mServices.forceStopPackageLocked(ssp, userId);
                                         mAtmInternal.onPackageUninstalled(ssp);
                                         mBatteryStatsService.notePackageUninstalled(ssp);
+                                        if (mGamingModeController != null) {
+                                             mGamingModeController.notePackageUninstalled(ssp);
+                                        }
                                     }
                                 } else {
                                     if (killProcess) {
@@ -16705,6 +16741,16 @@ public class ActivityManagerService extends IActivityManager.Stub
                 Binder.restoreCallingIdentity(identity);
             }
 
+            if (mCurResumedPackage != null && mGamingModeController != null && mGamingModeController.isGamingModeEnabled()) {
+                if (mGamingModeController.topAppChanged(mCurResumedPackage) && !mGamingModeController.isGamingModeActivated()) {
+                    Settings.System.putInt(mContext.getContentResolver(),
+                        Settings.System.GAMING_MODE_ACTIVE, 1);
+                } else if (!mGamingModeController.topAppChanged(mCurResumedPackage) && 
+                        mGamingModeController.isGamingModeActivated()) {
+                    Settings.System.putInt(mContext.getContentResolver(),
+                        Settings.System.GAMING_MODE_ACTIVE, 0);
+                }
+           }
         }
         return r;
     }
@@ -17465,7 +17511,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                     throw new SecurityException("No process found for calling pid "
                             + Binder.getCallingPid());
                 }
-                if (!Build.IS_DEBUGGABLE
+                if (!Build.IS_ENG
                         && (proc.info.flags&ApplicationInfo.FLAG_DEBUGGABLE) == 0) {
                     throw new SecurityException("Not running a debuggable build");
                 }
@@ -19013,4 +19059,38 @@ public class ActivityManagerService extends IActivityManager.Stub
             }
         }
     }
+
+    private class SwipeToScreenshotObserver extends ContentObserver {
+
+        private final Context mContext;
+
+        public SwipeToScreenshotObserver(Handler handler, Context context) {
+            super(handler);
+            mContext = context;
+        }
+
+        public void registerObserver() {
+            mContext.getContentResolver().registerContentObserver(
+                    Settings.System.getUriFor(Settings.System.THREE_FINGER_GESTURE),
+                    false, this, UserHandle.USER_ALL);
+            update();
+        }
+
+        private void update() {
+            mIsSwipeToScrenshotEnabled = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.THREE_FINGER_GESTURE, 0, UserHandle.USER_CURRENT) == 1;
+        }
+
+        public void onChange(boolean selfChange) {
+            update();
+        }
+    }
+
+    @Override
+    public boolean isSwipeToScreenshotGestureActive() {
+        synchronized (this) {
+            return mIsSwipeToScrenshotEnabled && SystemProperties.getBoolean("sys.android.screenshot", false);
+        }
+    }
+
 }

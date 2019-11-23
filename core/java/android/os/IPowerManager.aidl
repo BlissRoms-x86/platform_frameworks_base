@@ -45,6 +45,7 @@ interface IPowerManager
     @UnsupportedAppUsage
     void userActivity(long time, int event, int flags);
     void wakeUp(long time, int reason, String details, String opPackageName);
+    void wakeUpWithProximityCheck(long time, int reason, String details, String opPackageName);
     @UnsupportedAppUsage
     void goToSleep(long time, int reason, int flags);
     void nap(long time);
@@ -62,6 +63,7 @@ interface IPowerManager
 
     @UnsupportedAppUsage
     void reboot(boolean confirm, String reason, boolean wait);
+    void rebootCustom(boolean confirm, String reason, boolean wait);
     void rebootSafeMode(boolean confirm, boolean wait);
     void shutdown(boolean confirm, String reason, boolean wait);
     void crash(String message);
@@ -82,4 +84,10 @@ interface IPowerManager
 
     // Forces the system to suspend even if there are held wakelocks.
     boolean forceSuspend();
+
+    // update the uids being synchronized by network socket request manager
+    void updateBlockedUids(int uid, boolean isBlocked);
+
+    // blocked wakelock support
+    String getSeenWakeLocks();
 }
