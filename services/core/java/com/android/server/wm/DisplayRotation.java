@@ -236,8 +236,8 @@ public class DisplayRotation {
         // It's also not likely to rotate a TV screen.
         final boolean isTv = mContext.getPackageManager().hasSystemFeature(
                 PackageManager.FEATURE_LEANBACK);
-        final boolean forceDesktopMode =
-                mService.mForceDesktopModeOnExternalDisplays && !isDefaultDisplay;
+        final boolean forceDesktopMode = true;
+                // mService.mForceDesktopModeOnExternalDisplays && !isDefaultDisplay;
         mDefaultFixedToUserRotation =
                 (isCar || isTv || mService.mIsPc || forceDesktopMode)
                 // For debug purposes the next line turns this feature off with:
