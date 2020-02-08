@@ -83,6 +83,8 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
 
     private View mCaption;
     private View mContent;
+    private View mPip;
+    private View mMinimize;
     private View mMaximize;
     private View mClose;
 
@@ -99,6 +101,8 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     private GestureDetector mGestureDetector;
     private final Rect mCloseRect = new Rect();
     private final Rect mMaximizeRect = new Rect();
+    private final Rect mMinimizeRect = new Rect();
+    private final Rect mPipRect = new Rect();
     private View mClickTarget;
     private int mRootScrollY;
 
@@ -138,6 +142,8 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         // By changing the outline provider to BOUNDS, the window can remove its
         // background without removing the shadow.
         mOwner.getDecorView().setOutlineProvider(ViewOutlineProvider.BOUNDS);
+        mPip = findViewById(R.id.pip_window);
+        mMinimize = findViewById(R.id.minimize_window);
         mMaximize = findViewById(R.id.maximize_window);
         mClose = findViewById(R.id.close_window);
     }
@@ -150,6 +156,12 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
             final int x = (int) ev.getX();
             final int y = (int) ev.getY();
             // Only offset y for containment tests because the actual views are already translated.
+            if (mPipRect.contains(x, y - mRootScrollY)) {
+                mClickTarget = mPip;
+            }
+            if (mMinimizeRect.contains(x, y - mRootScrollY)) {
+                mClickTarget = mMinimize;
+            }
             if (mMaximizeRect.contains(x, y - mRootScrollY)) {
                 mClickTarget = mMaximize;
             }
@@ -289,10 +301,14 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         if (mCaption.getVisibility() != View.GONE) {
             mCaption.layout(0, 0, mCaption.getMeasuredWidth(), mCaption.getMeasuredHeight());
             captionHeight = mCaption.getBottom() - mCaption.getTop();
+            mPip.getHitRect(mPipRect);
+            mMinimize.getHitRect(mMinimizeRect);
             mMaximize.getHitRect(mMaximizeRect);
             mClose.getHitRect(mCloseRect);
         } else {
             captionHeight = 0;
+            mPipRect.setEmpty();
+            mMinimizeRect.setEmpty();
             mMaximizeRect.setEmpty();
             mCloseRect.setEmpty();
         }
@@ -309,7 +325,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         ((DecorView) mOwner.getDecorView()).notifyCaptionHeightChanged();
 
         // This assumes that the caption bar is at the top.
-        mOwner.notifyRestrictedCaptionAreaCallback(mMaximize.getLeft(), mMaximize.getTop(),
+        mOwner.notifyRestrictedCaptionAreaCallback(mPip.getLeft(), mMaximize.getTop(),
                 mClose.getRight(), mClose.getBottom());
     }
 
@@ -333,6 +349,20 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
                 Log.e(TAG, "Cannot change task workspace.");
             }
         }
+    }
+
+    private void minimizeWindow() {
+        Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+        if (callback != null) {
+            callback.moveTaskToBack(true);
+		}
+    }
+
+    private void pipWindow() {
+        Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+        if (callback != null) {
+			callback.enterPictureInPictureModeIfPossible(); /* Send the task to PIP mode if the task supports it. */
+		}
     }
 
     public boolean isCaptionShowing() {
@@ -387,7 +417,11 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        if (mClickTarget == mMaximize) {
+        if (mClickTarget == mMinimize) {
+            minimizeWindow();
+        } else if (mClickTarget == mPip) {
+            pipWindow();
+        } else if (mClickTarget == mMaximize) {
             toggleFreeformWindowingMode();
         } else if (mClickTarget == mClose) {
             mOwner.dispatchOnWindowDismissed(
