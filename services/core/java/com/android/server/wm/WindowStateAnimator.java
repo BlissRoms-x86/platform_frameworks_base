@@ -801,6 +801,11 @@ class WindowStateAnimator {
         if (w.inPinnedWindowingMode()) {
             return false;
         }
+        // region @cobra
+        if (w.inFreeformWindowingMode()) {
+            return false;
+        }
+        // endregion
 
         // During forced seamless rotation, the surface bounds get updated with the crop in the
         // new rotation, which is not compatible with showing the surface in the old rotation.
