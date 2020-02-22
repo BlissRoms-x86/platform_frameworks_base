@@ -1964,12 +1964,6 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             case NOTIFICATIONS:
                 BlissUtils.toggleNotifications();
                 break;
-            case QS_PANEL:
-                BlissUtils.toggleQsPanel();
-                break;
-            case RINGER_MODES:
-                BlissUtils.toggleRingerModes(mContext);
-                break;
             default:
                 break;
         }

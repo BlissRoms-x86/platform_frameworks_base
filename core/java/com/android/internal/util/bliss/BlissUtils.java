@@ -17,7 +17,6 @@
 package com.android.internal.util.bliss;
 
 import android.app.ActivityManager;
-import android.app.NotificationManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -53,9 +52,6 @@ import android.view.WindowManagerGlobal;
 
 import com.android.internal.R;
 import com.android.internal.statusbar.IStatusBarService;
-
-import static android.content.Context.NOTIFICATION_SERVICE;
-import static android.content.Context.VIBRATOR_SERVICE;
 
 import java.util.List;
 
@@ -462,10 +458,6 @@ public class BlissUtils {
         FireActions.toggleNotifications();
     }
 
-    public static void toggleQsPanel() {
-        FireActions.toggleQsPanel();
-    }
-
     private static final class FireActions {
         private static IStatusBarService mStatusBarService = null;
         private static IStatusBarService getStatusBarService() {
@@ -512,18 +504,6 @@ public class BlissUtils {
                 }
             }
         }
-
-        // Toggle qs panel
-        public static void toggleQsPanel() {
-            IStatusBarService service = getStatusBarService();
-            if (service != null) {
-                try {
-                    service.expandSettingsPanel(null);
-                } catch (RemoteException e) {
-                    // do nothing.
-                }
-            }
-        }
     }
 
     // Volume panel
@@ -537,29 +517,5 @@ public class BlissUtils {
             isPackageInstalled(context, ONEPLUS_DOZE_PACKAGE_NAME) ||
             isPackageInstalled(context, LINEAGE_DOZE_PACKAGE_NAME) ||
             isPackageInstalled(context, CUSTOM_DOZE_PACKAGE_NAME);
-    }
-
-    // Cycle ringer modes
-    public static void toggleRingerModes (Context context) {
-        AudioManager am = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        Vibrator mVibrator = (Vibrator) context.getSystemService(VIBRATOR_SERVICE);
-
-        switch (am.getRingerMode()) {
-            case AudioManager.RINGER_MODE_NORMAL:
-                if (mVibrator.hasVibrator()) {
-                    am.setRingerMode(AudioManager.RINGER_MODE_VIBRATE);
-                }
-                break;
-            case AudioManager.RINGER_MODE_VIBRATE:
-                am.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
-                NotificationManager notificationManager =
-                        (NotificationManager) context.getSystemService(NOTIFICATION_SERVICE);
-                notificationManager.setInterruptionFilter(
-                        NotificationManager.INTERRUPTION_FILTER_PRIORITY);
-                break;
-            case AudioManager.RINGER_MODE_SILENT:
-                am.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
-                break;
-        }
     }
 }
