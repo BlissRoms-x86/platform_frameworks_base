@@ -145,6 +145,8 @@
       <item>@drawable/decor_back_button_dark</item>
       <item>@drawable/decor_back_button_light</item>
       <!-- endregion -->
+      <item>@drawable/decor_pip_button_dark</item>
+      <item>@drawable/decor_pip_button_light</item>
    </array>
 
     <!-- Used in LocalePicker -->

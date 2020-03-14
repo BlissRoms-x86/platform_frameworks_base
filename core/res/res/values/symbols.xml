@@ -2231,6 +2231,7 @@
 
   <!-- From Phone -->
   <java-symbol type="bool" name="config_built_in_sip_phone" />
+  <java-symbol type="id" name="pip_window" />
   <java-symbol type="id" name="maximize_window" />
   <java-symbol type="id" name="close_window" />
   <java-symbol type="layout" name="decor_caption" />
@@ -2247,6 +2248,8 @@
   <java-symbol type="drawable" name="decor_back_button_dark" />
   <java-symbol type="drawable" name="decor_back_button_light" />
   <!-- endregion -->
+  <java-symbol type="drawable" name="decor_pip_button_dark" />
+  <java-symbol type="drawable" name="decor_pip_button_light" />
   <java-symbol type="color" name="decor_button_dark_color" />
   <java-symbol type="color" name="decor_button_light_color" />
   <java-symbol type="array" name="unloggable_phone_numbers" />

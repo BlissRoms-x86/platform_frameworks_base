@@ -88,6 +88,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
 
     private View mCaption;
     private View mContent;
+    private View mPip;
     private View mMaximize;
     private View mClose;
 
@@ -104,6 +105,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     private GestureDetector mGestureDetector;
     private final Rect mCloseRect = new Rect();
     private final Rect mMaximizeRect = new Rect();
+    private final Rect mPipRect = new Rect();
     private View mClickTarget;
     // region @boringdroid
     private View mBack;
@@ -155,6 +157,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         mBack = findViewById(R.id.back_window);
         mMinimize = findViewById(R.id.minimize_window);
         // endregion
+        mPip = findViewById(R.id.pip_window);
         mMaximize = findViewById(R.id.maximize_window);
         mClose = findViewById(R.id.close_window);
     }
@@ -174,6 +177,10 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
                 mClickTarget = mMinimize;
             }
             // endregion
+            // Only offset y for containment tests because the actual views are already translated.
+            if (mPipRect.contains(x, y)) {
+                mClickTarget = mPip;
+            }
             if (mMaximizeRect.contains(x, y)) {
                 mClickTarget = mMaximize;
             }
@@ -322,10 +329,12 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
             mBack.getHitRect(mBackRect);
             mMinimize.getHitRect(mMinimizeRect);
             // endregion
+            mPip.getHitRect(mPipRect);
             mMaximize.getHitRect(mMaximizeRect);
             mClose.getHitRect(mCloseRect);
         } else {
             captionHeight = 0;
+            mPipRect.setEmpty();
             mMaximizeRect.setEmpty();
             mCloseRect.setEmpty();
         }
@@ -389,6 +398,13 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
                 Log.e(TAG, "Cannot change task workspace.");
             }
         }
+    }
+
+    private void pipWindow() {
+        Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+        if (callback != null) {
+			callback.enterPictureInPictureModeIfPossible(); /* Send the task to PIP mode if the task supports it. */
+		}
     }
 
     public boolean isCaptionShowing() {
@@ -459,9 +475,10 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
                 activity.moveTaskToBack(true);
             }
             return true;
-        }
         // endregion
-        if (mClickTarget == mMaximize) {
+        } else if (mClickTarget == mPip) {
+            pipWindow();
+        } else if (mClickTarget == mMaximize) {
             maximizeWindow();
         } else if (mClickTarget == mClose) {
             mOwner.dispatchOnWindowDismissed(

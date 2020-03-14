@@ -2054,6 +2054,8 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
                 R.drawable.decor_minimize_button_light
         );
         // endregion
+		view.findViewById(R.id.pip_window).setBackgroundResource(
+                R.drawable.decor_pip_button_light);
         view.findViewById(R.id.maximize_window).setBackgroundResource(
                 R.drawable.decor_maximize_button_light);
         view.findViewById(R.id.close_window).setBackgroundResource(
@@ -2069,6 +2071,8 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
                 R.drawable.decor_minimize_button_dark
         );
         // endregion
+		view.findViewById(R.id.pip_window).setBackgroundResource(
+                R.drawable.decor_pip_button_dark);
         view.findViewById(R.id.maximize_window).setBackgroundResource(
                 R.drawable.decor_maximize_button_dark);
         view.findViewById(R.id.close_window).setBackgroundResource(
