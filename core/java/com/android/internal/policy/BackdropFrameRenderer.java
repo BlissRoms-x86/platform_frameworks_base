@@ -334,10 +334,15 @@ public class BackdropFrameRenderer extends Thread implements Choreographer.Frame
         // region @cobra
         // Android wants to content jumps some offset from left and top when resizing
         // window, but it's not good for user. So we decide to disable it.
+        // In FrameBuilder.cpp, the system will calculate the distance between content
+        // drawing bound and back drop frame bounds, and translate content drawing bounds
+        // to back drop left and top position to draw it, what will cause another content
+        // jumps. So we should keep the left and top position with content drawing bounds
+        // to avoid another part content jumps.
         // final int left = mLastXOffset + newBounds.left;
         // final int top = mLastYOffset + newBounds.top;
-        final int left = newBounds.left;
-        final int top = newBounds.top;
+        final int left = mLastXOffset;
+        final int top = mLastYOffset;
         // endregion
         final int width = newBounds.width();
         final int height = newBounds.height();
