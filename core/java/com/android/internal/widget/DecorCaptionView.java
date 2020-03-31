@@ -18,13 +18,13 @@ package com.android.internal.widget;
 
 import android.app.Activity;
 import android.app.ActivityManager;
+import android.app.WindowConfiguration;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.os.RemoteException;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.Display;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
@@ -34,11 +34,10 @@ import android.view.ViewOutlineProvider;
 import android.view.Window;
 
 import com.android.internal.R;
+import com.android.internal.policy.DecorView;
 import com.android.internal.policy.PhoneWindow;
 
 import java.util.ArrayList;
-
-import static android.app.ActivityManager.RESIZE_MODE_PRESERVE_WINDOW;
 
 /**
  * This class represents the special screen elements to control a window on freeform
@@ -108,10 +107,6 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     private final Rect mCloseRect = new Rect();
     private final Rect mMaximizeRect = new Rect();
     private View mClickTarget;
-    // region @cobra
-    private View mMinimize;
-    private final Rect mMinimizeRect = new Rect();
-    // endregion
 
     public DecorCaptionView(Context context) {
         super(context);
@@ -358,7 +353,12 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
      **/
     private void updateCaptionVisibility() {
         // Don't show the caption if the window has e.g. entered full screen.
-        boolean invisible = isFillingScreen() || !mShow;
+        // region @cobra
+        // boolean invisible = isFillingScreen() || !mShow;
+        // We disable the checking for system ui visibility now, before supporting caption view
+        // shows over the window with automatic disappear feature.
+        boolean invisible = false;
+        // endregion
         mCaption.setVisibility(invisible ? GONE : VISIBLE);
         mCaption.setOnTouchListener(this);
     }
@@ -371,6 +371,9 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         if (callback != null) {
             try {
                 callback.exitFreeformMode();
+                // region @cobra
+                ((DecorView) mOwner.getDecorView()).updateDecorCaptionShade();
+                // endregion
             } catch (RemoteException ex) {
                 Log.e(TAG, "Cannot change task workspace.");
             }
@@ -438,20 +441,24 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
             }
             return true;
         }
-        // endregion
         if (mClickTarget == mMaximize) {
-            // region @cobra
-            // maximizeWindow();
             Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
             if (callback instanceof Activity) {
                 Activity activity = (Activity) callback;
-                try {
-                    activity.maximizeTask();
-                } catch (RemoteException remoteException) {
-                    Log.e(TAG, "Failed to maximize stack", remoteException);
+                if (!activity.isInMultiWindowMode()) {
+                    try {
+                        activity.enterFreeformMode();
+                        ((DecorView) mOwner.getDecorView()).updateDecorCaptionShade();
+                    } catch (RemoteException exception) {
+                        Log.e(TAG, "Cannot change task workspace.");
+                    }
+                    return true;
                 }
             }
-            // endregion
+        }
+        // endregion
+        if (mClickTarget == mMaximize) {
+            maximizeWindow();
         } else if (mClickTarget == mClose) {
             mOwner.dispatchOnWindowDismissed(
                     true /*finishTask*/, false /*suppressWindowTransition*/);
@@ -473,4 +480,22 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
         return false;
     }
+    // region @cobra
+    private View mMinimize;
+    private final Rect mMinimizeRect = new Rect();
+
+
+    /** @hide */
+    public boolean inFullScreenMode() {
+        if (mOwner == null) {
+            return true;
+        }
+        Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+        if (callback instanceof Activity) {
+            Activity activity = (Activity) callback;
+            return !activity.isInMultiWindowMode();
+        }
+        return true;
+    }
+    // endregion
 }

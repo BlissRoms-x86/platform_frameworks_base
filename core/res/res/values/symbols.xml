@@ -2243,6 +2243,8 @@
   <java-symbol type="id" name="minimize_window" />
   <java-symbol type="drawable" name="decor_minimize_button_dark" />
   <java-symbol type="drawable" name="decor_minimize_button_light" />
+  <java-symbol type="drawable" name="decor_restore_button_dark" />
+  <java-symbol type="drawable" name="decor_restore_button_light" />
   <!-- endregion -->
   <java-symbol type="color" name="decor_button_dark_color" />
   <java-symbol type="color" name="decor_button_light_color" />
