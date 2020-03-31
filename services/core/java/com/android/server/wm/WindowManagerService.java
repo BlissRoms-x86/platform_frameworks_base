@@ -7822,6 +7822,11 @@ public class WindowManagerService extends IWindowManager.Stub
                     + ", before file is ready");
             return WindowConfiguration.WINDOWING_MODE_UNDEFINED;
         }
+        // If the package is in the multi window black list, it will run in default
+        // windowing mode.
+        if (isInMultiWindowBlackList(packageName)) {
+            return WindowConfiguration.WINDOWING_MODE_UNDEFINED;
+        }
         SharedPreferences sharedPreferences =
                 mContext.getSharedPreferences(getPackageWindowingModeFile(), Context.MODE_PRIVATE);
         // We hope the default windowing mode is freeform.
@@ -7866,6 +7871,16 @@ public class WindowManagerService extends IWindowManager.Stub
                 sharedPreferences.getInt(packageName + "-right", 0),
                 sharedPreferences.getInt(packageName + "-bottom", 0)
         );
+    }
+
+    private boolean isInMultiWindowBlackList(String packageName) {
+        if (packageName == null) {
+            return false;
+        }
+        if (packageName.contains("com.android.systemui")) {
+            return true;
+        }
+        return false;
     }
     // endregion
 }

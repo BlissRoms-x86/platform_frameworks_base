@@ -1289,7 +1289,9 @@ class ActivityStarter {
         }
         if (mOptions.getLaunchWindowingMode() == WINDOWING_MODE_UNDEFINED) {
             mOptions.setLaunchWindowingMode(
-                    WindowManagerService.getCobraInstance().getPackageWindowingMode(mStartActivity.info.packageName)
+                    WindowManagerService
+                            .getCobraInstance()
+                            .getPackageWindowingMode(mStartActivity.info.packageName)
             );
         }
         // endregion
