@@ -67,7 +67,10 @@ public class TaskStack {
 
     public TaskStack() {
         // Ensure that we only show stack tasks
-        mStackTaskList.setFilter((taskIdMap, t, index) -> t.isStackTask);
+        // region @cobra
+        // We want the recents to show freeform stack too, so we remove the filter.
+        // mStackTaskList.setFilter((taskIdMap, t, index) -> t.isStackTask);
+        // endregion
     }
 
     /** Sets the callbacks for this task stack. */
