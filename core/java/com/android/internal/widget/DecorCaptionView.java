@@ -441,21 +441,6 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
             }
             return true;
         }
-        if (mClickTarget == mMaximize) {
-            Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
-            if (callback instanceof Activity) {
-                Activity activity = (Activity) callback;
-                if (!activity.isInMultiWindowMode()) {
-                    try {
-                        activity.enterFreeformMode();
-                        ((DecorView) mOwner.getDecorView()).updateDecorCaptionShade();
-                    } catch (RemoteException exception) {
-                        Log.e(TAG, "Cannot change task workspace.");
-                    }
-                    return true;
-                }
-            }
-        }
         // endregion
         if (mClickTarget == mMaximize) {
             maximizeWindow();
