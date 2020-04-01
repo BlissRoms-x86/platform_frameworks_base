@@ -188,10 +188,10 @@ public class NavigationModeController implements Dumpable {
                 Settings.System.BACK_GESTURE_HAPTIC),
                 false, mSettingsObserver, UserHandle.USER_ALL);
         mContext.getContentResolver().registerContentObserver(Settings.System.getUriFor(
-                Settings.System.NAVIGATION_HANDLE_WIDTH),
+                Settings.System.BACK_GESTURE_BLOCK_IME),
                 false, mSettingsObserver, UserHandle.USER_ALL);
         mContext.getContentResolver().registerContentObserver(Settings.System.getUriFor(
-                Settings.System.BACK_GESTURE_BLOCK_IME),
+                Settings.System.NAVIGATION_HANDLE_WIDTH),
                 false, mSettingsObserver, UserHandle.USER_ALL);
         IntentFilter preferredActivityFilter = new IntentFilter(ACTION_PREFERRED_ACTIVITY_CHANGED);
         mContext.registerReceiverAsUser(mReceiver, UserHandle.ALL, preferredActivityFilter, null,

@@ -63,6 +63,7 @@ import static android.view.WindowManager.LayoutParams.TYPE_INPUT_METHOD_DIALOG;
 import static android.view.WindowManager.LayoutParams.TYPE_NAVIGATION_BAR;
 import static android.view.WindowManager.LayoutParams.TYPE_PRIVATE_PRESENTATION;
 import static android.view.WindowManager.LayoutParams.TYPE_QS_DIALOG;
+import static android.view.WindowManager.LayoutParams.TYPE_SLIM_RECENTS;
 import static android.view.WindowManager.LayoutParams.TYPE_STATUS_BAR;
 import static android.view.WindowManager.LayoutParams.TYPE_TOAST;
 import static android.view.WindowManager.LayoutParams.TYPE_VOICE_INTERACTION;
@@ -799,9 +800,9 @@ public class WindowManagerService extends IWindowManager.Stub
     PowerManager mPowerManager;
     PowerManagerInternal mPowerManagerInternal;
 
-    private float mWindowAnimationScaleSetting = 1.0f;
-    private float mTransitionAnimationScaleSetting = 1.0f;
-    private float mAnimatorDurationScaleSetting = 1.0f;
+    private float mWindowAnimationScaleSetting = 0.50f;
+    private float mTransitionAnimationScaleSetting = 0.50f;
+    private float mAnimatorDurationScaleSetting = 0.50f;
     private boolean mAnimationsDisabled = false;
     boolean mPointerLocationEnabled = false;
     private boolean mAnimationsForceDisabled = false;
@@ -1245,6 +1246,7 @@ public class WindowManagerService extends IWindowManager.Stub
             case TYPE_STATUS_BAR:
             case TYPE_NAVIGATION_BAR:
             case TYPE_INPUT_METHOD_DIALOG:
+            case TYPE_SLIM_RECENTS:
                 return true;
         }
         return false;
@@ -1266,6 +1268,7 @@ public class WindowManagerService extends IWindowManager.Stub
         long origId;
         final int callingUid = Binder.getCallingUid();
         final int type = attrs.type;
+        final boolean suspended = mPmInternal.isPackageSuspended(attrs.packageName, UserHandle.getUserId(session.mUid));
 
         synchronized (mGlobalLock) {
             if (!mDisplayReady) {
@@ -1520,9 +1523,6 @@ public class WindowManagerService extends IWindowManager.Stub
             mWindowMap.put(client.asBinder(), win);
 
             win.initAppOpsState();
-
-            final boolean suspended = mPmInternal.isPackageSuspended(win.getOwningPackage(),
-                    UserHandle.getUserId(win.getOwningUid()));
             win.setHiddenWhileSuspended(suspended);
 
             final boolean hideSystemAlertWindows = !mHidingNonSystemOverlayWindows.isEmpty();

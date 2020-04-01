@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2006 The Android Open Source Project
  *
@@ -4751,6 +4752,12 @@ public final class Settings {
         public static final String SCREENSHOT_SOUND = "screenshot_sound";
 
         /**
+         * media artwork wallpaper blur level on lockscreen
+         * @hide
+         */
+        public static final String LOCKSCREEN_MEDIA_BLUR = "lockscreen_media_blur";
+
+        /**
          * Change quick settings tiles animation style
          *
          * @hide
@@ -5001,14 +5008,6 @@ public final class Settings {
          * @hide
          */
         public static final String SCREENSHOT_DEFAULT_MODE = "screenshot_default_mode";
-
-        /**
-         * media artwork wallpaper blur level on lockscreen
-         * @hide
-         */
-        public static final String LOCKSCREEN_MEDIA_BLUR = "lockscreen_media_blur";
-
-        private static final Validator LOCKSCREEN_MEDIA_BLUR_VALIDATOR = ANY_INTEGER_VALIDATOR;
 
         /**
          * whether to enable or disable vibration on succesful fingerprint auth
@@ -6030,13 +6029,229 @@ public final class Settings {
         public static final String BACK_GESTURE_HAPTIC = "back_gesture_haptic";
 
         /**
-         * Width of the navigation handle.
+         * Whether to use slim recents
          * @hide
          */
-        public static final String NAVIGATION_HANDLE_WIDTH = "navigation_handle_width";
+        public static final String USE_SLIM_RECENTS = "use_slim_recents";
 
         /** @hide */
-        private static final Validator NAVIGATION_HANDLE_WIDTH_VALIDATOR = ANY_INTEGER_VALIDATOR;
+        private static final Validator USE_SLIM_RECENTS_VALIDATOR = BOOLEAN_VALIDATOR;
+
+        /**
+         * Amount of apps to show in recents
+         * @hide
+         */
+        public static final String RECENTS_MAX_APPS = "recents_max_apps";
+
+        /** @hide */
+        private static final Validator RECENTS_MAX_APPS_VALIDATOR = NON_NEGATIVE_INTEGER_VALIDATOR;
+
+        /**
+         * Whether recent panel gravity is left or right (default = Gravity.RIGHT).
+         * @hide
+         */
+        public static final String RECENT_PANEL_GRAVITY = "recent_panel_gravity";
+
+        /** @hide */
+        private static final Validator RECENT_PANEL_GRAVITY_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /**
+         * Size of recent panel view in percent (default = 100).
+         * @hide
+         */
+        public static final String RECENT_PANEL_SCALE_FACTOR = "recent_panel_scale_factor";
+
+        /** @hide */
+        private static final Validator RECENT_PANEL_SCALE_FACTOR_VALIDATOR = NON_NEGATIVE_INTEGER_VALIDATOR;
+
+        /**
+         * User favorite tasks for recent panel.
+         * @hide
+         */
+        public static final String RECENT_PANEL_FAVORITES = "recent_panel_favorites";
+
+        /** @hide */
+        private static final Validator RECENT_PANEL_FAVORITES_VALIDATOR = ANY_STRING_VALIDATOR;
+
+        /**
+         * Recent panel expanded mode (auto = 0, always = 1, never = 2).
+         * default = 0.
+         *
+         * @hide
+         */
+        public static final String RECENT_PANEL_EXPANDED_MODE = "recent_panel_expanded_mode";
+
+        /** @hide */
+        private static final Validator RECENT_PANEL_EXPANDED_MODE_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /**
+         * Recent panel background color
+         *
+         * @hide
+         */
+        public static final String RECENT_PANEL_BG_COLOR = "recent_panel_bg_color";
+
+        /** @hide */
+        private static final Validator RECENT_PANEL_BG_COLOR_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /**
+         * Recent card background color
+         *
+         * @hide
+         */
+        public static final String RECENT_CARD_BG_COLOR = "recent_card_bg_color";
+
+        /** @hide */
+        private static final Validator RECENT_CARD_BG_COLOR_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /**
+         * Whether to use slim recent app sidebar
+         * @hide
+         */
+        public static final String USE_RECENT_APP_SIDEBAR = "use_recent_app_sidebar";
+
+        /** @hide */
+        private static final Validator USE_RECENT_APP_SIDEBAR_VALIDATOR = BOOLEAN_VALIDATOR;
+
+        /**
+         * Recent app sidebar content
+         *
+         * @hide
+         */
+        public static final String RECENT_APP_SIDEBAR_CONTENT = "recent_app_sidebar_content";
+
+        /** @hide */
+        private static final Validator RECENT_APP_SIDEBAR_CONTENT_VALIDATOR = ANY_STRING_VALIDATOR;
+
+        /**
+         * Disable text labels for the slim recent app sidebar items
+         *
+         * @hide
+         */
+        public static final String RECENT_APP_SIDEBAR_DISABLE_LABELS =
+                "recent_app_sidebar_disable_labels";
+
+        /** @hide */
+        private static final Validator RECENT_APP_SIDEBAR_DISABLE_LABELS_VALIDATOR = BOOLEAN_VALIDATOR;
+
+        /**
+         * Slim recent app sidebar background color
+         *
+         * @hide
+         */
+        public static final String RECENT_APP_SIDEBAR_BG_COLOR = "recent_app_sidebar_bg_color";
+
+        /** @hide */
+        private static final Validator RECENT_APP_SIDEBAR_BG_COLOR_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /**
+         * Slim recent app sidebar text color
+         *
+         * @hide
+         */
+        public static final String RECENT_APP_SIDEBAR_TEXT_COLOR = "recent_app_sidebar_text_color";
+
+        /** @hide */
+        private static final Validator RECENT_APP_SIDEBAR_TEXT_COLOR_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /**
+         * Size of recent app sidebar in percent (default = 100).
+         *
+         * @hide
+         */
+        public static final String RECENT_APP_SIDEBAR_SCALE_FACTOR =
+                "recent_app_sidebar_scale_factor";
+
+        /** @hide */
+        private static final Validator RECENT_APP_SIDEBAR_SCALE_FACTOR_VALIDATOR = NON_NEGATIVE_INTEGER_VALIDATOR;
+
+        /**
+         * Whether the app sidebar should open simultaneously with recents
+         * Alternative: recents are allowed to open before the app sidebar finished inflating
+         *
+         * @hide
+         */
+        public static final String RECENT_APP_SIDEBAR_OPEN_SIMULTANEOUSLY =
+                "recent_app_sidebar_open_simultaneously";
+
+        /** @hide */
+        private static final Validator RECENT_APP_SIDEBAR_OPEN_SIMULTANEOUSLY_VALIDATOR = BOOLEAN_VALIDATOR;
+
+        /**
+         * show the membar in slim recents
+         *  @hide
+         */
+        public static final String SLIM_RECENTS_MEM_DISPLAY = "slim_recents_mem_display";
+
+        /** @hide */
+        private static final Validator SLIM_RECENTS_MEM_DISPLAY_VALIDATOR = BOOLEAN_VALIDATOR;
+
+        /**
+         * Use the membar in slim recents as clear all button on longclick
+         *  @hide
+         */
+        public static final String SLIM_RECENTS_MEM_DISPLAY_LONG_CLICK_CLEAR =
+                "slim_recents_mem_display_long_click_clear";
+
+        /** @hide */
+        private static final Validator SLIM_RECENTS_MEM_DISPLAY_LONG_CLICK_CLEAR_VALIDATOR = BOOLEAN_VALIDATOR;
+
+        /**
+         * Custom icon pack name to use for Slim Recents
+         * @hide
+         */
+        public static final String SLIM_RECENTS_ICON_PACK = "slim_recents_icon_pack";
+
+        /** @hide */
+        private static final Validator SLIM_RECENTS_ICON_PACK_VALIDATOR = ANY_STRING_VALIDATOR;
+
+       /**
+         * Slim Recents MemBar Color
+         * @hide
+         */
+        public static final String SLIM_MEM_BAR_COLOR= "slim_mem_bar_color";
+
+        /** @hide */
+        private static final Validator SLIM_MEM_BAR_COLOR_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+       /**
+         * Slim Recents MemBar Text Color
+         * @hide
+         */
+        public static final String SLIM_MEM_TEXT_COLOR= "slim_mem_text_color";
+
+        /** @hide */
+        private static final Validator SLIM_MEM_TEXT_COLOR_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /**
+         * The corner radius for Slim Recents cards
+         * @hide
+         */
+        public static final String SLIM_RECENTS_CORNER_RADIUS = "slim_recents_corner_radius";
+
+        /** @hide */
+        private static final Validator SLIM_RECENTS_CORNER_RADIUS_VALIDATOR = NON_NEGATIVE_INTEGER_VALIDATOR;
+
+        /**
+         * Apps to blacklist in Slim Recents
+         * @hide
+         */
+        public static final String SLIM_RECENTS_BLACKLIST_VALUES = "slim_recents_blacklist_values";
+
+        /** @hide */
+        private static final Validator SLIM_RECENTS_BLACKLIST_VALUES_VALIDATOR = ANY_STRING_VALIDATOR;
+
+
+        /**
+         * Slim recents enter/exit animation
+         * @hide
+         */
+        public static final String SLIM_RECENT_ENTER_EXIT_ANIMATION =
+                "slim_recent_enter_exit_animation";
+
+        /** @hide */
+        private static final Validator SLIM_RECENT_ENTER_EXIT_ANIMATION_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
 
         /**
          * Accent Color
@@ -6046,6 +6261,20 @@ public final class Settings {
 
         /** @hide */
         private static final Validator ACCENT_COLOR_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /** Width of the navigation handle.
+         *  @hide
+         */
+        public static final String NAVIGATION_HANDLE_WIDTH = "navigation_handle_width";
+
+        /** @hide */
+        private static final Validator NAVIGATION_HANDLE_WIDTH_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /**
+         * Show data usage in QS header
+         * @hide
+         */
+        public static final String QS_DATAUSAGE = "qs_datausage";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
@@ -6118,7 +6347,6 @@ public final class Settings {
             ENABLE_CONDITIONS,
             ENABLE_SUGGESTIONS,
             SCREEN_OFF_ANIMATION,
-            LOCKSCREEN_MEDIA_BLUR,
             FINGERPRINT_SUCCESS_VIB,
             WIRELESS_CHARGING_ANIMATION,
             HEADS_UP_NOTIFICATION_SNOOZE,
@@ -6172,9 +6400,32 @@ public final class Settings {
             FOD_PRESSED_STATE,
             FOD_RECOGNIZING_ANIMATION,
             FOD_ANIM,
-            NAVIGATION_HANDLE_WIDTH,
             ACCENT_COLOR,
             BACK_GESTURE_BLOCK_IME,
+            USE_SLIM_RECENTS,
+            RECENTS_MAX_APPS,
+            RECENT_PANEL_GRAVITY,
+            RECENT_PANEL_SCALE_FACTOR,
+            RECENT_PANEL_FAVORITES,
+            RECENT_PANEL_EXPANDED_MODE,
+            RECENT_PANEL_BG_COLOR,
+            RECENT_CARD_BG_COLOR,
+            USE_RECENT_APP_SIDEBAR,
+            RECENT_APP_SIDEBAR_CONTENT,
+            RECENT_APP_SIDEBAR_DISABLE_LABELS,
+            RECENT_APP_SIDEBAR_BG_COLOR,
+            RECENT_APP_SIDEBAR_TEXT_COLOR,
+            RECENT_APP_SIDEBAR_SCALE_FACTOR,
+            RECENT_APP_SIDEBAR_OPEN_SIMULTANEOUSLY,
+            SLIM_RECENTS_MEM_DISPLAY,
+            SLIM_RECENTS_MEM_DISPLAY_LONG_CLICK_CLEAR,
+            SLIM_RECENTS_ICON_PACK,
+            SLIM_MEM_BAR_COLOR,
+            SLIM_MEM_TEXT_COLOR,
+            SLIM_RECENTS_CORNER_RADIUS,
+            SLIM_RECENTS_BLACKLIST_VALUES,
+            SLIM_RECENT_ENTER_EXIT_ANIMATION,
+            NAVIGATION_HANDLE_WIDTH,
         };
 
         /**
@@ -6311,7 +6562,6 @@ public final class Settings {
             PRIVATE_SETTINGS.add(ENABLE_CONDITIONS);
             PRIVATE_SETTINGS.add(ENABLE_SUGGESTIONS);
             PRIVATE_SETTINGS.add(SCREEN_OFF_ANIMATION);
-            PRIVATE_SETTINGS.add(LOCKSCREEN_MEDIA_BLUR);
             PRIVATE_SETTINGS.add(SCREENSHOT_DEFAULT_MODE);
             PRIVATE_SETTINGS.add(FINGERPRINT_SUCCESS_VIB);
             PRIVATE_SETTINGS.add(WIRELESS_CHARGING_ANIMATION);
@@ -6360,9 +6610,32 @@ public final class Settings {
             PRIVATE_SETTINGS.add(AOD_NOTIFICATION_PULSE_TIMEOUT);
             PRIVATE_SETTINGS.add(NOTIFICATION_PULSE);
             PRIVATE_SETTINGS.add(NOTIFICATION_PULSE_ACCENT);
-            PRIVATE_SETTINGS.add(NAVIGATION_HANDLE_WIDTH);
             PRIVATE_SETTINGS.add(ACCENT_COLOR);
             PRIVATE_SETTINGS.add(BACK_GESTURE_BLOCK_IME);
+            PRIVATE_SETTINGS.add(USE_SLIM_RECENTS);
+            PRIVATE_SETTINGS.add(RECENTS_MAX_APPS);
+            PRIVATE_SETTINGS.add(RECENT_PANEL_GRAVITY);
+            PRIVATE_SETTINGS.add(RECENT_PANEL_SCALE_FACTOR);
+            PRIVATE_SETTINGS.add(RECENT_PANEL_FAVORITES);
+            PRIVATE_SETTINGS.add(RECENT_PANEL_EXPANDED_MODE);
+            PRIVATE_SETTINGS.add(RECENT_PANEL_BG_COLOR);
+            PRIVATE_SETTINGS.add(RECENT_CARD_BG_COLOR);
+            PRIVATE_SETTINGS.add(USE_RECENT_APP_SIDEBAR);
+            PRIVATE_SETTINGS.add(RECENT_APP_SIDEBAR_CONTENT);
+            PRIVATE_SETTINGS.add(RECENT_APP_SIDEBAR_DISABLE_LABELS);
+            PRIVATE_SETTINGS.add(RECENT_APP_SIDEBAR_BG_COLOR);
+            PRIVATE_SETTINGS.add(RECENT_APP_SIDEBAR_TEXT_COLOR);
+            PRIVATE_SETTINGS.add(RECENT_APP_SIDEBAR_SCALE_FACTOR);
+            PRIVATE_SETTINGS.add(RECENT_APP_SIDEBAR_OPEN_SIMULTANEOUSLY);
+            PRIVATE_SETTINGS.add(SLIM_RECENTS_MEM_DISPLAY);
+            PRIVATE_SETTINGS.add(SLIM_RECENTS_MEM_DISPLAY_LONG_CLICK_CLEAR);
+            PRIVATE_SETTINGS.add(SLIM_RECENTS_ICON_PACK);
+            PRIVATE_SETTINGS.add(SLIM_MEM_BAR_COLOR);
+            PRIVATE_SETTINGS.add(SLIM_MEM_TEXT_COLOR);
+            PRIVATE_SETTINGS.add(SLIM_RECENTS_CORNER_RADIUS);
+            PRIVATE_SETTINGS.add(SLIM_RECENTS_BLACKLIST_VALUES);
+            PRIVATE_SETTINGS.add(SLIM_RECENT_ENTER_EXIT_ANIMATION);
+            PRIVATE_SETTINGS.add(NAVIGATION_HANDLE_WIDTH);
         }
 
         /**
@@ -6464,7 +6737,6 @@ public final class Settings {
             VALIDATORS.put(ENABLE_CONDITIONS, ENABLE_CONDITIONS_VALIDATOR);
             VALIDATORS.put(ENABLE_SUGGESTIONS, ENABLE_SUGGESTIONS_VALIDATOR);
             VALIDATORS.put(SCREEN_OFF_ANIMATION, SCREEN_OFF_ANIMATION_VALIDATOR);
-            VALIDATORS.put(LOCKSCREEN_MEDIA_BLUR, LOCKSCREEN_MEDIA_BLUR_VALIDATOR);
             VALIDATORS.put(FINGERPRINT_SUCCESS_VIB, FINGERPRINT_SUCCESS_VIB_VALIDATOR);
             VALIDATORS.put(WIRELESS_CHARGING_ANIMATION, WIRELESS_CHARGING_ANIMATION_VALIDATOR);
             VALIDATORS.put(HEADS_UP_NOTIFICATION_SNOOZE,HEADS_UP_NOTIFICATION_SNOOZE_VALIDATOR);
@@ -6525,9 +6797,32 @@ public final class Settings {
             VALIDATORS.put(FOD_PRESSED_STATE, FOD_PRESSED_STATE_VALIDATOR);
             VALIDATORS.put(FOD_RECOGNIZING_ANIMATION, FOD_RECOGNIZING_ANIMATION_VALIDATOR);
             VALIDATORS.put(FOD_ANIM, FOD_ANIM_VALIDATOR);
-            VALIDATORS.put(NAVIGATION_HANDLE_WIDTH, NAVIGATION_HANDLE_WIDTH_VALIDATOR);
             VALIDATORS.put(ACCENT_COLOR, ACCENT_COLOR_VALIDATOR);
             VALIDATORS.put(BACK_GESTURE_BLOCK_IME,BACK_GESTURE_BLOCK_IME_VALIDATOR);
+            VALIDATORS.put(USE_SLIM_RECENTS, USE_SLIM_RECENTS_VALIDATOR);
+            VALIDATORS.put(RECENTS_MAX_APPS, RECENTS_MAX_APPS_VALIDATOR);
+            VALIDATORS.put(RECENT_PANEL_GRAVITY, RECENT_PANEL_GRAVITY_VALIDATOR);
+            VALIDATORS.put(RECENT_PANEL_SCALE_FACTOR, RECENT_PANEL_SCALE_FACTOR_VALIDATOR);
+            VALIDATORS.put(RECENT_PANEL_FAVORITES, RECENT_PANEL_FAVORITES_VALIDATOR);
+            VALIDATORS.put(RECENT_PANEL_EXPANDED_MODE, RECENT_PANEL_EXPANDED_MODE_VALIDATOR);
+            VALIDATORS.put(RECENT_PANEL_BG_COLOR, RECENT_PANEL_BG_COLOR_VALIDATOR);
+            VALIDATORS.put(RECENT_CARD_BG_COLOR, RECENT_CARD_BG_COLOR_VALIDATOR);
+            VALIDATORS.put(USE_RECENT_APP_SIDEBAR, USE_RECENT_APP_SIDEBAR_VALIDATOR);
+            VALIDATORS.put(RECENT_APP_SIDEBAR_CONTENT, RECENT_APP_SIDEBAR_CONTENT_VALIDATOR);
+            VALIDATORS.put(RECENT_APP_SIDEBAR_DISABLE_LABELS, RECENT_APP_SIDEBAR_DISABLE_LABELS_VALIDATOR);
+            VALIDATORS.put(RECENT_APP_SIDEBAR_BG_COLOR, RECENT_APP_SIDEBAR_BG_COLOR_VALIDATOR);
+            VALIDATORS.put(RECENT_APP_SIDEBAR_TEXT_COLOR, RECENT_APP_SIDEBAR_TEXT_COLOR_VALIDATOR);
+            VALIDATORS.put(RECENT_APP_SIDEBAR_SCALE_FACTOR, RECENT_APP_SIDEBAR_SCALE_FACTOR_VALIDATOR);
+            VALIDATORS.put(RECENT_APP_SIDEBAR_OPEN_SIMULTANEOUSLY, RECENT_APP_SIDEBAR_OPEN_SIMULTANEOUSLY_VALIDATOR);
+            VALIDATORS.put(SLIM_RECENTS_MEM_DISPLAY, SLIM_RECENTS_MEM_DISPLAY_VALIDATOR);
+            VALIDATORS.put(SLIM_RECENTS_MEM_DISPLAY_LONG_CLICK_CLEAR, SLIM_RECENTS_MEM_DISPLAY_LONG_CLICK_CLEAR_VALIDATOR);
+            VALIDATORS.put(SLIM_RECENTS_ICON_PACK, SLIM_RECENTS_ICON_PACK_VALIDATOR);
+            VALIDATORS.put(SLIM_MEM_BAR_COLOR, SLIM_MEM_BAR_COLOR_VALIDATOR);
+            VALIDATORS.put(SLIM_MEM_TEXT_COLOR, SLIM_MEM_TEXT_COLOR_VALIDATOR);
+            VALIDATORS.put(SLIM_RECENTS_CORNER_RADIUS, SLIM_RECENTS_CORNER_RADIUS_VALIDATOR);
+            VALIDATORS.put(SLIM_RECENTS_BLACKLIST_VALUES, SLIM_RECENTS_BLACKLIST_VALUES_VALIDATOR);
+            VALIDATORS.put(SLIM_RECENT_ENTER_EXIT_ANIMATION, SLIM_RECENT_ENTER_EXIT_ANIMATION_VALIDATOR);
+            VALIDATORS.put(NAVIGATION_HANDLE_WIDTH, NAVIGATION_HANDLE_WIDTH_VALIDATOR);
         }
 
         /**
@@ -15977,6 +16272,12 @@ public final class Settings {
         public static final String ALLOW_SIGNATURE_FAKE = "allow_signature_fake";
 
         /**
+         * Whether to show quick settings on secure LockScreen
+         * @hide
+         */
+        public static final String LOCKSCREEN_ENABLE_QS = "lockscreen_enable_qs";
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *
@@ -17477,6 +17778,18 @@ public final class Settings {
         @SdkConstant(SdkConstant.SdkConstantType.ACTIVITY_INTENT_ACTION)
         public static final String ACTION_MOBILE_DATA =
                 "android.settings.panel.action.MOBILE_DATA";
+
+        /**
+         * Activity Action: Show a settings dialog containing controls for Bluetooth.
+         * <p>
+         * Input: Nothing.
+         * <p>
+         * Output: Nothing.
+         * @hide
+         */
+        @SdkConstant(SdkConstant.SdkConstantType.ACTIVITY_INTENT_ACTION)
+        public static final String ACTION_BLUETOOTH =
+                "android.settings.panel.action.BLUETOOTH";
     }
 
     private static final String[] PM_WRITE_SETTINGS = {

@@ -220,6 +220,7 @@ import com.android.systemui.statusbar.StatusBarState;
 import com.android.systemui.statusbar.SysuiStatusBarStateController;
 import com.android.systemui.statusbar.VibratorHelper;
 import com.android.systemui.statusbar.VisualizerView;
+import com.android.systemui.statusbar.info.DataUsageView;
 import com.android.systemui.statusbar.notification.ActivityLaunchAnimator;
 import com.android.systemui.statusbar.notification.BypassHeadsUpNotifier;
 import com.android.systemui.statusbar.notification.DynamicPrivacyController;
@@ -320,8 +321,6 @@ public class StatusBar extends SystemUI implements DemoMode,
             "system:" + Settings.System.GAMING_MODE_ACTIVE;
     private static final String GAMING_MODE_HEADSUP_TOGGLE =
             "system:" + Settings.System.GAMING_MODE_HEADSUP_TOGGLE;
-    private static final String LOCKSCREEN_CHARGING_ANIMATION_STYLE =
-            "system:" + Settings.System.LOCKSCREEN_CHARGING_ANIMATION_STYLE;
     private static final String STATUS_BAR_TICKER_ANIMATION_MODE =
             "system:" + Settings.System.STATUS_BAR_TICKER_ANIMATION_MODE;
     private static final String STATUS_BAR_TICKER_TICK_DURATION =
@@ -537,8 +536,6 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     private boolean mHeadsUpDisabled, mGamingModeActivated;
 
-    private int mChargingAnimation = 1;
-
     // XXX: gesture research
     private final GestureRecorder mGestureRec = DEBUG_GESTURES
         ? new GestureRecorder("/sdcard/statusbar_gestures.dat")
@@ -559,6 +556,7 @@ public class StatusBar extends SystemUI implements DemoMode,
 
     public ImageView mQSBlurView;
     private boolean blurperformed = false;
+    private boolean dataupdated = false;
 
     public void resetTrackInfo() {
         if (mTicker != null) {
@@ -813,7 +811,6 @@ public class StatusBar extends SystemUI implements DemoMode,
         tunerService.addTunable(this, SYSUI_ROUNDED_FWVALS);
         tunerService.addTunable(this, GAMING_MODE_ACTIVE);
         tunerService.addTunable(this, GAMING_MODE_HEADSUP_TOGGLE);
-        tunerService.addTunable(this, LOCKSCREEN_CHARGING_ANIMATION_STYLE);
         tunerService.addTunable(this, STATUS_BAR_TICKER_ANIMATION_MODE);
         tunerService.addTunable(this, STATUS_BAR_TICKER_TICK_DURATION);
 
@@ -1088,7 +1085,6 @@ public class StatusBar extends SystemUI implements DemoMode,
                 SystemUIFactory.getInstance().createKeyguardIndicationController(mContext,
                         mStatusBarWindow.findViewById(R.id.keyguard_indication_area),
                         mStatusBarWindow.findViewById(R.id.lock_icon));
-        mKeyguardIndicationController.updateChargingIndication(mChargingAnimation);
         mNotificationPanel.setKeyguardIndicationController(mKeyguardIndicationController);
 
         mAmbientIndicationContainer = mStatusBarWindow.findViewById(
@@ -1282,6 +1278,11 @@ public class StatusBar extends SystemUI implements DemoMode,
         float QSBlurAlpha = mNotificationPanel.getExpandedFraction() * (float)((float) QSUserAlpha / 100.0);
         boolean enoughBlurData = (QSBlurAlpha > 0 && qsBlurIntensity() > 0);
 
+        if (QSBlurAlpha > 0 && !dataupdated && !mIsKeyguard) {
+            DataUsageView.updateUsage();
+            dataupdated = true;
+        }
+
         if (enoughBlurData && !blurperformed && !mIsKeyguard && isQSBlurEnabled()) {
             drawBlurView();
             blurperformed = true;
@@ -1289,6 +1290,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         } else if (!enoughBlurData || mState == StatusBarState.KEYGUARD) {
             blurperformed = false;
             mQSBlurView.setVisibility(View.GONE);
+            dataupdated = false;
         }
         mQSBlurView.setAlpha(QSBlurAlpha);
     }
@@ -2190,6 +2192,9 @@ public class StatusBar extends SystemUI implements DemoMode,
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.QS_BLUR_INTENSITY),
                     false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.LOCKSCREEN_MEDIA_BLUR),
+                    false, this, UserHandle.USER_ALL);
         }
 
         @Override
@@ -2224,6 +2229,9 @@ public class StatusBar extends SystemUI implements DemoMode,
             } else if (uri.equals(Settings.System.getUriFor(Settings.System.QS_BLUR_ALPHA)) ||
                     uri.equals(Settings.System.getUriFor(Settings.System.QS_BLUR_INTENSITY))) {
                 updateBlurVisibility();
+            } else if (uri.equals(Settings.System.getUriFor(
+                    Settings.System.LOCKSCREEN_MEDIA_BLUR))) {
+                setLockScreenMediaBlurLevel();
             }
         }
 
@@ -2237,6 +2245,7 @@ public class StatusBar extends SystemUI implements DemoMode,
             setMaxKeyguardNotifConfig();
             updateQSPanel();
             setHideArrowForBackGesture();
+            setLockScreenMediaBlurLevel();
         }
     }
 
@@ -2280,6 +2289,12 @@ public class StatusBar extends SystemUI implements DemoMode,
     public void setBlockedGesturalNavigation(boolean blocked) {
         if (getNavigationBarView() != null) {
             getNavigationBarView().setBlockedGesturalNavigation(blocked);
+        }
+    }
+
+    private void setLockScreenMediaBlurLevel() {
+        if (mMediaManager != null) {
+            mMediaManager.setLockScreenMediaBlurLevel();
         }
     }
 
@@ -2459,6 +2474,15 @@ public class StatusBar extends SystemUI implements DemoMode,
             animateCollapsePanels();
         } else {
             animateExpandNotificationsPanel();
+        }
+    }
+
+    @Override
+    public void toggleSettingsPanel() {
+        if (mPanelExpanded) {
+            animateCollapsePanels();
+        } else {
+            animateExpandSettingsPanel(null);
         }
     }
 
@@ -5643,12 +5667,6 @@ public class StatusBar extends SystemUI implements DemoMode,
                 mHeadsUpDisabled =
                         TunerService.parseIntegerSwitch(newValue, true);
                 mNotificationInterruptionStateProvider.setGamingPeekMode(mGamingModeActivated && mHeadsUpDisabled);
-                break;
-            case LOCKSCREEN_CHARGING_ANIMATION_STYLE:
-                mChargingAnimation =
-                        TunerService.parseInteger(newValue, 1);
-                if (mKeyguardIndicationController != null)
-                    mKeyguardIndicationController.updateChargingIndication(mChargingAnimation);
                 break;
             case STATUS_BAR_TICKER_ANIMATION_MODE:
                 mTickerAnimationMode =
