@@ -16,10 +16,12 @@
 
 package com.android.internal.policy;
 
+import android.app.Activity;
 import android.app.WindowConfiguration;
 import android.graphics.Outline;
 import android.graphics.drawable.InsetDrawable;
 import android.graphics.drawable.LayerDrawable;
+import android.os.RemoteException;
 import android.util.Pair;
 import android.view.ViewOutlineProvider;
 import android.view.accessibility.AccessibilityNodeInfo;
@@ -338,6 +340,29 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         }
 
         if (!mWindow.isDestroyed()) {
+            // region @cobra
+            if (keyCode == KeyEvent.KEYCODE_F11 && isDown) {
+                Window.WindowControllerCallback callback = mWindow.getWindowControllerCallback();
+                Activity activity = null;
+                if (callback instanceof Activity) {
+                    activity = (Activity) callback;
+                }
+                final int windowingMode =
+                        getResources().getConfiguration().windowConfiguration.getWindowingMode();
+                try {
+                    if (windowingMode == WINDOWING_MODE_FREEFORM && activity != null) {
+                        activity.exitFreeformMode();
+                        updateDecorCaptionShade();
+                    } else if (windowingMode != WINDOWING_MODE_FREEFORM && activity != null) {
+                        activity.enterFreeformMode();
+                        updateDecorCaptionShade();
+                    }
+                    return true;
+                } catch (RemoteException ex) {
+                    Log.e(TAG, "Catch exception when process F11", ex);
+                }
+            }
+            // endregion
             final Window.Callback cb = mWindow.getCallback();
             final boolean handled = cb != null && mFeatureId < 0 ? cb.dispatchKeyEvent(event)
                     : super.dispatchKeyEvent(event);
