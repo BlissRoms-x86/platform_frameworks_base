@@ -138,7 +138,6 @@ import com.android.internal.util.FastXmlSerializer;
 import com.android.internal.util.HexDump;
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.Preconditions;
-import com.android.internal.widget.ILockSettings;
 import com.android.internal.widget.LockPatternUtils;
 import com.android.server.storage.AppFuseBridge;
 import com.android.server.wm.ActivityTaskManagerInternal;
@@ -2532,22 +2531,8 @@ class StorageManagerService extends IStorageManager.Stub
             Slog.i(TAG, "changing encryption password...");
         }
 
-        ILockSettings lockSettings = ILockSettings.Stub.asInterface(
-                        ServiceManager.getService("lock_settings"));
-        String currentPassword="default_password";
         try {
-            currentPassword = lockSettings.getPassword();
-        } catch (Exception e) {
-            Slog.wtf(TAG, "Couldn't get password" + e);
-        }
-
-        try {
-            mVold.fdeChangePassword(type, currentPassword, password);
-            try {
-                lockSettings.sanitizePassword();
-            } catch (Exception e) {
-                Slog.wtf(TAG, "Couldn't sanitize password" + e);
-            }
+            mVold.fdeChangePassword(type, password);
             return 0;
         } catch (Exception e) {
             Slog.wtf(TAG, e);
