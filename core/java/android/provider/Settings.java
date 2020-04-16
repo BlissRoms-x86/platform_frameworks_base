@@ -5374,6 +5374,12 @@ public final class Settings {
         public static final String CUSTOM_AMBIENT_TILT_GESTURE = "custom_ambient_tilt_gesture";
 
         /**
+         * Custom Raise to wake gesture
+         * @hide
+         */
+        public static final String CUSTOM_RAISE_TO_WAKE_GESTURE = "custom_raise_to_wake_gesture";
+
+        /**
          * Custom Ambient handwave gesture
          * @hide
          */
@@ -6259,6 +6265,12 @@ public final class Settings {
          */
         public static final String ACCENT_COLOR = "accent_color";
 
+        /**
+         * Gradient Color
+         * @hide
+         */
+        public static final String GRADIENT_COLOR = "gradient_color";
+
         /** @hide */
         private static final Validator ACCENT_COLOR_VALIDATOR = ANY_INTEGER_VALIDATOR;
 
@@ -6275,6 +6287,43 @@ public final class Settings {
          * @hide
          */
         public static final String QS_DATAUSAGE = "qs_datausage";
+
+        /**
+         * @hide
+         */
+        public static final String AMBIENT_LIGHT_REPEAT_COUNT = "ambient_light_repeat_count";
+
+        private static final Validator AMBIENT_LIGHT_REPEAT_COUNT_VALIDATOR = ANY_INTEGER_VALIDATOR;
+
+        /**
+         * Adaptive playback
+         * Automatically pause media when the volume is muted and
+         * will resume automatically when volume is restored.
+         *   0 = disabled
+         *   1 = enabled
+         * @hide
+         */
+        public static final String ADAPTIVE_PLAYBACK_ENABLED = "adaptive_playback_enabled";
+
+        /**
+         * Adaptive playback's timeout in ms
+         * @hide
+         */
+        public static final String ADAPTIVE_PLAYBACK_TIMEOUT = "adaptive_playback_timeout";
+
+        /**
+         * Change fonts for the system lockscreen Owner info
+         *
+         * @hide
+         */
+        public static final String LOCK_OWNERINFO_FONTS = "lock_ownerinfo_fonts";
+
+        /**
+         * Change font size for the system lockscreen owner
+         *
+         * @hide
+         */
+        public static final String LOCKOWNER_FONT_SIZE= "lockowner_font_size";
 
         /**
          * Settings to backup. This is here so that it's in the same place as the settings
@@ -6426,6 +6475,7 @@ public final class Settings {
             SLIM_RECENTS_BLACKLIST_VALUES,
             SLIM_RECENT_ENTER_EXIT_ANIMATION,
             NAVIGATION_HANDLE_WIDTH,
+            AMBIENT_LIGHT_REPEAT_COUNT,
         };
 
         /**
@@ -6636,6 +6686,7 @@ public final class Settings {
             PRIVATE_SETTINGS.add(SLIM_RECENTS_BLACKLIST_VALUES);
             PRIVATE_SETTINGS.add(SLIM_RECENT_ENTER_EXIT_ANIMATION);
             PRIVATE_SETTINGS.add(NAVIGATION_HANDLE_WIDTH);
+            PRIVATE_SETTINGS.add(AMBIENT_LIGHT_REPEAT_COUNT);
         }
 
         /**
@@ -6823,6 +6874,7 @@ public final class Settings {
             VALIDATORS.put(SLIM_RECENTS_BLACKLIST_VALUES, SLIM_RECENTS_BLACKLIST_VALUES_VALIDATOR);
             VALIDATORS.put(SLIM_RECENT_ENTER_EXIT_ANIMATION, SLIM_RECENT_ENTER_EXIT_ANIMATION_VALIDATOR);
             VALIDATORS.put(NAVIGATION_HANDLE_WIDTH, NAVIGATION_HANDLE_WIDTH_VALIDATOR);
+            VALIDATORS.put(AMBIENT_LIGHT_REPEAT_COUNT, AMBIENT_LIGHT_REPEAT_COUNT_VALIDATOR);
         }
 
         /**
@@ -14796,30 +14848,6 @@ public final class Settings {
                 "adb_allowed_connection_time";
 
         /**
-         * Whether or not to use aggressive device idle constants and ignore motion.
-         * Type: int (0 for false, 1 for true)
-         * Default: 0
-         * @hide
-         */
-        public static final String AGGRESSIVE_IDLE_ENABLED = "aggressive_idle_enabled";
-
-        /**
-         * Whether or not to use aggressive app idle constants.
-         * Type: int (0 for false, 1 for true)
-         * Default: 0
-         * @hide
-         */
-        public static final String AGGRESSIVE_STANDBY_ENABLED = "aggressive_standby_enabled";
-
-        /**
-         * Flag to automatically enable Aggressive Idle and Standby with battery saver.
-         * Type: int (0 for false, 1 for true)
-         * Default: 0
-         * @hide
-         */
-        public static final String AGGRESSIVE_BATTERY_SAVER = "aggressive_battery_saver";
-
-        /**
          * Get the key that retrieves a bluetooth headset's priority.
          * @hide
          */
@@ -16278,6 +16306,13 @@ public final class Settings {
         public static final String LOCKSCREEN_ENABLE_QS = "lockscreen_enable_qs";
 
         /**
+         * @hide
+         */
+        public static final String SHOW_FPS_OVERLAY = "show_fps_overlay";
+
+        private static final Validator SHOW_FPS_OVERLAY_VALIDATOR = BOOLEAN_VALIDATOR;
+
+        /**
          * Settings to backup. This is here so that it's in the same place as the settings
          * keys and easy to update.
          *
@@ -16327,6 +16362,7 @@ public final class Settings {
             CHARGING_VIBRATION_ENABLED,
             AWARE_ALLOWED,
             NOTIFICATION_BUBBLES,
+            SHOW_FPS_OVERLAY,
         };
 
         /**
@@ -16395,6 +16431,7 @@ public final class Settings {
             VALIDATORS.put(POWER_BUTTON_LONG_PRESS, POWER_BUTTON_LONG_PRESS_VALIDATOR);
             VALIDATORS.put(POWER_BUTTON_VERY_LONG_PRESS, POWER_BUTTON_VERY_LONG_PRESS_VALIDATOR);
             VALIDATORS.put(NOTIFICATION_BUBBLES, NOTIFICATION_BUBBLES_VALIDATOR);
+            VALIDATORS.put(SHOW_FPS_OVERLAY, SHOW_FPS_OVERLAY_VALIDATOR);
         }
 
         /**
