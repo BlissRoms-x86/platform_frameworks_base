@@ -2972,7 +2972,7 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
         }
 
         stack.getDimBounds(mTmpRect);
-        // region @cobra
+        // region @boringdroid
         // For freeform window, we should consider shadows size.
         // In getTouchableRegion, the WindowState calculate shadow size as the touchable region,
         // so we should append it to origin stack size, because stack size is the same as

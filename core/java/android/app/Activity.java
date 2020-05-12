@@ -3325,7 +3325,7 @@ public class Activity extends ContextThemeWrapper
     public void exitFreeformMode() throws RemoteException {
         ActivityManager.getService().exitFreeformMode(mToken);
     }
-    // region @cobra
+    // region @boringdroid
     /**
      * Moves the activity from {@link WindowConfiguration#WINDOWING_MODE_FULLSCREEN} windowing mode to
      * {@link WindowConfiguration#WINDOWING_MODE_FREEFORM}.

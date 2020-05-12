@@ -548,7 +548,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
                 }
             }
             mWindowContainerController.resize(kept, forced);
-            // region @cobra
+            // region @boringdroid
             // After window resizes its bounds(real resize and move), we should save the window bounds.
             Rect savedBounds = new Rect();
             mWindowContainerController.getBounds(savedBounds);
@@ -578,7 +578,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
     // TODO: Investigate combining with the resize() method above.
     void resizeWindowContainer() {
         mWindowContainerController.resize(false /* relayout */, false /* forced */);
-        // region @cobra
+        // region @boringdroid
         // After window resizes its bounds(real resize and move), we should save the window bounds.
         Rect savedBounds = new Rect();
         mWindowContainerController.getBounds(savedBounds);
@@ -1798,7 +1798,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
         final boolean persistBounds = getWindowConfiguration().persistTaskBounds();
         if (matchParentBounds) {
             if (!currentBounds.isEmpty() && persistBounds) {
-                // region @cobra
+                // region @boringdroid
                 // mLastNonFullscreenBounds = currentBounds;
                 mLastNonFullscreenBounds = new Rect(currentBounds);
                 // endregion
@@ -1811,7 +1811,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
             setBounds(mTmpRect);
 
             if (mStack == null || persistBounds) {
-                // region @cobra
+                // region @boringdroid
                 // mLastNonFullscreenBounds = getOverrideBounds();
                 mLastNonFullscreenBounds = new Rect(getOverrideBounds());
                 // endregion
@@ -1941,7 +1941,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
         } else if (!getWindowConfiguration().persistTaskBounds()) {
             return mStack.getOverrideBounds();
         }
-        // region @cobra
+        // region @boringdroid
         if (mLastNonFullscreenBounds == null) {
             String packageName = null;
             if (realActivity != null) {

@@ -30,7 +30,7 @@
             android:background="@drawable/decor_caption_title"
             android:focusable="false"
             android:descendantFocusability="blocksDescendants" >
-        <!-- region @cobra -->
+        <!-- region @boringdroid -->
         <Button
                 android:id="@+id/minimize_window"
                 android:layout_width="32dp"

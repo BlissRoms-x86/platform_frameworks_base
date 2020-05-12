@@ -3073,7 +3073,7 @@ public class ActivityStackSupervisor extends ConfigurationContainer implements D
         if (tr != null) {
             tr.removeTaskActivitiesLocked(pauseImmediately, reason);
             cleanUpRemovedTaskLocked(tr, killProcess, removeFromRecents);
-            // region @cobra
+            // region @boringdroid
             ActivityManagerService service = mService;
             UserInfo userInfo = service.getCurrentUser();
             String origActivity =

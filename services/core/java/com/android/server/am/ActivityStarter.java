@@ -1283,7 +1283,7 @@ class ActivityStarter {
 
         setInitialState(r, options, inTask, doResume, startFlags, sourceRecord, voiceSession,
                 voiceInteractor);
-        // region @cobra
+        // region @boringdroid
         if (mOptions == null) {
             mOptions = ActivityOptions.makeBasic();
         }

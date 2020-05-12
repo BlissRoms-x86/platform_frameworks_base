@@ -11066,7 +11066,7 @@ public class ActivityManagerService extends IActivityManager.Stub
                     preserveWindow = false;
                 }
 
-                // region @cobra
+                // region @boringdroid
                 if (stack.getWindowingMode() == WINDOWING_MODE_FREEFORM) {
                     // Many places use the stack bounds to clip the task or window bounds.
                     // We use task bounds as stack bounds before, because every freeform window
@@ -11452,7 +11452,7 @@ public class ActivityManagerService extends IActivityManager.Stub
             }
         }
     }
-    // region @cobra
+    // region @boringdroid
     @Override
     public void enterFreeformMode(IBinder token) throws RemoteException {
         synchronized (this) {
@@ -15370,7 +15370,7 @@ public class ActivityManagerService extends IActivityManager.Stub
         final boolean alwaysFinishActivities =
                 Settings.Global.getInt(resolver, ALWAYS_FINISH_ACTIVITIES, 0) != 0;
         final boolean forceRtl = Settings.Global.getInt(resolver, DEVELOPMENT_FORCE_RTL, 0) != 0;
-        // region @cobra
+        // region @boringdroid
         // final boolean forceResizable = Settings.Global.getInt(
         //         resolver, DEVELOPMENT_FORCE_RESIZABLE_ACTIVITIES, 0) != 0;
         final boolean forceResizable = true;

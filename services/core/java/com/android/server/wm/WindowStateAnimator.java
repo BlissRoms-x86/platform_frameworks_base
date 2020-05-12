@@ -801,7 +801,7 @@ class WindowStateAnimator {
         if (w.inPinnedWindowingMode()) {
             return false;
         }
-        // region @cobra
+        // region @boringdroid
         if (w.inFreeformWindowingMode()) {
             return false;
         }

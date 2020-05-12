@@ -148,7 +148,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         // background without removing the shadow.
         mOwner.getDecorView().setOutlineProvider(ViewOutlineProvider.BOUNDS);
         mMaximize = findViewById(R.id.maximize_window);
-        // region @cobra
+        // region @boringdroid
         mMinimize = findViewById(R.id.minimize_window);
         // endregion
         mClose = findViewById(R.id.close_window);
@@ -164,7 +164,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
             if (mMaximizeRect.contains(x, y)) {
                 mClickTarget = mMaximize;
             }
-            // region @cobra
+            // region @boringdroid
             if (mMinimizeRect.contains(x, y)) {
                 mClickTarget = mMinimize;
             }
@@ -311,7 +311,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
             mCaption.layout(0, 0, mCaption.getMeasuredWidth(), mCaption.getMeasuredHeight());
             captionHeight = mCaption.getBottom() - mCaption.getTop();
             mMaximize.getHitRect(mMaximizeRect);
-            // region @cobra
+            // region @boringdroid
             mMinimize.getHitRect(mMinimizeRect);
             // endregion
             mClose.getHitRect(mCloseRect);
@@ -331,7 +331,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         }
 
         // This assumes that the caption bar is at the top.
-        // region @cobra
+        // region @boringdroid
         // mOwner.notifyRestrictedCaptionAreaCallback(mMaximize.getLeft(), mMaximize.getTop(),
         //         mClose.getRight(), mClose.getBottom());
         mOwner.notifyRestrictedCaptionAreaCallback(mMinimize.getLeft(), mMinimize.getTop(),
@@ -353,7 +353,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
      **/
     private void updateCaptionVisibility() {
         // Don't show the caption if the window has e.g. entered full screen.
-        // region @cobra
+        // region @boringdroid
         // boolean invisible = isFillingScreen() || !mShow;
         // We disable the checking for system ui visibility now, before supporting caption view
         // shows over the window with automatic disappear feature.
@@ -371,7 +371,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         if (callback != null) {
             try {
                 callback.exitFreeformMode();
-                // region @cobra
+                // region @boringdroid
                 ((DecorView) mOwner.getDecorView()).updateDecorCaptionShade();
                 // endregion
             } catch (RemoteException ex) {
@@ -432,7 +432,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
 
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
-        // region @cobra
+        // region @boringdroid
         if (mClickTarget == mMinimize) {
             Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
             if (callback instanceof Activity) {
@@ -465,7 +465,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
         return false;
     }
-    // region @cobra
+    // region @boringdroid
     private View mMinimize;
     private final Rect mMinimizeRect = new Rect();
 

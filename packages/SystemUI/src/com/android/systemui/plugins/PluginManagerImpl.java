@@ -89,7 +89,7 @@ public class PluginManagerImpl extends BroadcastReceiver implements PluginManage
         mContext = context;
         mFactory = factory;
         mLooper = Dependency.get(Dependency.BG_LOOPER);
-        // region @cobra
+        // region @boringdroid
         // We enable the plugin manager despite of the debuggable flag.
         // isDebuggable = debuggable;
         isDebuggable = true;

@@ -102,7 +102,7 @@ class TaskPositioningController {
             }
             if (taskId >= 0) {
                 try {
-                    // region @cobra
+                    // region @boringdroid
                     // If we start some freeform windows above the launcher, and click the empty
                     // space of launcher, the launcher will be the focused task, and move to front
                     // of the freeform windows. But we don't want to keep this behavior, and want

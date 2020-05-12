@@ -583,7 +583,7 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
                 mStackSupervisor.mNoAnimActivities.add(topActivity);
             }
             super.setWindowingMode(windowingMode);
-            // region @cobra
+            // region @boringdroid
             // When stack's windowing mode changed, we will persist this windowing mode for
             // top Activity.
             if (topActivity != null) {
@@ -627,7 +627,7 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
                 }
             }
 
-            // region @cobra
+            // region @boringdroid
             // Current logic, if we change windowing mode from freeform to fullscreen, getOverrideBounds() will
             // return empty, the same as mTmpRect2, which doesn't trigger resize for window. So if current mode
             // is freeform, and new mode is fullscreen, we should resize window forcibl to avoid rigid
@@ -4807,7 +4807,7 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
                         // For freeform stack we don't adjust the size of the tasks to match that
                         // of the stack, but we do try to make sure the tasks are still contained
                         // with the bounds of the stack.
-                        // region @cobra
+                        // region @boringdroid
                         // Each freeform task is in its own stack, we should adjust the size of the
                         // tasks to match that of the stack.
                         // mTmpRect2.set(task.getOverrideBounds());

@@ -4693,7 +4693,7 @@
     <!-- Free style window strings -->
     <!-- Accessibility text for the maximize window button -->
     <string name="maximize_button_text">Maximize</string>
-    <!-- region @cobra -->
+    <!-- region @boringdroid -->
     <string name="minimize_button_text">Minimize</string>
     <!-- endregion -->
     <!-- Accessibility text for the close window button -->

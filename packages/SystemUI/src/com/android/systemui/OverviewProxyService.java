@@ -387,7 +387,7 @@ public class OverviewProxyService implements CallbackController<OverviewProxyLis
     }
 
     private void updateEnabledState() {
-        // region @cobra
+        // region @boringdroid
         // Before there is an ideal overview implementation, we will disable the
         // overview proxy service.
         /*

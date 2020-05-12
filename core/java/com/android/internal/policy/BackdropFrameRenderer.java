@@ -331,7 +331,7 @@ public class BackdropFrameRenderer extends Thread implements Choreographer.Frame
 
         // Since the surface is spanning the entire screen, we have to add the start offset of
         // the bounds to get to the surface location.
-        // region @cobra
+        // region @boringdroid
         // Android wants to content jumps some offset from left and top when resizing
         // window, but it's not good for user. So we decide to disable it.
         // In FrameBuilder.cpp, the system will calculate the distance between content

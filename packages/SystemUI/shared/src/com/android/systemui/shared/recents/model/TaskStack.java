@@ -67,7 +67,7 @@ public class TaskStack {
 
     public TaskStack() {
         // Ensure that we only show stack tasks
-        // region @cobra
+        // region @boringdroid
         // We want the recents to show freeform stack too, so we remove the filter.
         // mStackTaskList.setFilter((taskIdMap, t, index) -> t.isStackTask);
         // endregion

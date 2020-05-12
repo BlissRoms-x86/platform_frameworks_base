@@ -424,7 +424,7 @@ class TaskPositioner {
         }
 
         // This is a moving or scrolling operation.
-        // region @cobra
+        // region @boringdroid
         // We use the display bounds to limit the move boundary.
         // If we use the stack dim bounds, we can't move window to upper location.
         mTask.mStack.getDisplayContent().getBounds(mTmpRect);

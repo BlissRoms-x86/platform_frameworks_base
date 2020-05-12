@@ -340,7 +340,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         }
 
         if (!mWindow.isDestroyed()) {
-            // region @cobra
+            // region @boringdroid
             if (keyCode == KeyEvent.KEYCODE_F11 && isDown) {
                 Window.WindowControllerCallback callback = mWindow.getWindowControllerCallback();
                 Activity activity = null;
@@ -1597,7 +1597,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
             mBackdropFrameRenderer.onConfigurationChange();
         }
         mWindow.onViewRootImplSet(getViewRootImpl());
-        // region @cobra
+        // region @boringdroid
         // After attached to window, we should update the decor caption
         // shade with current windowing mode.
         updateDecorCaptionShade();
@@ -1877,7 +1877,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
             DecorContext decorContext = (DecorContext) context;
             decorContext.setPhoneWindow(mWindow);
         }
-        // region @cobra
+        // region @boringdroid
         // After setting mPhoneWindow, we should update the decor caption
         // shade with current windowing mode.
         updateDecorCaptionShade();
@@ -2035,7 +2035,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         }
     }
 
-    // region @cobra
+    // region @boringdroid
     /** @hide */
     // void updateDecorCaptionShade() {
     public void updateDecorCaptionShade() {
@@ -2046,7 +2046,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
     }
 
     private void setLightDecorCaptionShade(DecorCaptionView view) {
-        // region @cobra
+        // region @boringdroid
         view.findViewById(R.id.minimize_window).setBackgroundResource(
                 R.drawable.decor_minimize_button_light);
         if (view.inFullScreenMode()) {
@@ -2064,7 +2064,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
     }
 
     private void setDarkDecorCaptionShade(DecorCaptionView view) {
-        // region @cobra
+        // region @boringdroid
         view.findViewById(R.id.minimize_window).setBackgroundResource(
                 R.drawable.decor_minimize_button_dark);
         if (view.inFullScreenMode()) {
@@ -2295,7 +2295,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         } else {
             mElevationAdjustedForStack = false;
         }
-        // region @cobra
+        // region @boringdroid
         if ((windowingMode == WINDOWING_MODE_FREEFORM) && isResizing()) {
             elevation =dipToPx(DECOR_SHADOW_FOCUSED_HEIGHT_IN_DIP);
             mElevationAdjustedForStack = true;
