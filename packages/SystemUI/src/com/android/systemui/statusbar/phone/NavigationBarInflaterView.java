@@ -156,15 +156,19 @@ public class NavigationBarInflaterView extends FrameLayout
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        Dependency.get(TunerService.class).addTunable(this, NAV_BAR_VIEWS, NAV_BAR_LEFT,
-                NAV_BAR_RIGHT, NAV_BAR_INVERSE);
+        // region @boringdroid
+        // Dependency.get(TunerService.class).addTunable(this, NAV_BAR_VIEWS, NAV_BAR_LEFT,
+        //         NAV_BAR_RIGHT);
+        // endregion
         Dependency.get(PluginManager.class).addPluginListener(this,
                 NavBarButtonProvider.class, true /* Allow multiple */);
     }
 
     @Override
     protected void onDetachedFromWindow() {
-        Dependency.get(TunerService.class).removeTunable(this);
+        // region @boringdroid
+        // Dependency.get(TunerService.class).removeTunable(this);
+        // endregion
         Dependency.get(PluginManager.class).removePluginListener(this);
         super.onDetachedFromWindow();
     }
