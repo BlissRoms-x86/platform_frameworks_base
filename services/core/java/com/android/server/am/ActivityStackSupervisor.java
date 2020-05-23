@@ -840,6 +840,26 @@ public class ActivityStackSupervisor extends ConfigurationContainer implements D
         }
 
         // Implicitly, this case is MATCH_TASK_IN_STACKS_OR_RECENT_TASKS_AND_RESTORE
+        // region @boringdroid
+        int windowingMode = WINDOWING_MODE_UNDEFINED;
+        if (aOptions == null) {
+            aOptions = ActivityOptions.makeBasic();
+        }
+        Intent intent = task.intent;
+        ComponentName realActivity = task.realActivity;
+        String packageName = null;
+        if (packageName == null && realActivity != null) {
+            packageName = realActivity.getPackageName();
+        }
+        if (packageName == null && intent != null && intent.getComponent() != null) {
+            packageName = intent.getComponent().getPackageName();
+        }
+        windowingMode = packageName == null
+                ? windowingMode : mWindowManager.getPackageWindowingMode(packageName);
+        if (windowingMode == WINDOWING_MODE_FREEFORM) {
+            aOptions.setLaunchWindowingMode(windowingMode);
+        }
+        // endregion
         if (!restoreRecentTaskLocked(task, aOptions, onTop)) {
             if (DEBUG_RECENTS) Slog.w(TAG_RECENTS,
                     "Couldn't restore task id=" + id + " found in recents");

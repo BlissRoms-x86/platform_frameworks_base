@@ -5684,22 +5684,6 @@ public class ActivityManagerService extends IActivityManager.Stub
 
         final int callingPid = Binder.getCallingPid();
         final int callingUid = Binder.getCallingUid();
-        // region @boringdroid
-        if (bOptions == null) {
-            ActivityOptions options = ActivityOptions.makeBasic();
-            options.setLaunchWindowingMode(WINDOWING_MODE_FREEFORM);
-            bOptions = options.toBundle();
-        } else {
-            ActivityOptions options = new ActivityOptions(bOptions);
-            int oldLaunchWindowingMode =
-                    mWindowManager.getPackageWindowingMode(options.getPackageName());
-            if (oldLaunchWindowingMode == WINDOWING_MODE_FREEFORM
-                    && options.getLaunchWindowingMode() == WINDOWING_MODE_UNDEFINED) {
-                options.setLaunchWindowingMode(oldLaunchWindowingMode);
-            }
-            bOptions = options.toBundle();
-        }
-        // endregion
         final SafeActivityOptions safeOptions = SafeActivityOptions.fromBundle(bOptions);
         final long origId = Binder.clearCallingIdentity();
         try {
@@ -15369,10 +15353,14 @@ public class ActivityManagerService extends IActivityManager.Stub
 
     private void retrieveSettings() {
         final ContentResolver resolver = mContext.getContentResolver();
+        // region @boringdroid
+        // final boolean freeformWindowManagement =
+        //         mContext.getPackageManager().hasSystemFeature(FEATURE_FREEFORM_WINDOW_MANAGEMENT)
+        //                 || Settings.Global.getInt(
+        //                         resolver, DEVELOPMENT_ENABLE_FREEFORM_WINDOWS_SUPPORT, 0) != 0;
         final boolean freeformWindowManagement =
-                mContext.getPackageManager().hasSystemFeature(FEATURE_FREEFORM_WINDOW_MANAGEMENT)
-                        || Settings.Global.getInt(
-                                resolver, DEVELOPMENT_ENABLE_FREEFORM_WINDOWS_SUPPORT, 0) != 0;
+                mContext.getPackageManager().hasSystemFeature(FEATURE_FREEFORM_WINDOW_MANAGEMENT);
+        // endregion
 
         final boolean supportsMultiWindow = ActivityManager.supportsMultiWindow(mContext);
         final boolean supportsPictureInPicture = supportsMultiWindow &&
