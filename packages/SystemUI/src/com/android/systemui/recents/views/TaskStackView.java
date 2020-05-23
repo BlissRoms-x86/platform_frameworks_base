@@ -351,6 +351,17 @@ public class TaskStackView extends FrameLayout implements TaskStack.TaskStackCal
 
         // Only notify if we are already initialized, otherwise, everything will pick up all the
         // new and old tasks when we next layout
+        // region @boringdroid
+        if (useGridLayout()
+                && stack.getTaskCount() > TaskGridLayoutAlgorithm.MAX_LAYOUT_TASK_COUNT) {
+            int toIndex = stack.getTaskCount();
+            int fromIndex = toIndex - TaskGridLayoutAlgorithm.MAX_LAYOUT_TASK_COUNT;
+            stack.setTasks(
+                    stack.getTasks().subList(fromIndex, toIndex),
+                    allowNotifyStackChanges && isInitialized
+            );
+        }
+        // endregion
         mStack.setTasks(stack, allowNotifyStackChanges && isInitialized);
     }
 
