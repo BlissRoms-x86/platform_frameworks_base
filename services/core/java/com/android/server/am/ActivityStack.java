@@ -2888,6 +2888,15 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
             boolean newTask, boolean keepCurTransition, ActivityOptions options) {
         TaskRecord rTask = r.getTask();
         final int taskId = rTask.taskId;
+        // region @boringdroid
+        // When creating task, the topActivity is null when invoking setWindowingMode,
+        // so we should save package windowing mode after task created. And saving
+        // windowing mode in setWindowingMode will be used to save windowing mode when
+        // changing windowing mode dynamically after task created, for example clicking
+        // maximize button to move task to fullscreen stack from freeform stack.
+        mWindowManager.savePackageWindowingMode(r.packageName, getWindowingMode());
+        // endregion
+
         // mLaunchTaskBehind tasks get placed at the back of the task stack.
         if (!r.mLaunchTaskBehind && (taskForIdLocked(taskId) == null || newTask)) {
             // Last activity in task had been removed or ActivityManagerService is reusing task.
