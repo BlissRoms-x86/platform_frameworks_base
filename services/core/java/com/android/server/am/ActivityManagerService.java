@@ -5684,6 +5684,22 @@ public class ActivityManagerService extends IActivityManager.Stub
 
         final int callingPid = Binder.getCallingPid();
         final int callingUid = Binder.getCallingUid();
+        // region @boringdroid
+        if (bOptions == null) {
+            ActivityOptions options = ActivityOptions.makeBasic();
+            options.setLaunchWindowingMode(WINDOWING_MODE_FREEFORM);
+            bOptions = options.toBundle();
+        } else {
+            ActivityOptions options = new ActivityOptions(bOptions);
+            int oldLaunchWindowingMode =
+                    mWindowManager.getPackageWindowingMode(options.getPackageName());
+            if (oldLaunchWindowingMode == WINDOWING_MODE_FREEFORM
+                    && options.getLaunchWindowingMode() == WINDOWING_MODE_UNDEFINED) {
+                options.setLaunchWindowingMode(oldLaunchWindowingMode);
+            }
+            bOptions = options.toBundle();
+        }
+        // endregion
         final SafeActivityOptions safeOptions = SafeActivityOptions.fromBundle(bOptions);
         final long origId = Binder.clearCallingIdentity();
         try {
