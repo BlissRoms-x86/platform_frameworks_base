@@ -739,6 +739,15 @@ public class ActivityStackSupervisor extends ConfigurationContainer implements D
             recentsStack.moveToFront(reason);
         }
     }
+    // region @boringdroid
+    void moveRecentsStackToBack(String reason) {
+        final ActivityStack recentsStack = getDefaultDisplay().getStack(
+                WINDOWING_MODE_UNDEFINED, ACTIVITY_TYPE_RECENTS);
+        if (recentsStack != null) {
+            recentsStack.moveToBack(reason, null);
+        }
+    }
+    // endregion
 
     /** Returns true if the focus activity was adjusted to the home stack top activity. */
     boolean moveHomeStackTaskToTop(String reason) {
@@ -2316,8 +2325,12 @@ public class ActivityStackSupervisor extends ConfigurationContainer implements D
 
         final ActivityRecord prev = topRunningActivityLocked();
 
-        if ((flags & ActivityManager.MOVE_TASK_WITH_HOME) != 0
-                || (prev != null && prev.isActivityTypeRecents())) {
+        // region @boringdroid
+        // We only move home stack to from if the task wants to move task with home.
+        if ((flags & ActivityManager.MOVE_TASK_WITH_HOME) != 0) {
+        // if ((flags & ActivityManager.MOVE_TASK_WITH_HOME) != 0
+        //         || (prev != null && prev.isActivityTypeRecents())) {
+        // endregion
             // Caller wants the home activity moved with it or the previous task is recents in which
             // case we always return home from the task we are moving to the front.
             moveHomeStackToFront("findTaskToMoveToFront");
@@ -4854,7 +4867,17 @@ public class ActivityStackSupervisor extends ConfigurationContainer implements D
                 // We always want to return to the home activity instead of the recents activity
                 // from whatever is started from the recents activity, so move the home stack
                 // forward.
-                moveHomeStackToFront("startActivityFromRecents");
+                // region @boringdroid
+                // We only move the home stack forward for split screen. We don't do it for
+                // fullscreen or freeform activity. For other windowing mode activity, we should
+                // consider this check logic when encountering rigid problem.
+                // moveHomeStackToFront("startActivityFromRecents");
+                if (windowingMode == WINDOWING_MODE_SPLIT_SCREEN_SECONDARY) {
+                    moveHomeStackToFront("startActivityFromRecents");
+                } else {
+                    moveRecentsStackToBack("startActivityFromRecents");
+                }
+                // endregion
             }
 
             // If the user must confirm credentials (e.g. when first launching a work app and the

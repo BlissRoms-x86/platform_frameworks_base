@@ -1055,7 +1055,11 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
             }
         }
 
-        if (!isActivityTypeHome() && returnsToHomeStack()) {
+        // region @boringdroid
+        // if (!isActivityTypeHome() && returnsToHomeStack()) {
+        // We don't need to move to home stack after recents finished.
+        if (!isActivityTypeHome() && !isActivityTypeRecents() && returnsToHomeStack()) {
+        // endregion
             // Make sure the home stack is behind this stack since that is where we should return to
             // when this stack is no longer visible.
             mStackSupervisor.moveHomeStackToFront(reason + " returnToHome");
