@@ -3117,7 +3117,7 @@ public class ActivityStackSupervisor extends ConfigurationContainer implements D
                             null : tr.realActivity.flattenToShortString();
             android.provider.Settings.Secure.putStringForUser(
                     service.mContext.getContentResolver(),
-                    "cobra_app_state_remove_task",
+                    "boring_app_state_remove_task",
                     "orig:" + origActivity + ";real:" + realActivity + ";id:" + tr.taskId,
                     userInfo != null ? userInfo.id : 0
             );

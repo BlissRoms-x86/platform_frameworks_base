@@ -927,7 +927,7 @@ class RecentTasks {
                                     null : task.realActivity.flattenToShortString();
                     android.provider.Settings.Secure.putStringForUser(
                             service.mContext.getContentResolver(),
-                            "cobra_app_state_top_task",
+                            "boring_app_state_top_task",
                             "orig:" + origActivity + ";real:" + realActivity + ";id:" + task.taskId,
                             userInfo != null ? userInfo.id : 0
                     );
@@ -972,7 +972,7 @@ class RecentTasks {
                             null : task.realActivity.flattenToShortString();
             android.provider.Settings.Secure.putStringForUser(
                     service.mContext.getContentResolver(),
-                    "cobra_app_state_add_task",
+                    "boring_app_state_add_task",
                     "orig:" + origActivity + ";real:" + realActivity + ";id:" + task.taskId,
                     userInfo != null ? userInfo.id : 0
             );
