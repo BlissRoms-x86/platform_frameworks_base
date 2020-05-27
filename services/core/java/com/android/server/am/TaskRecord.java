@@ -563,7 +563,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
                     && !savedBounds.isEmpty()
                     && packageName != null) {
                 WindowManagerService
-                        .getCobraInstance()
+                        .getBoringInstance()
                         .savePackageWindowBounds(packageName, savedBounds);
             }
             // endregion
@@ -593,7 +593,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
                 && !savedBounds.isEmpty()
                 && packageName != null) {
             WindowManagerService
-                    .getCobraInstance()
+                    .getBoringInstance()
                     .savePackageWindowBounds(packageName, savedBounds);
         }
         // endregion
@@ -1952,7 +1952,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
             mLastNonFullscreenBounds =
                     packageName != null ?
                             WindowManagerService
-                                    .getCobraInstance()
+                                    .getBoringInstance()
                                     .getPackageWindowBounds(packageName)
                             : new Rect();
             if (!mLastNonFullscreenBounds.isEmpty()) {

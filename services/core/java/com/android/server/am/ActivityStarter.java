@@ -83,7 +83,6 @@ import android.app.IApplicationThread;
 import android.app.PendingIntent;
 import android.app.ProfilerInfo;
 import android.app.WaitResult;
-import android.app.WindowConfiguration;
 import android.content.IIntentSender;
 import android.content.Intent;
 import android.content.IntentSender;
@@ -1290,7 +1289,7 @@ class ActivityStarter {
         if (mOptions.getLaunchWindowingMode() == WINDOWING_MODE_UNDEFINED) {
             mOptions.setLaunchWindowingMode(
                     WindowManagerService
-                            .getCobraInstance()
+                            .getBoringInstance()
                             .getPackageWindowingMode(mStartActivity.info.packageName)
             );
         }
