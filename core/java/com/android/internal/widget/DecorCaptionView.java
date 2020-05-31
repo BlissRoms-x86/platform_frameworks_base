@@ -353,12 +353,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
      **/
     private void updateCaptionVisibility() {
         // Don't show the caption if the window has e.g. entered full screen.
-        // region @boringdroid
-        // boolean invisible = isFillingScreen() || !mShow;
-        // We disable the checking for system ui visibility now, before supporting caption view
-        // shows over the window with automatic disappear feature.
-        boolean invisible = false;
-        // endregion
+        boolean invisible = isFillingScreen() || !mShow;
         mCaption.setVisibility(invisible ? GONE : VISIBLE);
         mCaption.setOnTouchListener(this);
     }
