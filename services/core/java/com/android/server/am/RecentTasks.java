@@ -916,22 +916,6 @@ class RecentTasks {
                     mTasks.remove(taskIndex);
                     mTasks.add(0, task);
                     notifyTaskPersisterLocked(task, false);
-                    // region @boringdroid
-                    ActivityManagerService service = mService;
-                    UserInfo userInfo = service.getCurrentUser();
-                    String origActivity =
-                            task.origActivity == null
-                                    ? null : task.origActivity.flattenToShortString();
-                    String realActivity =
-                            task.realActivity == null ?
-                                    null : task.realActivity.flattenToShortString();
-                    android.provider.Settings.Secure.putStringForUser(
-                            service.mContext.getContentResolver(),
-                            "boring_app_state_top_task",
-                            "orig:" + origActivity + ";real:" + realActivity + ";id:" + task.taskId,
-                            userInfo != null ? userInfo.id : 0
-                    );
-                    // endregion
                     if (DEBUG_RECENTS) Slog.d(TAG_RECENTS, "addRecent: moving to top " + task
                             + " from " + taskIndex);
                     return;
@@ -961,22 +945,6 @@ class RecentTasks {
             // handle it as part of an affilated task, then just place it at the top.
             mTasks.add(0, task);
             notifyTaskAdded(task);
-            // region @boringdroid
-            ActivityManagerService service = mService;
-            UserInfo userInfo = service.getCurrentUser();
-            String origActivity =
-                    task.origActivity == null
-                            ? null : task.origActivity.flattenToShortString();
-            String realActivity =
-                    task.realActivity == null ?
-                            null : task.realActivity.flattenToShortString();
-            android.provider.Settings.Secure.putStringForUser(
-                    service.mContext.getContentResolver(),
-                    "boring_app_state_add_task",
-                    "orig:" + origActivity + ";real:" + realActivity + ";id:" + task.taskId,
-                    userInfo != null ? userInfo.id : 0
-            );
-            // endregion
             if (DEBUG_RECENTS) Slog.d(TAG_RECENTS, "addRecent: adding " + task);
         } else if (isAffiliated) {
             // If this is a new affiliated task, then move all of the affiliated tasks

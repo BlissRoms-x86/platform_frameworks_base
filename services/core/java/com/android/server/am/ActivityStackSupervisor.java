@@ -3106,22 +3106,6 @@ public class ActivityStackSupervisor extends ConfigurationContainer implements D
         if (tr != null) {
             tr.removeTaskActivitiesLocked(pauseImmediately, reason);
             cleanUpRemovedTaskLocked(tr, killProcess, removeFromRecents);
-            // region @boringdroid
-            ActivityManagerService service = mService;
-            UserInfo userInfo = service.getCurrentUser();
-            String origActivity =
-                    tr.origActivity == null
-                            ? null : tr.origActivity.flattenToShortString();
-            String realActivity =
-                    tr.realActivity == null ?
-                            null : tr.realActivity.flattenToShortString();
-            android.provider.Settings.Secure.putStringForUser(
-                    service.mContext.getContentResolver(),
-                    "boring_app_state_remove_task",
-                    "orig:" + origActivity + ";real:" + realActivity + ";id:" + tr.taskId,
-                    userInfo != null ? userInfo.id : 0
-            );
-            // endregion
             mService.getLockTaskController().clearLockedTask(tr);
             if (tr.isPersistable) {
                 mService.notifyTaskPersisterLocked(null, true);
