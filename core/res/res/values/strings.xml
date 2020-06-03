@@ -4695,6 +4695,7 @@
     <string name="maximize_button_text">Maximize</string>
     <!-- region @boringdroid -->
     <string name="minimize_button_text">Minimize</string>
+    <string name="back_button_text">Back</string>
     <!-- endregion -->
     <!-- Accessibility text for the close window button -->
     <string name="close_button_text">Close</string>

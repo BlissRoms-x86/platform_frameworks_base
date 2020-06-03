@@ -17,8 +17,6 @@
 package com.android.internal.widget;
 
 import android.app.Activity;
-import android.app.ActivityManager;
-import android.app.WindowConfiguration;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Rect;
@@ -107,6 +105,12 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     private final Rect mCloseRect = new Rect();
     private final Rect mMaximizeRect = new Rect();
     private View mClickTarget;
+    // region @boringdroid
+    private View mBack;
+    private View mMinimize;
+    private final Rect mBackRect = new Rect();
+    private final Rect mMinimizeRect = new Rect();
+    // endregion
 
     public DecorCaptionView(Context context) {
         super(context);
@@ -147,10 +151,11 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         // By changing the outline provider to BOUNDS, the window can remove its
         // background without removing the shadow.
         mOwner.getDecorView().setOutlineProvider(ViewOutlineProvider.BOUNDS);
-        mMaximize = findViewById(R.id.maximize_window);
         // region @boringdroid
+        mBack = findViewById(R.id.back_window);
         mMinimize = findViewById(R.id.minimize_window);
         // endregion
+        mMaximize = findViewById(R.id.maximize_window);
         mClose = findViewById(R.id.close_window);
     }
 
@@ -161,14 +166,17 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             final int x = (int) ev.getX();
             final int y = (int) ev.getY();
-            if (mMaximizeRect.contains(x, y)) {
-                mClickTarget = mMaximize;
-            }
             // region @boringdroid
+            if (mBackRect.contains(x, y)) {
+                mClickTarget = mBack;
+            }
             if (mMinimizeRect.contains(x, y)) {
                 mClickTarget = mMinimize;
             }
             // endregion
+            if (mMaximizeRect.contains(x, y)) {
+                mClickTarget = mMaximize;
+            }
             if (mCloseRect.contains(x, y)) {
                 mClickTarget = mClose;
             }
@@ -310,10 +318,11 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         if (mCaption.getVisibility() != View.GONE) {
             mCaption.layout(0, 0, mCaption.getMeasuredWidth(), mCaption.getMeasuredHeight());
             captionHeight = mCaption.getBottom() - mCaption.getTop();
-            mMaximize.getHitRect(mMaximizeRect);
             // region @boringdroid
+            mBack.getHitRect(mBackRect);
             mMinimize.getHitRect(mMinimizeRect);
             // endregion
+            mMaximize.getHitRect(mMaximizeRect);
             mClose.getHitRect(mCloseRect);
         } else {
             captionHeight = 0;
@@ -334,7 +343,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         // region @boringdroid
         // mOwner.notifyRestrictedCaptionAreaCallback(mMaximize.getLeft(), mMaximize.getTop(),
         //         mClose.getRight(), mClose.getBottom());
-        mOwner.notifyRestrictedCaptionAreaCallback(mMinimize.getLeft(), mMinimize.getTop(),
+        mOwner.notifyRestrictedCaptionAreaCallback(mBack.getLeft(), mBack.getTop(),
                 mClose.getRight(), mClose.getBottom());
         // endregion
     }
@@ -428,6 +437,14 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     @Override
     public boolean onSingleTapUp(MotionEvent e) {
         // region @boringdroid
+        if (mClickTarget == mBack) {
+            Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+            if (callback instanceof Activity) {
+                Activity activity = (Activity) callback;
+                activity.onBackPressed();
+            }
+            return true;
+        }
         if (mClickTarget == mMinimize) {
             Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
             if (callback instanceof Activity) {
@@ -460,22 +477,4 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
     public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
         return false;
     }
-    // region @boringdroid
-    private View mMinimize;
-    private final Rect mMinimizeRect = new Rect();
-
-
-    /** @hide */
-    public boolean inFullScreenMode() {
-        if (mOwner == null) {
-            return true;
-        }
-        Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
-        if (callback instanceof Activity) {
-            Activity activity = (Activity) callback;
-            return !activity.isInMultiWindowMode();
-        }
-        return true;
-    }
-    // endregion
 }
