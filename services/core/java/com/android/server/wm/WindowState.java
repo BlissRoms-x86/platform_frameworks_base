@@ -943,7 +943,17 @@ class WindowState extends WindowContainer<WindowState> implements WindowManagerP
                         && mContainingFrame.bottom > contentFrame.bottom) {
                     // In freeform we want to move the top up directly.
                     // TODO: Investigate why this is contentFrame not parentFrame.
-                    mContainingFrame.top -= mContainingFrame.bottom - contentFrame.bottom;
+                    // region @boringdroid
+                    // Make sure freeform doesn't jump upper over visible frame, and keep
+                    // decor view to show when IME is showing.
+                    final int bottomOverlap = mContainingFrame.bottom - mVisibleFrame.bottom;
+                    if (bottomOverlap > 0) {
+                        final int distanceToTop = Math.max(mContainingFrame.top - mDisplayFrame.top, 0);
+                        int offsets = Math.min(bottomOverlap, distanceToTop);
+                        mContainingFrame.top -= offsets;
+                    }
+                    // mContainingFrame.top -= mContainingFrame.bottom - contentFrame.bottom;
+                    // endregion
                 } else if (!inPinnedWindowingMode()
                         && mContainingFrame.bottom > parentFrame.bottom) {
                     // But in docked we want to behave like fullscreen and behave as if the task
