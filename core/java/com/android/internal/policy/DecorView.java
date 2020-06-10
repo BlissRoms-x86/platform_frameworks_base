@@ -2244,6 +2244,12 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
             mElevationAdjustedForStack = false;
         }
 
+        // region @boringdroid
+        if ((windowingMode == WINDOWING_MODE_FREEFORM) && isResizing()) {
+            elevation = dipToPx(DECOR_SHADOW_FOCUSED_HEIGHT_IN_DIP);
+            mElevationAdjustedForStack = true;
+        }
+        // endregion
         // Don't change the elevation if we didn't previously adjust it for the stack it was in
         // or it didn't change.
         if ((wasAdjustedForStack || mElevationAdjustedForStack)

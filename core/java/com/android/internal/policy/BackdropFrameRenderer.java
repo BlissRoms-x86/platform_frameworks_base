@@ -331,8 +331,17 @@ public class BackdropFrameRenderer extends Thread implements Choreographer.Frame
 
         // Since the surface is spanning the entire screen, we have to add the start offset of
         // the bounds to get to the surface location.
-        final int left = mLastXOffset + newBounds.left;
-        final int top = mLastYOffset + newBounds.top;
+        // region @boringdroid
+        // In FrameBuilder.cpp, the system will calculate the distance between content
+        // drawing bound and back drop frame bounds, and translate content drawing bounds
+        // to back drop left and top position to draw it, what will cause another content
+        // jumps. So we should keep the left and top position with content drawing bounds
+        // to avoid another part content jumps.
+        // final int left = mLastXOffset + newBounds.left;
+        // final int top = mLastYOffset + newBounds.top;
+        final int left = mLastXOffset;
+        final int top = mLastYOffset;
+        // endregion
         final int width = newBounds.width();
         final int height = newBounds.height();
 

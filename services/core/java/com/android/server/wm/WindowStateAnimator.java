@@ -809,6 +809,11 @@ class WindowStateAnimator {
             return false;
         }
 
+        // region @boringdroid
+        if (w.inFreeformWindowingMode()) {
+            return false;
+        }
+        // endregion
         // If we're animating, the wallpaper should only
         // be updated at the end of the animation.
         if (w.mAttrs.type == TYPE_WALLPAPER) {
