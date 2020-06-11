@@ -1024,7 +1024,12 @@ public class Activity extends ContextThemeWrapper
         public boolean moveTaskToBack(boolean nonRoot) {
             return ActivityClient.getInstance().moveActivityTaskToBack(mToken, nonRoot);
         }
-
+        // region @boringdroid
+        // @Override
+        public void onBackPressed() {
+            Activity.this.onBackPressed();
+        }
+        // endregion
     };
 
     private static native String getDlWarning();
