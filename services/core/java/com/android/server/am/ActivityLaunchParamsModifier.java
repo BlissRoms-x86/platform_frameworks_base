@@ -49,7 +49,13 @@ public class ActivityLaunchParamsModifier implements LaunchParamsModifier {
             return RESULT_SKIP;
         }
 
-        final Rect bounds = options.getLaunchBounds();
+        // region @boringdroid
+        // Leave window bounds to wms/ams, and ignore launch bounds from starter.
+        // The starter doesn't know the current window bounds after resizing, so launch
+        // bounds will reset freeform window bounds to the default state.
+        // final Rect bounds = options.getLaunchBounds();
+        final Rect bounds = null;
+        // endregion
 
         // Bounds weren't valid.
         if (bounds == null || bounds.isEmpty()) {
