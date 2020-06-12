@@ -550,22 +550,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
             mWindowContainerController.resize(kept, forced);
             // region @boringdroid
             // After window resizes its bounds(real resize and move), we should save the window bounds.
-            Rect savedBounds = new Rect();
-            mWindowContainerController.getBounds(savedBounds);
-            String packageName = null;
-            if (realActivity != null) {
-                packageName = realActivity.getPackageName();
-            } else if (getRootActivity() != null) {
-                packageName = getRootActivity().packageName;
-            }
-            if (mStack != null
-                    && mStack.getWindowingMode() == WINDOWING_MODE_FREEFORM
-                    && !savedBounds.isEmpty()
-                    && packageName != null) {
-                WindowManagerService
-                        .getBoringInstance()
-                        .savePackageWindowBounds(packageName, savedBounds);
-            }
+            saveTaskBounds();
             // endregion
 
             Trace.traceEnd(TRACE_TAG_ACTIVITY_MANAGER);
@@ -580,6 +565,11 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
         mWindowContainerController.resize(false /* relayout */, false /* forced */);
         // region @boringdroid
         // After window resizes its bounds(real resize and move), we should save the window bounds.
+        saveTaskBounds();
+        // endregion
+    }
+    // region @boringdroid
+    private void saveTaskBounds() {
         Rect savedBounds = new Rect();
         mWindowContainerController.getBounds(savedBounds);
         String packageName = null;
@@ -593,11 +583,11 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
                 && !savedBounds.isEmpty()
                 && packageName != null) {
             WindowManagerService
-                    .getBoringInstance()
+                    .getWMSInstance()
                     .savePackageWindowBounds(packageName, savedBounds);
         }
-        // endregion
     }
+    // endregion
 
     void getWindowContainerBounds(Rect bounds) {
         mWindowContainerController.getBounds(bounds);
@@ -1798,10 +1788,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
         final boolean persistBounds = getWindowConfiguration().persistTaskBounds();
         if (matchParentBounds) {
             if (!currentBounds.isEmpty() && persistBounds) {
-                // region @boringdroid
-                // mLastNonFullscreenBounds = currentBounds;
-                mLastNonFullscreenBounds = new Rect(currentBounds);
-                // endregion
+                mLastNonFullscreenBounds = currentBounds;
             }
             setBounds(null);
             newConfig.unset();
@@ -1811,10 +1798,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
             setBounds(mTmpRect);
 
             if (mStack == null || persistBounds) {
-                // region @boringdroid
-                // mLastNonFullscreenBounds = getOverrideBounds();
-                mLastNonFullscreenBounds = new Rect(getOverrideBounds());
-                // endregion
+                mLastNonFullscreenBounds = getOverrideBounds();
             }
             computeOverrideConfiguration(newConfig, mTmpRect, insetBounds,
                     mTmpRect.right != bounds.right, mTmpRect.bottom != bounds.bottom);
@@ -1952,7 +1936,7 @@ class TaskRecord extends ConfigurationContainer implements TaskWindowContainerLi
             mLastNonFullscreenBounds =
                     packageName != null ?
                             WindowManagerService
-                                    .getBoringInstance()
+                                    .getWMSInstance()
                                     .getPackageWindowBounds(packageName)
                             : new Rect();
             if (!mLastNonFullscreenBounds.isEmpty()) {

@@ -1289,7 +1289,7 @@ class ActivityStarter {
         if (mOptions.getLaunchWindowingMode() == WINDOWING_MODE_UNDEFINED) {
             mOptions.setLaunchWindowingMode(
                     WindowManagerService
-                            .getBoringInstance()
+                            .getWMSInstance()
                             .getPackageWindowingMode(mStartActivity.info.packageName)
             );
         }

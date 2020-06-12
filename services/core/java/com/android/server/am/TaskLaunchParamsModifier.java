@@ -16,7 +16,6 @@
 
 package com.android.server.am;
 
-import static android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM;
 import static com.android.server.am.ActivityManagerDebugConfig.TAG_AM;
 import static com.android.server.am.ActivityManagerDebugConfig.TAG_WITH_CLASS_NAME;
 
@@ -95,7 +94,7 @@ class TaskLaunchParamsModifier implements LaunchParamsModifier {
         if (layout == null) {
             // region @boringdroid
             // For freeform window, we should use its launch bounds instead of recauclate its bounds.
-            if (task.getWindowingMode() == WINDOWING_MODE_FREEFORM) {
+            if (task.inFreeformWindowingMode()) {
                 task.updateOverrideConfiguration(task.getLaunchBounds());
                 return RESULT_CONTINUE;
             }
@@ -128,7 +127,7 @@ class TaskLaunchParamsModifier implements LaunchParamsModifier {
                     + ", positioning in the center instead.");
             // region @boringdroid
             // For freeform window, we should use its launch bounds instead of recauclate its bounds.
-            if (task.getWindowingMode() == WINDOWING_MODE_FREEFORM) {
+            if (task.inFreeformWindowingMode()) {
                 task.updateOverrideConfiguration(task.getLaunchBounds());
                 return RESULT_CONTINUE;
             }
