@@ -362,7 +362,14 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
      **/
     private void updateCaptionVisibility() {
         // Don't show the caption if the window has e.g. entered full screen.
-        boolean invisible = isFillingScreen() || !mShow;
+        // region @boringdroid
+        // If mShow is true, the window is in freeform window, because only freeform
+        // window can show decor caption. In freeform window mode, we should ignore
+        // system ui visibility. If we consider it, the decor caption will dismiss
+        // if we resize window with fullscreen system ui visibility, such as Clock.
+        // boolean invisible = isFillingScreen() || !mShow;
+        boolean invisible = !mShow;
+        // endregion
         mCaption.setVisibility(invisible ? GONE : VISIBLE);
         mCaption.setOnTouchListener(this);
     }
