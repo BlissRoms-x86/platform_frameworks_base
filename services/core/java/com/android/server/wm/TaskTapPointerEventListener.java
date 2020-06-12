@@ -104,6 +104,22 @@ public class TaskTapPointerEventListener implements PointerEventListener {
                 }
             }
             break;
+
+            // region @boringdroid
+            // We should reset pointer icon type when hover exit task. If we start freeform
+            // window from Taskbar, and move pointer to resize region, the pointer type will
+            // change to TYPE_*_DOUBLE_ARROW, but when we move pointer outer freeform window
+            // resize region, the pointer type will keep to TYPE_*_DOUBLE_ARROW. The reset
+            // operation will help to fix this problem.
+            case MotionEvent.ACTION_HOVER_EXIT: {
+                mPointerIconType = TYPE_NOT_SPECIFIED;
+                final int x = (int) motionEvent.getX();
+                final int y = (int) motionEvent.getY();
+                mService.mH.obtainMessage(H.RESTORE_POINTER_ICON,
+                        x, y, mDisplayContent).sendToTarget();
+            }
+            break;
+            // endregion
         }
     }
 
