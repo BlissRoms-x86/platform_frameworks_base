@@ -7878,6 +7878,9 @@ public class WindowManagerService extends IWindowManager.Stub
         if (packageName == null) {
             return false;
         }
+        if (packageName.equals("android")) {
+            return true;
+        }
         if (packageName.contains("com.android.systemui")) {
             return true;
         }
