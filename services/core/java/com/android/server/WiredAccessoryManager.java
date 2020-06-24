@@ -186,6 +186,14 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
                     headset = BIT_HEADSET;
                     break;
 
+                case SW_HEADPHONE_INSERT_BIT | SW_LINEOUT_INSERT_BIT:
+                    headset = BIT_HEADSET;
+                    break;
+
+                case SW_HEADPHONE_INSERT_BIT | SW_LINEOUT_INSERT_BIT | SW_MICROPHONE_INSERT_BIT:
+                    headset = BIT_HEADSET;
+                    break;
+
                 default:
                     headset = 0;
                     break;
@@ -473,11 +481,11 @@ final class WiredAccessoryManager implements WiredAccessoryCallbacks {
             //
             // If the kernel does not have an "hdmi_audio" switch, just fall back on the older
             // "hdmi" switch instead.
-            uei = new UEventInfo(NAME_HDMI_AUDIO, BIT_HDMI_AUDIO, 0, 0);
+            uei = new UEventInfo(NAME_HDMI_AUDIO, BIT_HDMI_AUDIO, BIT_LINEOUT, 0);
             if (uei.checkSwitchExists()) {
                 retVal.add(uei);
             } else {
-                uei = new UEventInfo(NAME_HDMI, BIT_HDMI_AUDIO, 0, 0);
+                uei = new UEventInfo(NAME_HDMI, BIT_HDMI_AUDIO, BIT_LINEOUT, 0);
                 if (uei.checkSwitchExists()) {
                     retVal.add(uei);
                 } else {
