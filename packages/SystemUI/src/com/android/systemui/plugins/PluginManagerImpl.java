@@ -43,6 +43,7 @@ import android.widget.Toast;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.messages.nano.SystemMessageProto.SystemMessage;
+import com.android.systemui.BoringdroidConfig;
 import com.android.systemui.Dependency;
 import com.android.systemui.plugins.PluginInstanceManager.PluginContextWrapper;
 import com.android.systemui.plugins.PluginInstanceManager.PluginInfo;
@@ -92,7 +93,7 @@ public class PluginManagerImpl extends BroadcastReceiver implements PluginManage
         // region @boringdroid
         // We enable the plugin manager despite of the debuggable flag.
         // isDebuggable = debuggable;
-        isDebuggable = true;
+        isDebuggable = BoringdroidConfig.IS_SYSTEMUI_PLUGIN_ENABLED;
         // endreigon
         mPluginPrefs = new PluginPrefs(mContext);
 
