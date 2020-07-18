@@ -150,7 +150,10 @@ public class NavigationBarInflaterView extends FrameLayout
         final int defaultResource = mOverviewProxyService.shouldShowSwipeUpUI()
                 ? R.string.config_navBarLayoutQuickstep
                 : R.string.config_navBarLayout;
-        return mContext.getString(defaultResource);
+        // region @boringdroid
+        // return mContext.getString(defaultResource);
+        return mContext.getString(R.string.boring_config_navBarLayout);
+        // endregion
     }
 
     @Override
@@ -429,6 +432,17 @@ public class NavigationBarInflaterView extends FrameLayout
                 }
             }
         }
+        // region @boringdroid
+        if (v instanceof KeyButtonView) {
+            ViewGroup.LayoutParams layoutParams = v.getLayoutParams();
+            layoutParams.width =
+                    (int) v.getContext()
+                            .getResources()
+                            .getDimension(R.dimen.boring_navigation_key_width);
+            v.setLayoutParams(layoutParams);
+            v.setPadding(0, v.getPaddingTop(), 0, v.getPaddingBottom());
+        }
+        // endregion
         return v;
     }
 
