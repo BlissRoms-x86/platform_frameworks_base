@@ -1901,6 +1901,9 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
             // Configuration now requires a caption.
             final LayoutInflater inflater = mWindow.getLayoutInflater();
             mDecorCaptionView = createDecorCaptionView(inflater);
+            // region @boringdroid
+            updateWindowCorner();
+            // endregion
             if (mDecorCaptionView != null) {
                 if (mDecorCaptionView.getParent() == null) {
                     addView(mDecorCaptionView, 0,
@@ -1930,6 +1933,9 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         }
 
         mDecorCaptionView = createDecorCaptionView(inflater);
+        // region @boringdroid
+        updateWindowCorner();
+        // endregion
         final View root = inflater.inflate(layoutResource, null);
         if (mDecorCaptionView != null) {
             if (mDecorCaptionView.getParent() == null) {
@@ -2036,6 +2042,28 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
     }
 
     // region @boringdroid
+    private void updateWindowCorner() {
+        if (mDecorCaptionView == null) {
+            setClipToOutline(false);
+            setOutlineProvider(null);
+        } else {
+            setOutlineProvider(new ViewOutlineProvider() {
+                @Override
+                public void getOutline(View view, Outline outline) {
+                    float cornerRadiusDP = 8f;
+                    float cornerRadius =
+                            TypedValue
+                                    .applyDimension(
+                                            TypedValue.COMPLEX_UNIT_DIP,
+                                            cornerRadiusDP,
+                                            getResources().getDisplayMetrics()
+                                    );
+                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadius);
+                }
+            });
+            setClipToOutline(true);
+        }
+    }
     /** @hide */
     // void updateDecorCaptionShade() {
     public void updateDecorCaptionShade() {
