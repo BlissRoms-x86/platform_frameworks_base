@@ -703,4 +703,7 @@
     <dimen name="harmful_app_message_padding_bottom">24dp</dimen>
     <!-- Line spacing modifier for the message field of the harmful app dialog -->
     <item name="harmful_app_message_line_spacing_modifier" type="dimen">1.22</item>
+    <!-- region @boringdroid -->
+    <item name="decor_corner_radius" type="dimen">8dp</item>
+    <!-- endregion -->
 </resources>

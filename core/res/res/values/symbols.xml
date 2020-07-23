@@ -2247,6 +2247,7 @@
   <java-symbol type="drawable" name="decor_minimize_button_light" />
   <java-symbol type="drawable" name="decor_back_button_dark" />
   <java-symbol type="drawable" name="decor_back_button_light" />
+  <java-symbol type="dimen" name="decor_corner_radius" />
   <!-- endregion -->
   <java-symbol type="drawable" name="decor_pip_button_dark" />
   <java-symbol type="drawable" name="decor_pip_button_light" />

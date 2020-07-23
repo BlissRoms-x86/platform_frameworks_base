@@ -252,6 +252,15 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
     private final Paint mVerticalResizeShadowPaint = new Paint();
     private final Paint mHorizontalResizeShadowPaint = new Paint();
 
+    // region @boringdroid
+    private float mWindowCornerRadius = 8;
+    private ViewOutlineProvider mWindowOutline = new ViewOutlineProvider() {
+        @Override
+        public void getOutline(View view, Outline outline) {
+            outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), mWindowCornerRadius);
+        }
+    };
+    // endregion
     DecorView(Context context, int featureId, PhoneWindow window,
             WindowManager.LayoutParams params) {
         super(context);
@@ -279,6 +288,9 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
         mResizeShadowSize = context.getResources().getDimensionPixelSize(
                 R.dimen.resize_shadow_size);
         initResizingPaints();
+        // region @boringdroid
+        mWindowCornerRadius = context.getResources().getDimension(R.dimen.decor_corner_radius);
+        // endregion
     }
 
     void setBackgroundFallback(int resId) {
@@ -2047,20 +2059,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
             setClipToOutline(false);
             setOutlineProvider(null);
         } else {
-            setOutlineProvider(new ViewOutlineProvider() {
-                @Override
-                public void getOutline(View view, Outline outline) {
-                    float cornerRadiusDP = 8f;
-                    float cornerRadius =
-                            TypedValue
-                                    .applyDimension(
-                                            TypedValue.COMPLEX_UNIT_DIP,
-                                            cornerRadiusDP,
-                                            getResources().getDisplayMetrics()
-                                    );
-                    outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), cornerRadius);
-                }
-            });
+            setOutlineProvider(mWindowOutline);
             setClipToOutline(true);
         }
     }
