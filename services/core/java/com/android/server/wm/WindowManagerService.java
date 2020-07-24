@@ -7823,6 +7823,10 @@ public class WindowManagerService extends IWindowManager.Stub
                     + ", before file is ready");
             return WindowConfiguration.WINDOWING_MODE_UNDEFINED;
         }
+        // We only enable freeform when systemui plugin enabled.
+        if (!SystemProperties.getBoolean("persist.sys.systemuiplugin.enabled", false)) {
+            return WindowConfiguration.WINDOWING_MODE_UNDEFINED;
+        }
         // If the package is in the multi window black list, it will run in default
         // windowing mode.
         if (isInMultiWindowBlackList(packageName)) {

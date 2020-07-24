@@ -15353,14 +15353,10 @@ public class ActivityManagerService extends IActivityManager.Stub
 
     private void retrieveSettings() {
         final ContentResolver resolver = mContext.getContentResolver();
-        // region @boringdroid
-        // final boolean freeformWindowManagement =
-        //         mContext.getPackageManager().hasSystemFeature(FEATURE_FREEFORM_WINDOW_MANAGEMENT)
-        //                 || Settings.Global.getInt(
-        //                         resolver, DEVELOPMENT_ENABLE_FREEFORM_WINDOWS_SUPPORT, 0) != 0;
         final boolean freeformWindowManagement =
-                mContext.getPackageManager().hasSystemFeature(FEATURE_FREEFORM_WINDOW_MANAGEMENT);
-        // endregion
+                mContext.getPackageManager().hasSystemFeature(FEATURE_FREEFORM_WINDOW_MANAGEMENT)
+                        || Settings.Global.getInt(
+                                resolver, DEVELOPMENT_ENABLE_FREEFORM_WINDOWS_SUPPORT, 0) != 0;
 
         final boolean supportsMultiWindow = ActivityManager.supportsMultiWindow(mContext);
         final boolean supportsPictureInPicture = supportsMultiWindow &&
@@ -15377,7 +15373,9 @@ public class ActivityManagerService extends IActivityManager.Stub
         // region @boringdroid
         // final boolean forceResizable = Settings.Global.getInt(
         //         resolver, DEVELOPMENT_FORCE_RESIZABLE_ACTIVITIES, 0) != 0;
-        final boolean forceResizable = true;
+        final boolean forceResizable =
+                Settings.Global.getInt(resolver, DEVELOPMENT_FORCE_RESIZABLE_ACTIVITIES, 0) != 0
+                        || SystemProperties.getBoolean("persist.sys.systemuiplugin.enabled", false);
         // endregion
         final long waitForNetworkTimeoutMs = Settings.Global.getLong(resolver,
                 NETWORK_ACCESS_TIMEOUT_MS, NETWORK_ACCESS_TIMEOUT_DEFAULT_MS);
