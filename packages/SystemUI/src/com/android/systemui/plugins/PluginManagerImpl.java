@@ -94,7 +94,7 @@ public class PluginManagerImpl extends BroadcastReceiver implements PluginManage
         // We enable the plugin manager despite of the debuggable flag.
         // isDebuggable = debuggable;
         isDebuggable = BoringdroidConfig.IS_SYSTEMUI_PLUGIN_ENABLED;
-        // endreigon
+        // endregion
         mPluginPrefs = new PluginPrefs(mContext);
 
         PluginExceptionHandler uncaughtExceptionHandler = new PluginExceptionHandler(
