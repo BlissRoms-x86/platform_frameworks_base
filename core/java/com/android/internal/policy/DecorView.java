@@ -88,7 +88,9 @@ import android.widget.PopupWindow;
 
 import static android.app.WindowConfiguration.PINNED_WINDOWING_MODE_ELEVATION_IN_DIP;
 import static android.app.WindowConfiguration.WINDOWING_MODE_FREEFORM;
+import static android.app.WindowConfiguration.WINDOWING_MODE_FULLSCREEN;
 import static android.app.WindowConfiguration.WINDOWING_MODE_PINNED;
+import static android.app.WindowConfiguration.WINDOWING_MODE_UNDEFINED;
 import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
 import static android.os.Build.VERSION_CODES.M;
 import static android.os.Build.VERSION_CODES.N;
@@ -365,7 +367,9 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
                     if (windowingMode == WINDOWING_MODE_FREEFORM && activity != null) {
                         activity.exitFreeformMode();
                         updateDecorCaptionShade();
-                    } else if (windowingMode != WINDOWING_MODE_FREEFORM && activity != null) {
+                    } else if ((windowingMode == WINDOWING_MODE_FULLSCREEN
+                            || windowingMode == WINDOWING_MODE_UNDEFINED)
+                            && activity != null) {
                         activity.enterFreeformMode();
                         updateDecorCaptionShade();
                     }

@@ -619,6 +619,14 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
                 if (windowingMode == WINDOWING_MODE_FREEFORM) {
                     if (topTask != null) {
                         // TODO: Can we consolidate this and other sites that call this methods?
+                        // region @boringdroid
+                        // If new windowingMode is freeform, we should reset
+                        // mLastNonFullscreenBounds to ensure getLaunchBounds to get correct
+                        // freeform bounds.
+                        if (topTask() != null) {
+                            topTask().mLastNonFullscreenBounds = null;
+                        }
+                        // endregion
                         Rect bounds = topTask().getLaunchBounds();
                         if (bounds != null) {
                             mTmpRect2.set(bounds);
@@ -630,7 +638,7 @@ class ActivityStack<T extends StackWindowController> extends ConfigurationContai
             // region @boringdroid
             // Current logic, if we change windowing mode from freeform to fullscreen, getOverrideBounds() will
             // return empty, the same as mTmpRect2, which doesn't trigger resize for window. So if current mode
-            // is freeform, and new mode is fullscreen, we should resize window forcibl to avoid rigid
+            // is freeform, and new mode is fullscreen, we should resize window forcibly to avoid rigid
             // rendering problem.
             if (mTmpRect2.isEmpty() && currentMode == WINDOWING_MODE_FREEFORM) {
                 resize(mTmpRect2, null /* tempTaskBounds */, null /* tempTaskInsetBounds */);
