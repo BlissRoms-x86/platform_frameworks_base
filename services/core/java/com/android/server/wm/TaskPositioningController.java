@@ -113,8 +113,6 @@ class TaskPositioningController {
                     // clicked freeform window will be the new focused task.
                     // Note: the input response is processed by InputFlinger, see the InputDispatcher's
                     // findTouchedWindowTargetsLocked to find the magic.
-                    // TODO If we click the empty space of launcher, we should clear the focused
-                    //   state of current freeform window.
                     List<Task> visibleTasks = displayContent.getVisibleTasks();
                     for(Task visibleTask : visibleTasks) {
                         if (visibleTask.mTaskId != taskId) {

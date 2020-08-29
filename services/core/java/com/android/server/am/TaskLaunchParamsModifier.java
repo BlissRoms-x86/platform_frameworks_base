@@ -93,7 +93,7 @@ class TaskLaunchParamsModifier implements LaunchParamsModifier {
 
         if (layout == null) {
             // region @boringdroid
-            // For freeform window, we should use its launch bounds instead of recauclate its bounds.
+            // For freeform window, we should use its launch bounds instead of recaculate its bounds.
             if (task.inFreeformWindowingMode()) {
                 task.updateOverrideConfiguration(task.getLaunchBounds());
                 return RESULT_CONTINUE;
@@ -126,7 +126,7 @@ class TaskLaunchParamsModifier implements LaunchParamsModifier {
             Slog.w(TAG, "Received unsupported gravity: " + layout.gravity
                     + ", positioning in the center instead.");
             // region @boringdroid
-            // For freeform window, we should use its launch bounds instead of recauclate its bounds.
+            // For freeform window, we should use its launch bounds instead of recaculate its bounds.
             if (task.inFreeformWindowingMode()) {
                 task.updateOverrideConfiguration(task.getLaunchBounds());
                 return RESULT_CONTINUE;

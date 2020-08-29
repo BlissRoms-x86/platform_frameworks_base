@@ -33,7 +33,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.Space;
 
-import com.android.systemui.BoringdroidConfig;
+import com.android.internal.BoringdroidManager;
 import com.android.systemui.Dependency;
 import com.android.systemui.OverviewProxyService;
 import com.android.systemui.R;
@@ -152,7 +152,7 @@ public class NavigationBarInflaterView extends FrameLayout
                 ? R.string.config_navBarLayoutQuickstep
                 : R.string.config_navBarLayout;
         // region @boringdroid
-        if (BoringdroidConfig.IS_SYSTEMUI_PLUGIN_ENABLED) {
+        if (BoringdroidManager.IS_SYSTEMUI_PLUGIN_ENABLED) {
             return mContext.getString(R.string.boring_config_navBarLayout);
         } else {
             return mContext.getString(defaultResource);
@@ -434,7 +434,7 @@ public class NavigationBarInflaterView extends FrameLayout
             }
         }
         // region @boringdroid
-        if (BoringdroidConfig.IS_SYSTEMUI_PLUGIN_ENABLED && v instanceof KeyButtonView) {
+        if (BoringdroidManager.IS_SYSTEMUI_PLUGIN_ENABLED && v instanceof KeyButtonView) {
             ViewGroup.LayoutParams layoutParams = v.getLayoutParams();
             layoutParams.width =
                     (int) v.getContext()

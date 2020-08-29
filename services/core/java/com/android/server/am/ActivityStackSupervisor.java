@@ -168,6 +168,7 @@ import android.util.TimeUtils;
 import android.util.proto.ProtoOutputStream;
 import android.view.Display;
 
+import com.android.internal.BoringdroidManager;
 import com.android.internal.annotations.GuardedBy;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.content.ReferrerIntent;
@@ -864,7 +865,11 @@ public class ActivityStackSupervisor extends ConfigurationContainer implements D
             packageName = intent.getComponent().getPackageName();
         }
         windowingMode = packageName == null
-                ? windowingMode : mWindowManager.getPackageWindowingMode(packageName);
+                ? windowingMode :
+                BoringdroidManager.getPackageWindowingMode(
+                        WindowManagerService.getWMSContext(),
+                        packageName
+                );
         if (windowingMode == WINDOWING_MODE_FREEFORM) {
             aOptions.setLaunchWindowingMode(windowingMode);
         }
