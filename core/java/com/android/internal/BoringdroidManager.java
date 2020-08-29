@@ -37,6 +37,7 @@ public class BoringdroidManager {
 
     private static final String PACKAGE_WINDOW_BOUNDS_NAME = "package-window-bounds";
     private static final String PACKAGE_WINDOWING_MODE_NAME = "package-windowing-mode";
+    private static final String PACKAGE_WINDOWING_MODE_OVERLAY_NAME = "package-windowing-mode-overlay";
     private static final List<String> DISALLOWED_LIST = new ArrayList<>();
     private static final String TAG = "BoringdroidConfig";
 
@@ -62,6 +63,13 @@ public class BoringdroidManager {
         return new File(
                 Environment.getDataSystemCeDirectory(UserHandle.myUserId())
                         + File.separator + PACKAGE_WINDOWING_MODE_NAME
+        );
+    }
+
+    private static File getPackageWindowingModeOverlayFile() {
+        return new File(
+                Environment.getDataSystemCeDirectory(UserHandle.myUserId())
+                        + File.separator + PACKAGE_WINDOWING_MODE_OVERLAY_NAME
         );
     }
 
@@ -93,6 +101,18 @@ public class BoringdroidManager {
                     + ", before file is ready");
             return WindowConfiguration.WINDOWING_MODE_UNDEFINED;
         }
+        // Okay, there is a checking chain for package windowing mode:
+        // 1. If pc mode is enabled, we should set all package to undefined, and let system
+        //    to calculate windowing mode based on package config.
+        // 2. If package is in our defined pc disallowed list, we should set it to undefined.
+        // 3. If package has windowing mode defined in overlay shared preferences, we should use
+        //    whatever defined in that file. The frameworks will not change it, and leave it to
+        //    other system apps or user. If you want to set specific package to specific windowing
+        //    mode, just to modify it with key for package name and int value for windowing mode,
+        //    based on WindowConfiguration definition.
+        // 4. If non of above, we will try to get windowing mode of package from saved shared
+        //    preferences, what will be modified when user changing window mode with shortcut
+        //    or decor caption bar. The default is WINDOWING_MODE_FREEFORM.
         if (!BoringdroidManager.isPCModeEnabled()) {
             return WindowConfiguration.WINDOWING_MODE_UNDEFINED;
         }
@@ -100,6 +120,17 @@ public class BoringdroidManager {
         // windowing mode.
         if (isInPCModeDisallowedList(packageName)) {
             return WindowConfiguration.WINDOWING_MODE_UNDEFINED;
+        }
+        SharedPreferences overlaySharedPreferences =
+                context.getSharedPreferences(
+                        getPackageWindowingModeOverlayFile(),
+                        Context.MODE_PRIVATE
+                );
+        int overlayWindowingMode = overlaySharedPreferences.getInt(packageName, -1);
+        Slog.d(TAG, "Found overlay windowing mode " + overlayWindowingMode
+                + ", for package " + packageName);
+        if (overlayWindowingMode != -1) {
+            return overlayWindowingMode;
         }
         SharedPreferences sharedPreferences =
                 context.getSharedPreferences(getPackageWindowingModeFile(), Context.MODE_PRIVATE);
