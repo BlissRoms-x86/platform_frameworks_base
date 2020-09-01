@@ -457,10 +457,6 @@ public class NavigationBarInflaterView extends FrameLayout
         // region @boringdroid
         if (BoringdroidManager.IS_SYSTEMUI_PLUGIN_ENABLED && v instanceof KeyButtonView) {
             ViewGroup.LayoutParams layoutParams = v.getLayoutParams();
-            layoutParams.width =
-                    (int) v.getContext()
-                            .getResources()
-                            .getDimension(R.dimen.boring_navigation_key_width);
             v.setLayoutParams(layoutParams);
             v.setPadding(0, v.getPaddingTop(), 0, v.getPaddingBottom());
         }
