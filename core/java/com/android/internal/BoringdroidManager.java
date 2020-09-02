@@ -121,6 +121,7 @@ public class BoringdroidManager {
         if (isInPCModeDisallowedList(packageName)) {
             return WindowConfiguration.WINDOWING_MODE_UNDEFINED;
         }
+        context.reloadSharedPreferences();
         SharedPreferences overlaySharedPreferences =
                 context.getSharedPreferences(
                         getPackageWindowingModeOverlayFile(),
