@@ -3946,6 +3946,16 @@ public class Activity extends ContextThemeWrapper
         ActionBar actionBar = getActionBar();
         return (actionBar != null && actionBar.onKeyShortcut(keyCode, event));
     }
+    // region @bliss
+    /**
+     * Check whether the activity supports pip.
+     * @see android.R.attr#supportsPictureInPicture
+     * @hide
+     */
+    public boolean supportPictureInPictureMode() {
+        return mActivityInfo != null && mActivityInfo.supportsPictureInPicture();
+    }
+    // endregion
 
     /**
      * Called when a touch screen event was not handled by any of the views
