@@ -3337,6 +3337,16 @@ public class Activity extends ContextThemeWrapper
         ActivityManager.getService().enterFreeformMode(mToken);
     }
     // endregion
+    // region @bliss
+    /**
+     * Check whether the activity supports pip.
+     * @see android.R.attr#supportsPictureInPicture
+     * @hide
+     */
+    public boolean supportPictureInPictureMode() {
+        return mActivityInfo != null && mActivityInfo.supportsPictureInPicture();
+    }
+    // endregion
 
     /**
      * Puts the activity in picture-in-picture mode if the activity supports.
