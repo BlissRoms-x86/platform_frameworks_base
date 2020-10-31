@@ -149,8 +149,11 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         mOwner.getDecorView().setOutlineProvider(ViewOutlineProvider.BOUNDS);
         // region @boringdroid
         mBack = findViewById(R.id.back_window);
-        // endregion
         mPip = findViewById(R.id.pip_window);
+        if (mPip != null && !supportPip()) {
+            mPip.setVisibility(View.GONE);
+        }
+        // endregion
         mMinimize = findViewById(R.id.minimize_window);
         mMaximize = findViewById(R.id.maximize_window);
         mClose = findViewById(R.id.close_window);
@@ -378,14 +381,24 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
         Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
         if (callback != null) {
             callback.moveTaskToBack(true);
-		}
+	}
     }
+
+    // region @boringdroid
+    private boolean supportPip() {
+        Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
+        if (callback != null) {
+            return callback.supportPictureInPictureMode();
+        }
+        return false;
+    }
+    // endregion
 
     private void pipWindow() {
         Window.WindowControllerCallback callback = mOwner.getWindowControllerCallback();
         if (callback != null) {
-			callback.enterPictureInPictureModeIfPossible(); /* Send the task to PIP mode if the task supports it. */
-		}
+	    callback.enterPictureInPictureModeIfPossible(); /* Send the task to PIP mode if the task supports it. */
+	}
     }
 
     public boolean isCaptionShowing() {
@@ -402,7 +415,7 @@ public class DecorCaptionView extends ViewGroup implements View.OnTouchListener,
             mContent = null;
         }
     }
-
+    
     public View getCaption() {
         return mCaption;
     }

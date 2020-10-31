@@ -1016,9 +1016,14 @@ public class Activity extends ContextThemeWrapper
             return false;
         }
         // region @boringdroid
-        // @Override
+        @Override
         public void onBackPressed() {
             Activity.this.onBackPressed();
+        }
+
+        @Override
+        public boolean supportPictureInPictureMode() {
+            return Activity.this.supportPictureInPictureMode();
         }
         // endregion
     };
@@ -2926,6 +2931,15 @@ public class Activity extends ContextThemeWrapper
      */
     public boolean onPictureInPictureRequested() {
         return false;
+    }
+
+    /**
+     * Check whether the activity supports pip.
+     * @see android.R.attr#supportsPictureInPicture
+     * @hide
+     */
+    public boolean supportPictureInPictureMode() {
+        return mActivityInfo != null && mActivityInfo.supportsPictureInPicture();
     }
 
     void dispatchMovedToDisplay(int displayId, Configuration config) {
