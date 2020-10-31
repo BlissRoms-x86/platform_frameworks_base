@@ -657,6 +657,9 @@ public abstract class Window {
         boolean moveTaskToBack(boolean nonRoot);
         // region @boringdroid
         default void onBackPressed() {};
+        default boolean supportPictureInPictureMode() {
+            return false;
+        }
         // endregion
     }
 
