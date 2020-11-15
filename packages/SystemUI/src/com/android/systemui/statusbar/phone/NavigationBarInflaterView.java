@@ -16,8 +16,10 @@ package com.android.systemui.statusbar.phone;
 
 import android.annotation.Nullable;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.drawable.Icon;
+import android.net.Uri;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -39,6 +41,7 @@ import com.android.systemui.OverviewProxyService;
 import com.android.systemui.R;
 import com.android.systemui.plugins.PluginListener;
 import com.android.systemui.plugins.PluginManager;
+import com.android.systemui.plugins.PluginManagerImpl;
 import com.android.systemui.plugins.statusbar.phone.NavBarButtonProvider;
 import com.android.systemui.statusbar.phone.ReverseLinearLayout.ReverseRelativeLayout;
 import com.android.systemui.statusbar.policy.KeyButtonView;
@@ -184,10 +187,28 @@ public class NavigationBarInflaterView extends FrameLayout
                 mUsingCustomLayout = newValue != null;
                 clearViews();
                 inflateLayout(newValue);
+                // region @boringdroid
+                if (BoringdroidManager.IS_SYSTEMUI_PLUGIN_ENABLED) {
+                    Intent intent = new Intent(
+                            PluginManagerImpl.PLUGIN_CHANGED,
+                            Uri.fromParts("package", "com.boringdroid.systemui", null)
+                    );
+                    getContext().sendBroadcast(intent);
+                }
+                // endregion
             }
         } else if (NAV_BAR_LEFT.equals(key) || NAV_BAR_RIGHT.equals(key)) {
             clearViews();
             inflateLayout(mCurrentLayout);
+            // region @boringdroid
+            if (BoringdroidManager.IS_SYSTEMUI_PLUGIN_ENABLED) {
+                Intent intent = new Intent(
+                        PluginManagerImpl.PLUGIN_CHANGED,
+                        Uri.fromParts("package", "com.boringdroid.systemui", null)
+                );
+                getContext().sendBroadcast(intent);
+            }
+            // endregion
         } else if (NAV_BAR_INVERSE.equals(key)) {
             mInverseLayout = newValue != null && Integer.parseInt(newValue) != 0;
             clearViews();
