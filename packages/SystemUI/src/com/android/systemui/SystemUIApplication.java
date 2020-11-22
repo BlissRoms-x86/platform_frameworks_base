@@ -225,6 +225,11 @@ public class SystemUIApplication extends Application implements SysUiServiceProv
 
                     @Override
                     public void onPluginDisconnected(OverlayPlugin plugin) {
+                        // region @boringdroid
+                        if (mOverlays == null) {
+                            return;
+                        }
+                        // endregion
                         mOverlays.remove(plugin);
                         Dependency.get(StatusBarWindowManager.class).setForcePluginOpen(
                                 mOverlays.size() != 0);
