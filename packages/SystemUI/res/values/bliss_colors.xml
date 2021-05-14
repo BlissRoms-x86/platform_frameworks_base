@@ -15,10 +15,6 @@
 -->
 <resources>
 
-    <!-- Color of the FOD view -->
-    <color name="config_fodColor">#00ff00</color>
-    <color name="config_fodColorBackground">#20000000</color>
-
    <color name="accent_device_default_light">@*android:color/accent_device_default_light</color>
 
 </resources>
