@@ -37,10 +37,12 @@ import android.annotation.ColorInt;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.database.ContentObserver;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Outline;
@@ -50,7 +52,9 @@ import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
 import android.graphics.Rect;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.ServiceManager;
 import android.os.UserHandle;
 import android.provider.Settings;
@@ -545,6 +549,34 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
                 updateDecorViews(useDarkText);
             };
 
+    private CustomSettingsObserver mCustomSettingsObserver = new CustomSettingsObserver(new Handler());
+    private class CustomSettingsObserver extends ContentObserver {
+        CustomSettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        void observe() {
+            mContext.getContentResolver().registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.NOTIFICATION_HEADERS),
+                    false, this, UserHandle.USER_ALL);
+        }
+
+        void stop() {
+            mContext.getContentResolver().unregisterContentObserver(this);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            update();
+        }
+
+        void update() {
+            boolean enabled = Settings.System.getIntForUser(getContext().getContentResolver(),
+                    Settings.System.NOTIFICATION_HEADERS, 1, UserHandle.USER_CURRENT) == 1;
+            mSectionsManager.setHeadersVisibility(enabled);
+        }
+    }
+
     @Inject
     public NotificationStackScrollLayout(
             @Named(VIEW_CONTEXT) Context context,
@@ -586,12 +618,15 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
         mZenController = zenController;
         mFgsSectionController = fgsSectionController;
 
+        boolean showHeaders = Settings.System.getIntForUser(getContext().getContentResolver(),
+                Settings.System.NOTIFICATION_HEADERS, 1, UserHandle.USER_CURRENT) == 1;
+
         mSectionsManager = notificationSectionsManager;
-        mSectionsManager.initialize(this, LayoutInflater.from(context));
+        mSectionsManager.initialize(this, LayoutInflater.from(context), showHeaders);
         mSectionsManager.setOnClearSilentNotifsClickListener(v -> {
             // Leave the shade open if there will be other notifs left over to clear
             final boolean closeShade = !hasActiveClearableNotifications(ROWS_HIGH_PRIORITY);
-            clearNotifications(ROWS_GENTLE, closeShade);
+            clearNotifications(ROWS_GENTLE, closeShade, false/*forceToLeft*/);
         });
         mSections = mSectionsManager.createSectionsForBuckets();
 
@@ -831,6 +866,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
         ((SysuiStatusBarStateController) Dependency.get(StatusBarStateController.class))
                 .addCallback(mStateListener, SysuiStatusBarStateController.RANK_STACK_SCROLLER);
         Dependency.get(ConfigurationController.class).addCallback(this);
+        mCustomSettingsObserver.observe();
     }
 
     @Override
@@ -839,6 +875,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
         super.onDetachedFromWindow();
         Dependency.get(StatusBarStateController.class).removeCallback(mStateListener);
         Dependency.get(ConfigurationController.class).removeCallback(this);
+        mCustomSettingsObserver.stop();
     }
 
     @Override
@@ -1847,9 +1884,9 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
     }
 
     @ShadeViewRefactor(RefactorComponent.STATE_RESOLVER)
-    public void dismissViewAnimated(View child, Runnable endRunnable, int delay, long duration) {
+    public void dismissViewAnimated(View child, Runnable endRunnable, int delay, long duration, boolean forceToLeft) {
         mSwipeHelper.dismissChild(child, 0, endRunnable, delay, true, duration,
-                true /* isDismissAll */);
+                true /* isDismissAll */, forceToLeft);
     }
 
     @ShadeViewRefactor(RefactorComponent.STATE_RESOLVER)
@@ -5646,9 +5683,9 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
 
     @ShadeViewRefactor(RefactorComponent.SHADE_VIEW)
     @VisibleForTesting
-    void clearNotifications(
+    public void clearNotifications(
             @SelectedRows int selection,
-            boolean closeShade) {
+            boolean closeShade, boolean forceToLeft) {
         // animate-swipe all dismissable notifications, then animate the shade closed
         int numChildren = getChildCount();
 
@@ -5703,6 +5740,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
         performDismissAllAnimations(
                 viewsToHide,
                 closeShade,
+                forceToLeft,
                 () -> onDismissAllAnimationsEnd(viewsToRemove, selection));
     }
 
@@ -5727,6 +5765,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
     private void performDismissAllAnimations(
             final ArrayList<View> hideAnimatedList,
             final boolean closeShade,
+            final boolean forceToLeft,
             final Runnable onAnimationComplete) {
 
         final Runnable onSlideAwayAnimationComplete = () -> {
@@ -5763,7 +5802,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
             if (i == 0) {
                 endRunnable = onSlideAwayAnimationComplete;
             }
-            dismissViewAnimated(view, endRunnable, totalDelay, ANIMATION_DURATION_SWIPE);
+            dismissViewAnimated(view, endRunnable, totalDelay, ANIMATION_DURATION_SWIPE, forceToLeft);
             currentDelay = Math.max(50, currentDelay - rowDelayDecrement);
             totalDelay += currentDelay;
         }
@@ -5782,7 +5821,7 @@ public class NotificationStackScrollLayout extends ViewGroup implements ScrollAd
                 R.layout.status_bar_notification_footer, this, false);
         footerView.setDismissButtonClickListener(v -> {
             mMetricsLogger.action(MetricsEvent.ACTION_DISMISS_ALL_NOTES);
-            clearNotifications(ROWS_ALL, true /* closeShade */);
+            clearNotifications(ROWS_ALL, true /* closeShade */, false/*forceToLeft*/);
         });
         footerView.setManageButtonClickListener(v -> {
             mNotificationActivityStarter.startHistoryIntent(mFooterView.isHistoryShown());

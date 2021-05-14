@@ -234,6 +234,7 @@ import com.android.systemui.statusbar.notification.row.NotificationGutsManager;
 import com.android.systemui.statusbar.notification.stack.NotificationListContainer;
 import com.android.systemui.statusbar.phone.dagger.StatusBarComponent;
 import com.android.systemui.statusbar.phone.dagger.StatusBarPhoneModule;
+import com.android.systemui.statusbar.notification.stack.NotificationStackScrollLayout;
 import com.android.systemui.statusbar.policy.BatteryController;
 import com.android.systemui.statusbar.policy.BrightnessMirrorController;
 import com.android.systemui.statusbar.policy.ConfigurationController;
@@ -450,6 +451,8 @@ public class StatusBar extends SystemUI implements DemoMode,
     private View mQSBarHeader;
 
     private boolean mExpandedVisible;
+
+    private boolean mFpDismissNotifications;
 
     private final int[] mAbsPos = new int[2];
 
@@ -706,6 +709,8 @@ public class StatusBar extends SystemUI implements DemoMode,
     private Lazy<NotificationShadeDepthController> mNotificationShadeDepthControllerLazy;
     private final BubbleController mBubbleController;
     private final BubbleController.BubbleExpandListener mBubbleExpandListener;
+
+    private boolean mShowNavBar;
 
     private ActivityIntentHelper mActivityIntentHelper;
 
@@ -999,6 +1004,9 @@ public class StatusBar extends SystemUI implements DemoMode,
         mAppFullscreen = result.mAppFullscreen;
         mAppImmersive = result.mAppImmersive;
 
+        mBlissSettingsObserver.observe();
+        mBlissSettingsObserver.update();
+
         // StatusBarManagerService has a back up of IME token and it's restored here.
         setImeWindowStatus(mDisplayId, result.mImeToken, result.mImeWindowVis,
                 result.mImeBackDisposition, result.mShowImeSwitcher);
@@ -1209,7 +1217,7 @@ public class StatusBar extends SystemUI implements DemoMode,
         mNotificationPanelViewController.setHeadsUpManager(mHeadsUpManager);
         mNotificationLogger.setHeadsUpManager(mHeadsUpManager);
 
-        createNavigationBar(result);
+        updateNavigationBar(true);
 
         if (ENABLE_LOCKSCREEN_WALLPAPER && mWallpaperSupported) {
             mLockscreenWallpaper = mLockscreenWallpaperLazy.get();
@@ -2096,6 +2104,12 @@ public class StatusBar extends SystemUI implements DemoMode,
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.LESS_BORING_HEADS_UP),
                     false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.Secure.getUriFor(
+                    Settings.Secure.FP_SWIPE_TO_DISMISS_NOTIFICATIONS),
+                    false, this, UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.FORCE_SHOW_NAVBAR),
+                    false, this, UserHandle.USER_ALL);
         }
 
         @Override
@@ -2108,6 +2122,11 @@ public class StatusBar extends SystemUI implements DemoMode,
                 setPulseOnNewTracks();
             } else if (uri.equals(Settings.System.getUriFor(Settings.System.QS_SHOW_BATTERY_PERCENT))) {
                 setQsBatteryPercentMode();
+            } else if (uri.equals(Settings.Secure.getUriFor(Settings.Secure.FP_SWIPE_TO_DISMISS_NOTIFICATIONS))) {
+                setFpToDismissNotifications();
+            } else if (uri.equals(Settings.System.getUriFor(
+                    Settings.System.FORCE_SHOW_NAVBAR))) {
+                updateNavigationBar(false);
             }
             update();
         }
@@ -2117,6 +2136,8 @@ public class StatusBar extends SystemUI implements DemoMode,
             setPulseOnNewTracks();
             setQsBatteryPercentMode();
             setUseLessBoringHeadsUp();
+            setFpToDismissNotifications();
+            updateNavigationBar(false);
         }
     }
 
@@ -2145,6 +2166,30 @@ public class StatusBar extends SystemUI implements DemoMode,
                 Settings.System.LESS_BORING_HEADS_UP, 0,
                 UserHandle.USER_CURRENT) == 1;
         mNotificationInterruptStateProvider.setUseLessBoringHeadsUp(lessBoringHeadsUp);
+    }
+
+    private void setFpToDismissNotifications() {
+        mFpDismissNotifications = Settings.Secure.getIntForUser(mContext.getContentResolver(),
+                Settings.Secure.FP_SWIPE_TO_DISMISS_NOTIFICATIONS, 1,
+                UserHandle.USER_CURRENT) == 1;
+    }
+
+    private void updateNavigationBar(boolean init) {
+        boolean showNavBar = BlissUtils.deviceSupportNavigationBar(mContext);
+        if (init) {
+            if (showNavBar) {
+                mNavigationBarController.createNavigationBars(true, null);
+            }
+        } else {
+            if (showNavBar != mShowNavBar) {
+                if (showNavBar) {
+                    mNavigationBarController.createNavigationBars(true, null);
+                } else {
+                    mNavigationBarController.removeNavigationBar(mDisplayId);
+                }
+            }
+        }
+        mShowNavBar = showNavBar;
     }
 
     /**
@@ -2231,6 +2276,15 @@ public class StatusBar extends SystemUI implements DemoMode,
                 mNotificationPanelViewController.flingSettings(0 /* velocity */,
                         NotificationPanelView.FLING_EXPAND);
                 mMetricsLogger.count(NotificationPanelView.COUNTER_PANEL_OPEN_QS, 1);
+            }
+        } else if (mFpDismissNotifications && (KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT == key
+                || KeyEvent.KEYCODE_SYSTEM_NAVIGATION_RIGHT == key)) {
+            if (!mNotificationPanelViewController.isFullyCollapsed() && !mNotificationPanelViewController.isExpanding()){
+                mMetricsLogger.action(MetricsEvent.ACTION_DISMISS_ALL_NOTES);
+                ((NotificationStackScrollLayout)mStackScroller).clearNotifications(
+                        ((NotificationStackScrollLayout)mStackScroller).ROWS_ALL/*all notifications*/,
+                        true/*collapse the panel*/,
+                        KeyEvent.KEYCODE_SYSTEM_NAVIGATION_LEFT == key/*left swipe animation*/);
             }
         }
 

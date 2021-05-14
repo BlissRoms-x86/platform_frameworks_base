@@ -4838,6 +4838,12 @@ public final class Settings {
         public static final String AMBIENT_WAKE_GESTURES = "ambient_wake_gestures";
 
         /**
+         * Controls whether to show notification headers
+         * @hide
+         */
+        public static final String NOTIFICATION_HEADERS = "notification_headers";
+
+        /**
          * IMPORTANT: If you add a new public settings you also have to add it to
          * PUBLIC_SETTINGS below. If the new setting is hidden you have to add
          * it to PRIVATE_SETTINGS below. Also add a validator that can validate
@@ -5407,6 +5413,17 @@ public final class Settings {
          * @hide
          */
         public static final String LOCKSCREEN_CHARGING_ANIMATION_STYLE = "lockscreen_charging_animation_style";
+
+        /**
+         * @hide
+         */
+        public static final String FORCE_SHOW_NAVBAR = "navbar_visibility";
+
+        /**
+         * Whether to enable the pixel navbar animation
+         * @hide
+         */
+        public static final String PIXEL_NAV_ANIMATION = "pixel_nav_animation";
 
         /**
          * Keys we no longer back up under the current schema, but want to continue to
@@ -9279,6 +9296,12 @@ public final class Settings {
                 "system_navigation_keys_enabled";
 
         /**
+         * Wheter to dismiss notifications on fingerprint left and right swipe action
+         * @hide
+         */
+        public static final String FP_SWIPE_TO_DISMISS_NOTIFICATIONS = "fp_swipe_to_dismiss_notifications";
+
+        /**
          * Holds comma separated list of ordering of QS tiles.
          *
          * @hide
@@ -9554,18 +9577,6 @@ public final class Settings {
                 "back_gesture_inset_scale_right";
 
         /**
-         * Height to be allowed for back gesture
-         * @hide
-         */
-        public static final String BACK_GESTURE_HEIGHT_LEFT =
-                "back_gesture_height_left";
-        /**
-         * @hide
-         */
-        public static final String BACK_GESTURE_HEIGHT_RIGHT =
-                 "back_gesture_height_right";
-
-        /**
          * Current provider of proximity-based sharing services.
          * Default value in @string/config_defaultNearbySharingComponent.
          * No VALIDATOR as this setting will not be backed up.
@@ -9641,6 +9652,18 @@ public final class Settings {
          * @hide
          */
         public static final String ADAPTIVE_CONNECTIVITY_ENABLED = "adaptive_connectivity_enabled";
+
+        /**
+         * Select from different navigation bar layouts
+         * @hide
+         */
+        public static final String NAVBAR_LAYOUT_VIEWS = "navbar_layout_views";
+
+        /**
+         * Inverse navigation bar layout
+         * @hide
+         */
+        public static final String NAVBAR_INVERSE_LAYOUT = "navbar_inverse_layout";
 
         /**
          * Keys we no longer back up under the current schema, but want to continue to

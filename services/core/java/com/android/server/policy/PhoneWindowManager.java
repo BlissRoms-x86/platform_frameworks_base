@@ -860,6 +860,9 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.HOME_WAKE_BUTTON), false, this,
                     UserHandle.USER_ALL);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.FORCE_SHOW_NAVBAR), false, this,
+                    UserHandle.USER_ALL);
             updateSettings();
         }
 
@@ -2222,7 +2225,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     UserHandle.USER_CURRENT);
             mSystemNavigationKeysEnabled = Settings.Secure.getIntForUser(resolver,
                     Settings.Secure.SYSTEM_NAVIGATION_KEYS_ENABLED,
-                    0, UserHandle.USER_CURRENT) == 1;
+                    1, UserHandle.USER_CURRENT) == 1;
             mRingerToggleChord = Settings.Secure.getIntForUser(resolver,
                     Settings.Secure.VOLUME_HUSH_GESTURE, VOLUME_HUSH_OFF,
                     UserHandle.USER_CURRENT);
@@ -2283,6 +2286,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             mGlobalActionsOnLockDisable = Settings.System.getIntForUser(resolver,
                     Settings.System.LOCK_POWER_MENU_DISABLED, 1,
                     UserHandle.USER_CURRENT) != 0;
+            mDefaultDisplayPolicy.updatehasNavigationBar();
         }
         if (updateRotation) {
             updateRotation(true);
