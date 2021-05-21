@@ -65,6 +65,7 @@
         <item>emergency</item>
         <item>lockdown</item>
         <item>power</item>
+        <item>sleep</item>
         <item>restart</item>
         <item>screenshot</item> <!--2 buttons nav-->
     </string-array>
