@@ -471,7 +471,7 @@ class TaskPositioner implements IBinder.DeathRecipient {
         mWindowDragBounds.set(mWindowOriginalBounds);
         // Horizontally, at least mMinVisibleWidth pixels of the window should remain visible.
         final int maxLeft = rootTaskBounds.right - mMinVisibleWidth;
-        final int minLeft = rootTaskBounds.left + mMinVisibleWidth - mWindowOriginalBounds.width();
+        final int minLeft = 0;
 
         // Vertically, the top mMinVisibleHeight of the window should remain visible.
         // (This assumes that the window caption bar is at the top of the window).
