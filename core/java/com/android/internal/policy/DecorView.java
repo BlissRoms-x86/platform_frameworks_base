@@ -135,7 +135,7 @@ public class DecorView extends FrameLayout implements RootViewSurfaceTaker, Wind
     private static final boolean SWEEP_OPEN_MENU = false;
 
     // The height of a window which has focus in DIP.
-    public static final int DECOR_SHADOW_FOCUSED_HEIGHT_IN_DIP = 20;
+    public static final int DECOR_SHADOW_FOCUSED_HEIGHT_IN_DIP = 5;
     // The height of a window which has not in DIP.
     public static final int DECOR_SHADOW_UNFOCUSED_HEIGHT_IN_DIP = 5;
 
