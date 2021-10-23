@@ -28,5 +28,6 @@ cc_library_shared {
         "liblog",
         "libcutils",
         "libbase",
+        "libcutils",
     ],
 }
