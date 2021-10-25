@@ -45,22 +45,12 @@ import android.net.metrics.IpConnectivityLog;
 import android.net.metrics.NetworkEvent;
 import android.net.metrics.ValidationProbeEvent;
 import android.net.util.Stopwatch;
-import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Handler;
 import android.os.Message;
 import android.os.SystemClock;
 import android.os.UserHandle;
 import android.provider.Settings;
-import android.telephony.CellIdentityCdma;
-import android.telephony.CellIdentityGsm;
-import android.telephony.CellIdentityLte;
-import android.telephony.CellIdentityWcdma;
-import android.telephony.CellInfo;
-import android.telephony.CellInfoCdma;
-import android.telephony.CellInfoGsm;
-import android.telephony.CellInfoLte;
-import android.telephony.CellInfoWcdma;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.LocalLog;
@@ -243,12 +233,6 @@ public class NetworkMonitor extends StateMachine {
 
     private String mPrivateDnsProviderHostname = "";
 
-    public static boolean isValidationRequired(
-            NetworkCapabilities dfltNetCap, NetworkCapabilities nc) {
-        // TODO: Consider requiring validation for DUN networks.
-        return dfltNetCap.satisfiedByNetworkCapabilities(nc);
-    }
-
     private final Context mContext;
     private final Handler mConnectivityServiceHandler;
     private final NetworkAgentInfo mNetworkAgentInfo;
@@ -381,11 +365,19 @@ public class NetworkMonitor extends StateMachine {
         return 0 == mValidations ? ValidationStage.FIRST_VALIDATION : ValidationStage.REVALIDATION;
     }
 
-    private boolean isValidationRequired() {
-        return isValidationRequired(
-                mDefaultRequest.networkCapabilities, mNetworkAgentInfo.networkCapabilities);
+    @VisibleForTesting
+    public boolean isValidationRequired() {
+        // TODO: Consider requiring validation for DUN networks.
+        return mDefaultRequest.networkCapabilities.satisfiedByNetworkCapabilities(
+                mNetworkAgentInfo.networkCapabilities);
     }
 
+    public boolean isPrivateDnsValidationRequired() {
+        // VPNs become the default network for applications even if they do not provide the INTERNET
+        // capability (e.g., split tunnels; See b/119216095).
+        // Ensure private DNS works on such VPNs as well.
+        return isValidationRequired() || mNetworkAgentInfo.isVPN();
+    }
 
     private void notifyNetworkTestResultInvalid(Object obj) {
         mConnectivityServiceHandler.sendMessage(obtainMessage(
@@ -455,7 +447,7 @@ public class NetworkMonitor extends StateMachine {
                     return HANDLED;
                 case CMD_PRIVATE_DNS_SETTINGS_CHANGED: {
                     final PrivateDnsConfig cfg = (PrivateDnsConfig) message.obj;
-                    if (!isValidationRequired() || cfg == null || !cfg.inStrictMode()) {
+                    if (!isPrivateDnsValidationRequired() || cfg == null || !cfg.inStrictMode()) {
                         // No DNS resolution required.
                         //
                         // We don't force any validation in opportunistic mode
@@ -621,9 +613,20 @@ public class NetworkMonitor extends StateMachine {
                     //    the network so don't bother validating here.  Furthermore sending HTTP
                     //    packets over the network may be undesirable, for example an extremely
                     //    expensive metered network, or unwanted leaking of the User Agent string.
+                    //
+                    // On networks that need to support private DNS in strict mode (e.g., VPNs, but
+                    // not networks that don't provide Internet access), we still need to perform
+                    // private DNS server resolution.
                     if (!isValidationRequired()) {
-                        validationLog("Network would not satisfy default request, not validating");
-                        transitionTo(mValidatedState);
+                        if (isPrivateDnsValidationRequired()) {
+                            validationLog("Network would not satisfy default request, "
+                                    + "resolving private DNS");
+                            transitionTo(mEvaluatingPrivateDnsState);
+                        } else {
+                            validationLog("Network would not satisfy default request, "
+                                    + "not validating");
+                            transitionTo(mValidatedState);
+                        }
                         return HANDLED;
                     }
                     mAttempts++;
@@ -796,7 +799,7 @@ public class NetworkMonitor extends StateMachine {
             try {
                 // Do a blocking DNS resolution using the network-assigned nameservers.
                 // Do not set AI_ADDRCONFIG in ai_flags so we get all address families in advance.
-                final InetAddress[] ips = ResolvUtil.blockingResolveAllLocally(
+                final InetAddress[] ips = resolveAllLocally(
                         mNetwork, mPrivateDnsProviderHostname, 0 /* aiFlags */);
                 mPrivateDnsConfig = new PrivateDnsConfig(mPrivateDnsProviderHostname, ips);
             } catch (UnknownHostException uhe) {
@@ -830,7 +833,7 @@ public class NetworkMonitor extends StateMachine {
             final String host = UUID.randomUUID().toString().substring(0, 8) +
                     ONE_TIME_HOSTNAME_SUFFIX;
             try {
-                final InetAddress[] ips = mNetworkAgentInfo.network().getAllByName(host);
+                final InetAddress[] ips = getAllByName(mNetworkAgentInfo.network(), host);
                 return (ips != null && ips.length > 0);
             } catch (UnknownHostException uhe) {}
             return false;
@@ -873,10 +876,6 @@ public class NetworkMonitor extends StateMachine {
 
     public boolean getUseHttpsValidation() {
         return mSettings.getSetting(mContext, Settings.Global.CAPTIVE_PORTAL_USE_HTTPS, 1) == 1;
-    }
-
-    public boolean getWifiScansAlwaysAvailableDisabled() {
-        return mSettings.getSetting(mContext, Settings.Global.WIFI_SCAN_ALWAYS_AVAILABLE, 0) == 0;
     }
 
     private String getCaptivePortalServerHttpsUrl() {
@@ -1015,10 +1014,6 @@ public class NetworkMonitor extends StateMachine {
 
         long endTime = SystemClock.elapsedRealtime();
 
-        sendNetworkConditionsBroadcast(true /* response received */,
-                result.isPortal() /* isCaptivePortal */,
-                startTime, endTime);
-
         return result;
     }
 
@@ -1046,7 +1041,7 @@ public class NetworkMonitor extends StateMachine {
         int result;
         String connectInfo;
         try {
-            InetAddress[] addresses = mNetwork.getAllByName(host);
+            InetAddress[] addresses = getAllByName(mNetwork, host);
             StringBuffer buffer = new StringBuffer();
             for (InetAddress address : addresses) {
                 buffer.append(',').append(address.getHostAddress());
@@ -1233,6 +1228,18 @@ public class NetworkMonitor extends StateMachine {
         }
     }
 
+    @VisibleForTesting
+    protected InetAddress[] getAllByName(Network network, String host) throws UnknownHostException {
+        return network.getAllByName(host);
+    }
+
+    @VisibleForTesting
+    protected InetAddress[] resolveAllLocally(Network network, String hostname, int flags)
+            throws UnknownHostException {
+        // We cannot use this in OneAddressPerFamilyNetwork#getAllByName because that's static.
+        return ResolvUtil.blockingResolveAllLocally(network, hostname, flags);
+    }
+
     private URL makeURL(String url) {
         if (url != null) {
             try {
@@ -1242,98 +1249,6 @@ public class NetworkMonitor extends StateMachine {
             }
         }
         return null;
-    }
-
-    /**
-     * @param responseReceived - whether or not we received a valid HTTP response to our request.
-     * If false, isCaptivePortal and responseTimestampMs are ignored
-     * TODO: This should be moved to the transports.  The latency could be passed to the transports
-     * along with the captive portal result.  Currently the TYPE_MOBILE broadcasts appear unused so
-     * perhaps this could just be added to the WiFi transport only.
-     */
-    private void sendNetworkConditionsBroadcast(boolean responseReceived, boolean isCaptivePortal,
-            long requestTimestampMs, long responseTimestampMs) {
-        if (getWifiScansAlwaysAvailableDisabled()) {
-            return;
-        }
-
-        if (!systemReady) {
-            return;
-        }
-
-        Intent latencyBroadcast =
-                new Intent(ConnectivityConstants.ACTION_NETWORK_CONDITIONS_MEASURED);
-        switch (mNetworkAgentInfo.networkInfo.getType()) {
-            case ConnectivityManager.TYPE_WIFI:
-                WifiInfo currentWifiInfo = mWifiManager.getConnectionInfo();
-                if (currentWifiInfo != null) {
-                    // NOTE: getSSID()'s behavior changed in API 17; before that, SSIDs were not
-                    // surrounded by double quotation marks (thus violating the Javadoc), but this
-                    // was changed to match the Javadoc in API 17. Since clients may have started
-                    // sanitizing the output of this method since API 17 was released, we should
-                    // not change it here as it would become impossible to tell whether the SSID is
-                    // simply being surrounded by quotes due to the API, or whether those quotes
-                    // are actually part of the SSID.
-                    latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_SSID,
-                            currentWifiInfo.getSSID());
-                    latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_BSSID,
-                            currentWifiInfo.getBSSID());
-                } else {
-                    if (VDBG) logw("network info is TYPE_WIFI but no ConnectionInfo found");
-                    return;
-                }
-                break;
-            case ConnectivityManager.TYPE_MOBILE:
-                latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_NETWORK_TYPE,
-                        mTelephonyManager.getNetworkType());
-                List<CellInfo> info = mTelephonyManager.getAllCellInfo();
-                if (info == null) return;
-                int numRegisteredCellInfo = 0;
-                for (CellInfo cellInfo : info) {
-                    if (cellInfo.isRegistered()) {
-                        numRegisteredCellInfo++;
-                        if (numRegisteredCellInfo > 1) {
-                            if (VDBG) logw("more than one registered CellInfo." +
-                                    " Can't tell which is active.  Bailing.");
-                            return;
-                        }
-                        if (cellInfo instanceof CellInfoCdma) {
-                            CellIdentityCdma cellId = ((CellInfoCdma) cellInfo).getCellIdentity();
-                            latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_CELL_ID, cellId);
-                        } else if (cellInfo instanceof CellInfoGsm) {
-                            CellIdentityGsm cellId = ((CellInfoGsm) cellInfo).getCellIdentity();
-                            latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_CELL_ID, cellId);
-                        } else if (cellInfo instanceof CellInfoLte) {
-                            CellIdentityLte cellId = ((CellInfoLte) cellInfo).getCellIdentity();
-                            latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_CELL_ID, cellId);
-                        } else if (cellInfo instanceof CellInfoWcdma) {
-                            CellIdentityWcdma cellId = ((CellInfoWcdma) cellInfo).getCellIdentity();
-                            latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_CELL_ID, cellId);
-                        } else {
-                            if (VDBG) logw("Registered cellinfo is unrecognized");
-                            return;
-                        }
-                    }
-                }
-                break;
-            default:
-                return;
-        }
-        latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_CONNECTIVITY_TYPE,
-                mNetworkAgentInfo.networkInfo.getType());
-        latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_RESPONSE_RECEIVED,
-                responseReceived);
-        latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_REQUEST_TIMESTAMP_MS,
-                requestTimestampMs);
-
-        if (responseReceived) {
-            latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_IS_CAPTIVE_PORTAL,
-                    isCaptivePortal);
-            latencyBroadcast.putExtra(ConnectivityConstants.EXTRA_RESPONSE_TIMESTAMP_MS,
-                    responseTimestampMs);
-        }
-        mContext.sendBroadcastAsUser(latencyBroadcast, UserHandle.CURRENT,
-                ConnectivityConstants.PERMISSION_ACCESS_NETWORK_CONDITIONS);
     }
 
     private void logNetworkEvent(int evtype) {
