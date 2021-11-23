@@ -50,6 +50,7 @@ public:
     void setPosition(float x, float y);
     void getPosition(float* outX, float* outY) const;
     int32_t getDisplayId() const;
+    void setDisplayId(int32_t id);
     void fade(PointerControllerInterface::Transition transition);
     void unfade(PointerControllerInterface::Transition transition);
     void setDisplayViewport(const DisplayViewport& viewport, bool getAdditionalMouseResources);
@@ -64,7 +65,9 @@ public:
     bool doAnimations(nsecs_t timestamp);
 
     bool resourcesLoaded();
-
+    inline const DisplayViewport& getViewportLocked() {
+                       return mLocked.viewport;}
+   
 private:
     mutable std::mutex mLock;
 
