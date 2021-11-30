@@ -17155,6 +17155,12 @@ public final class Settings {
         public static final String BLUETOOTH_OFF_TIMEOUT = "bluetooth_off_timeout";
 
         /**
+         * To store if user wants to fake touch using clicks
+         * @hide
+         */
+        public static final String FORCE_MOUSE_CLICK_AS_TOUCH = "force_mouse_click_as_touch";
+
+        /**
          * Keys we no longer back up under the current schema, but want to continue to
          * process when restoring historical backup datasets.
          *

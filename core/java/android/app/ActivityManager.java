@@ -72,9 +72,11 @@ import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.os.WorkSource;
+import android.provider.Settings;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.Singleton;
 import android.util.Size;
 import android.util.TypedXmlPullParser;
@@ -1776,6 +1778,16 @@ public class ActivityManager {
             }
             return false;
         }
+    }
+
+    private static int mFakeClickAsTouch;
+
+    public static int getFakeClickAsTouch() {
+        return mFakeClickAsTouch;
+    }
+
+    public static void setFakeClickAsTouch(boolean fakeClickAsTouch) {
+        mFakeClickAsTouch = fakeClickAsTouch ? 1 : 0;
     }
 
     /**
