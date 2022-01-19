@@ -67,6 +67,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.os.PowerExemptionManager;
 import android.os.Process;
 import android.os.RemoteCallbackList;
@@ -183,6 +185,8 @@ class BluetoothManagerService extends IBluetoothManager.Stub {
     private final ReentrantReadWriteLock mBluetoothLock = new ReentrantReadWriteLock();
     private boolean mBinding;
     private boolean mUnbinding;
+    private PowerManager mPowerManager;
+    private WakeLock mPartialWakeLock;
 
     private BluetoothModeChangeHelper mBluetoothModeChangeHelper;
 
@@ -514,7 +518,7 @@ class BluetoothManagerService extends IBluetoothManager.Stub {
 
         mIsHearingAidProfileSupported = context.getResources()
                 .getBoolean(com.android.internal.R.bool.config_hearing_aid_profile_supported);
-
+        mPowerManager = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
         // TODO: We need a more generic way to initialize the persist keys of FeatureFlagUtils
         String value = SystemProperties.get(FeatureFlagUtils.PERSIST_PREFIX + FeatureFlagUtils.HEARING_AID_SETTINGS);
         if (!TextUtils.isEmpty(value)) {
@@ -568,6 +572,8 @@ class BluetoothManagerService extends IBluetoothManager.Stub {
             Slog.w(TAG, "Unable to resolve SystemUI's UID.");
         }
         mSystemUiUid = systemUiUid;
+        mPartialWakeLock = mPowerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
+        mPartialWakeLock.setReferenceCounted(false);
     }
 
     /**
@@ -2211,6 +2217,9 @@ class BluetoothManagerService extends IBluetoothManager.Stub {
                             Slog.w(TAG, "bluetooth is recovered from error");
                             mErrorRecoveryRetryCounter = 0;
                         }
+                        if (mPartialWakeLock.isHeld()) {
+                            mPartialWakeLock.release();
+                        }
                     }
                     break;
                 }
@@ -2268,6 +2277,9 @@ class BluetoothManagerService extends IBluetoothManager.Stub {
                 }
                 case MESSAGE_RESTART_BLUETOOTH_SERVICE: {
                     mErrorRecoveryRetryCounter++;
+                    if (!mPartialWakeLock.isHeld()) {
+                        mPartialWakeLock.acquire();
+                    }
                     Slog.d(TAG, "MESSAGE_RESTART_BLUETOOTH_SERVICE: retry count="
                             + mErrorRecoveryRetryCounter);
                     if (mErrorRecoveryRetryCounter < MAX_ERROR_RESTART_RETRIES) {
@@ -2280,6 +2292,10 @@ class BluetoothManagerService extends IBluetoothManager.Stub {
                         handleEnable(mQuietEnable);
                     } else {
                         Slog.e(TAG, "Reach maximum retry to restart Bluetooth!");
+                        if (mPartialWakeLock.isHeld()) {
+                            Slog.d(TAG,"Releasing the partial wakelock as maximum retry exceeded");
+                            mPartialWakeLock.release();
+                        }
                     }
                     break;
                 }
