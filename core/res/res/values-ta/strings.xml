@@ -1346,11 +1346,12 @@
     <string name="deny" msgid="2081879885755434506">"நிராகரி"</string>
     <string name="permission_request_notification_title" msgid="6486759795926237907">"அனுமதிக் கோரப்பட்டது"</string>
     <string name="permission_request_notification_with_subtitle" msgid="8530393139639560189">"<xliff:g id="ACCOUNT">%s</xliff:g> கணக்கிற்கான அனுமதி\nகோரப்பட்டது."</string>
-    <string name="forward_intent_to_owner" msgid="1207197447013960896">"இந்தப் பயன்பாட்டைப் பணிக் கணக்கிற்கு வெளியே பயன்படுத்துகிறீர்கள்"</string>
-    <string name="forward_intent_to_work" msgid="621480743856004612">"பணிக் கணக்கில் பயன்பாட்டைப் பயன்படுத்துகிறீர்கள்"</string>
+    <string name="permission_request_notification_for_app_with_subtitle" msgid="1298704005732851350">"<xliff:g id="APP">%1$s</xliff:g> ஆப்ஸ்\n<xliff:g id="ACCOUNT">%2$s</xliff:g> கணக்கிற்கான அனுமதியைக் கோருகிறது."</string>
+    <string name="forward_intent_to_owner" msgid="1207197447013960896">"இந்தப் பயன்பாட்டைப் பணி சுயவிவரத்திற்கு வெளியே பயன்படுத்துகிறீர்கள்"</string>
+    <string name="forward_intent_to_work" msgid="621480743856004612">"பணி சுயவிவரத்தில் பயன்பாட்டைப் பயன்படுத்துகிறீர்கள்"</string>
     <string name="input_method_binding_label" msgid="1283557179944992649">"உள்ளீட்டு முறை"</string>
     <string name="sync_binding_label" msgid="3687969138375092423">"ஒத்திசை"</string>
-    <string name="accessibility_binding_label" msgid="4148120742096474641">"அணுகல்தன்மை"</string>
+    <string name="accessibilitz_binding_label" msgid="4148120742096474641">"அணுகல்தன்மை"</string>
     <string name="wallpaper_binding_label" msgid="1240087844304687662">"வால்பேப்பர்"</string>
     <string name="chooser_wallpaper" msgid="7873476199295190279">"வால்பேப்பரை மாற்று"</string>
     <string name="notification_listener_binding_label" msgid="2014162835481906429">"அறிவிப்புகளைக் கண்காணிக்கும் சேவை"</string>
