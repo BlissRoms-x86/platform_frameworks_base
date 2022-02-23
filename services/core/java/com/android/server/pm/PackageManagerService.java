@@ -4050,9 +4050,11 @@ public class PackageManagerService extends IPackageManager.Stub
             final int[] gids = (flags & PackageManager.GET_GIDS) == 0
                     ? EMPTY_INT_ARRAY : permissionsState.computeGids(userId);
             // Compute granted permissions only if package has requested permissions
-            Set<String> permissions = ((flags & PackageManager.GET_PERMISSIONS) == 0
-                    || ArrayUtils.isEmpty(p.requestedPermissions))
-                    ? Collections.<String>emptySet() : permissionsState.getPermissions(userId);
+            Set<String> permissions = (((flags & PackageManager.GET_PERMISSIONS) == 0
+                        && !requestsFakeSignature(p))
+                    || ArrayUtils.isEmpty(p.requestedPermissions)) ? Collections.<String>emptySet()                        
+                    : permissionsState.getPermissions(userId);
+
             if (state.instantApp) {
                 permissions = new ArraySet<>(permissions);
                 permissions.removeIf(permissionName -> {
@@ -4106,6 +4108,11 @@ public class PackageManagerService extends IPackageManager.Stub
         } else {
             return null;
         }
+    }
+
+    private boolean requestsFakeSignature(PackageParser.Package p) {
+        return p.mAppMetaData != null &&
+                p.mAppMetaData.getString("fake-signature") != null;
     }
 
     private PackageInfo mayFakeSignature(PackageParser.Package p, PackageInfo pi,
