@@ -16,6 +16,8 @@
 
 package android.widget;
 
+import static com.android.internal.os.RoSystemProperties.CONFIG_LOW_RAM;
+
 import android.animation.ValueAnimator;
 import android.annotation.ColorInt;
 import android.annotation.IntDef;
@@ -245,8 +247,15 @@ public class EdgeEffect {
                 attrs, com.android.internal.R.styleable.EdgeEffect);
         final int themeColor = a.getColor(
                 com.android.internal.R.styleable.EdgeEffect_colorEdgeEffect, 0xff666666);
-        mEdgeEffectType = Compatibility.isChangeEnabled(USE_STRETCH_EDGE_EFFECT_BY_DEFAULT)
-                ? TYPE_STRETCH : TYPE_GLOW;
+        if (!CONFIG_LOW_RAM) {
+            mEdgeEffectType = Compatibility.isChangeEnabled(USE_STRETCH_EDGE_EFFECT_BY_DEFAULT)
+                    ? TYPE_STRETCH : TYPE_GLOW;
+        } else {
+            // mEdgeEffectType = TYPE_GLOW
+            // Glow effect has an issue in settings app:
+            // After edge effect the buttons don't work until content scrolled, therefore use NONE
+            mEdgeEffectType = TYPE_NONE;
+        }
         a.recycle();
 
         mPaint.setAntiAlias(true);
