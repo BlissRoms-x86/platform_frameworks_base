@@ -16,6 +16,8 @@
 
 package android.graphics.drawable;
 
+import static com.android.internal.os.RoSystemProperties.CONFIG_LOW_RAM;
+
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.LOCAL_VARIABLE;
 import static java.lang.annotation.ElementType.METHOD;
@@ -157,7 +159,7 @@ public class RippleDrawable extends LayerDrawable {
     private static final LinearInterpolator LINEAR_INTERPOLATOR = new LinearInterpolator();
     private static final int DEFAULT_EFFECT_COLOR = 0x8dffffff;
     /** Temporary flag for teamfood. **/
-    private static final boolean FORCE_PATTERNED_STYLE = true;
+    //private static final boolean FORCE_PATTERNED_STYLE = true;
 
     private final Rect mTempRect = new Rect();
 
@@ -1319,7 +1321,7 @@ public class RippleDrawable extends LayerDrawable {
         ColorStateList mColor = ColorStateList.valueOf(Color.MAGENTA);
         ColorStateList mEffectColor = ColorStateList.valueOf(DEFAULT_EFFECT_COLOR);
         int mMaxRadius = RADIUS_AUTO;
-        int mRippleStyle = FORCE_PATTERNED_STYLE ? STYLE_PATTERNED : STYLE_SOLID;
+        int mRippleStyle = CONFIG_LOW_RAM ? STYLE_SOLID : STYLE_PATTERNED;
 
         public RippleState(LayerState orig, RippleDrawable owner, Resources res) {
             super(orig, owner, res);
