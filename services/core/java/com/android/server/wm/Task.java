@@ -2241,6 +2241,14 @@ class Task extends TaskFragment {
             return (int) Math.ceil(
                     mWmService.dipToPixel(PINNED_WINDOWING_MODE_ELEVATION_IN_DIP, displayMetrics)
                             * 2);
+        } else if (inMultiWindowMode() && displayContent != null) {
+            final DisplayMetrics displayMetrics = displayContent.getDisplayMetrics();
+
+            // We multiply by two to match the client logic for converting view elevation
+            // to insets, as in {@link WindowManager.LayoutParams#setSurfaceInsets}
+            return (int) Math.ceil(
+                    mWmService.dipToPixel(Math.max(DECOR_SHADOW_FOCUSED_HEIGHT_IN_DIP, DECOR_SHADOW_UNFOCUSED_HEIGHT_IN_DIP), displayMetrics)
+                            * 2);
         }
         return 0;
     }
