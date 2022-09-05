@@ -37,7 +37,6 @@ import android.os.ParcelableException;
 import android.os.RemoteCallback;
 import android.os.RemoteException;
 import android.os.UserHandle;
-import android.os.UserManagerInternal;
 import android.os.storage.StorageManagerInternal;
 import android.os.storage.StorageVolume;
 import android.service.storage.ExternalStorageService;
@@ -72,7 +71,6 @@ public final class StorageUserConnection {
     private final int mUserId;
     private final StorageSessionController mSessionController;
     private final ActiveConnection mActiveConnection = new ActiveConnection();
-    private final boolean mIsDemoUser;
     @GuardedBy("mLock") private final Map<String, Session> mSessions = new HashMap<>();
     private final HandlerThread mHandlerThread;
 
