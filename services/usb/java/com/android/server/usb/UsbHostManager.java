@@ -27,6 +27,7 @@ import android.hardware.usb.UsbConstants;
 import android.hardware.usb.UsbDevice;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.os.SystemProperties;
 import android.service.ServiceProtoEnums;
 import android.service.usb.UsbConnectionRecordProto;
 import android.service.usb.UsbHostManagerProto;
@@ -283,8 +284,10 @@ public class UsbHostManager {
 
     /* returns true if the USB device should not be accessible by applications */
     private boolean isDenyListed(int clazz, int subClass) {
-        // deny hubs
-        if (clazz == UsbConstants.USB_CLASS_HUB) return true;
+        // deny hubs and drives when booting in LIVE mode
+        if (clazz == UsbConstants.USB_CLASS_HUB ||
+			(clazz == UsbConstants.USB_CLASS_MASS_STORAGE && SystemProperties.getBoolean("ro.boot.live", false)))
+		return true;
 
         // deny HID boot devices (mouse and keyboard)
         return clazz == UsbConstants.USB_CLASS_HID
