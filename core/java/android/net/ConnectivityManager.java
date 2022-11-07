@@ -36,6 +36,7 @@ import android.net.SocketKeepalive.Callback;
 import android.net.TetheringManager.StartTetheringCallback;
 import android.net.TetheringManager.TetheringEventCallback;
 import android.net.TetheringManager.TetheringRequest;
+import android.net.wifi.FakeWifi;
 import android.os.Binder;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
@@ -995,7 +996,10 @@ public class ConnectivityManager {
     @Nullable
     public NetworkInfo getActiveNetworkInfo() {
         try {
-            return mService.getActiveNetworkInfo();
+            NetworkInfo network = mService.getActiveNetworkInfo();
+            if (FakeWifi.isHackEnabled(mContext))
+                return FakeWifi.maybeOverwrite(network);
+            return network;
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -1200,7 +1204,10 @@ public class ConnectivityManager {
     @Nullable
     public NetworkInfo getNetworkInfo(int networkType) {
         try {
-            return mService.getNetworkInfo(networkType);
+            NetworkInfo network = mService.getNetworkInfo(networkType);
+            if (networkType == ConnectivityManager.TYPE_WIFI && FakeWifi.isHackEnabled(mContext))
+                return FakeWifi.maybeOverwrite(network);
+            return network;
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -1249,7 +1256,32 @@ public class ConnectivityManager {
     @NonNull
     public NetworkInfo[] getAllNetworkInfo() {
         try {
-            return mService.getAllNetworkInfo();
+            NetworkInfo[] networks = mService.getAllNetworkInfo();
+            if (!FakeWifi.isHackEnabled(mContext))
+                return networks;
+
+            int i;
+            boolean wifi_found = false;
+            for (i = 0; i < networks.length; i++) {
+                if (networks[i].getType() == ConnectivityManager.TYPE_WIFI) {
+                    wifi_found = true;
+                    break;
+                }
+            }
+
+            if (wifi_found && networks[i].isConnected())
+                return networks;
+
+            if (wifi_found) {
+                networks[i] = FakeWifi.getFakeNetworkInfo();
+            } else {
+                NetworkInfo[] extended = new NetworkInfo[networks.length + 1];
+                for (i = 0; i < networks.length; i++)
+                    extended[i] = networks[i];
+                extended[networks.length] = FakeWifi.getFakeNetworkInfo();
+                networks = extended;
+            }
+            return networks;
         } catch (RemoteException e) {
             throw e.rethrowFromSystemServer();
         }
@@ -3057,6 +3089,9 @@ public class ConnectivityManager {
      */
     @RequiresPermission(android.Manifest.permission.ACCESS_NETWORK_STATE)
     public boolean isActiveNetworkMetered() {
+        if (FakeWifi.isHackEnabled(mContext))
+            return false;
+
         try {
             return mService.isActiveNetworkMetered();
         } catch (RemoteException e) {
