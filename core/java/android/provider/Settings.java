@@ -17158,6 +17158,7 @@ public final class Settings {
          * To store if user wants to fake touch using clicks
          * @hide
          */
+        @Readable
         public static final String FORCE_MOUSE_CLICK_AS_TOUCH = "force_mouse_click_as_touch";
 
         /**
