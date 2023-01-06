@@ -1610,19 +1610,7 @@ class ActivityStarter {
             boolean restrictedBgActivity, NeededUriGrants intentGrants) {
         setInitialState(r, options, inTask, doResume, startFlags, sourceRecord, voiceSession,
                 voiceInteractor, restrictedBgActivity);
-        // region @boringdroid
-        if (mOptions == null) {
-            mOptions = ActivityOptions.makeBasic();
-        }
-        if (mOptions.getLaunchWindowingMode() == WINDOWING_MODE_UNDEFINED) {
-            mOptions.setLaunchWindowingMode(
-                    BoringdroidManager.getPackageWindowingMode(
-                            WindowManagerService.getWMSContext(),
-                            mStartActivity.info.packageName
-                    )
-            );
-        }
-        // endregion
+
         computeLaunchingTaskFlags();
 
         computeSourceStack();
