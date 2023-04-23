@@ -5300,6 +5300,11 @@ public final class Settings {
         public static final String STATUS_BAR_BATTERY_STYLE = "status_bar_battery_style";
 
         /**
+         * @hide
+         */
+        public static final String PREVENT_POINTER_ACCELERATION = "prevent_pointer_acceleration";
+
+        /**
          * Statusbar Battery %
          * 0: Hide the battery percentage
          * 1: Display the battery percentage inside the icon
@@ -6391,6 +6396,7 @@ public final class Settings {
             PRIVATE_SETTINGS.add(DISPLAY_CUTOUT_MODE);
             PRIVATE_SETTINGS.add(STOCK_STATUSBAR_IN_HIDE);
             PRIVATE_SETTINGS.add(FORCE_FULLSCREEN_CUTOUT_APPS);
+            PRIVATE_SETTINGS.add(PREVENT_POINTER_ACCELERATION);
         }
 
         /**
