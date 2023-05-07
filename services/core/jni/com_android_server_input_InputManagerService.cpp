@@ -213,6 +213,7 @@ public:
     void setSystemUiVisibility(int32_t visibility);
     void setPointerSpeed(int32_t speed);
     void setPreventPointerAcceleration(int32_t preventPointerAcceleration);
+    void setForceMouseAsTouch(bool forceMouseAsTouch);
     void setInputDeviceEnabled(uint32_t deviceId, bool enabled);
     void setShowTouches(bool enabled);
     void setInteractive(bool interactive);
@@ -290,6 +291,9 @@ private:
         // Pointer acceleration allowlist bitmask.
         int32_t preventPointerAcceleration;
 
+        // Force mouse events to be handled as touch event.
+        bool forceMouseAsTouch;
+
         // True if pointer gestures are enabled.
         bool pointerGesturesEnabled;
 
@@ -340,6 +344,7 @@ NativeInputManager::NativeInputManager(jobject contextObj,
         mLocked.systemUiVisibility = ASYSTEM_UI_VISIBILITY_STATUS_BAR_VISIBLE;
         mLocked.pointerSpeed = 0;
         mLocked.preventPointerAcceleration = 0;
+        mLocked.forceMouseAsTouch = false;
         mLocked.pointerGesturesEnabled = true;
         mLocked.showTouches = false;
         mLocked.pointerCapture = false;
@@ -369,6 +374,7 @@ void NativeInputManager::dump(std::string& dump) {
                 mLocked.systemUiVisibility);
         dump += StringPrintf(INDENT "Pointer Speed: %" PRId32 "\n", mLocked.pointerSpeed);
         dump += StringPrintf(INDENT "Pointer Acceleration Allowlist Bitmask: %" PRId32 "\n", mLocked.preventPointerAcceleration);
+        dump += StringPrintf(INDENT "Force Mouse As Touch: %s\n", toString(mLocked.forceMouseAsTouch));
         dump += StringPrintf(INDENT "Pointer Gestures Enabled: %s\n",
                 toString(mLocked.pointerGesturesEnabled));
         dump += StringPrintf(INDENT "Show Touches: %s\n", toString(mLocked.showTouches));
@@ -555,6 +561,7 @@ void NativeInputManager::getReaderConfiguration(InputReaderConfiguration* outCon
             outConfig->wheelVelocityControlParameters.lowThreshold = 50.0f;
             outConfig->wheelVelocityControlParameters.acceleration = 4.0f;
         }
+        outConfig->forceMouseAsTouch = mLocked.forceMouseAsTouch;
         outConfig->pointerGesturesEnabled = mLocked.pointerGesturesEnabled;
 
         outConfig->showTouches = mLocked.showTouches;
@@ -871,6 +878,23 @@ void NativeInputManager::setPreventPointerAcceleration(int32_t preventPointerAcc
     mInputManager->getReader()->requestRefreshConfiguration(
             InputReaderConfiguration::CHANGE_POINTER_SPEED);
 }
+
+void NativeInputManager::setForceMouseAsTouch(bool forceMouseAsTouch) {
+    { // acquire lock
+        AutoMutex _l(mLock);
+
+        if (mLocked.forceMouseAsTouch == forceMouseAsTouch) {
+            return;
+        }
+
+        ALOGI("Setting force mouse as touch to %s.", toString(forceMouseAsTouch));
+        mLocked.forceMouseAsTouch = forceMouseAsTouch;
+    } // release lock
+
+    mInputManager->getReader()->requestRefreshConfiguration(
+            InputReaderConfiguration::CHANGE_FORCE_MOUSE_AS_TOUCH);
+}
+
 
 void NativeInputManager::setInputDeviceEnabled(uint32_t deviceId, bool enabled) {
     { // acquire lock
@@ -1646,6 +1670,13 @@ static void nativeSetPreventPointerAcceleration(JNIEnv* /* env */, jclass /* cla
     im->setPreventPointerAcceleration(preventPointerAcceleration);
 }
 
+static void nativeSetForceMouseAsTouch(JNIEnv* /* env */,
+        jclass /* clazz */, jlong ptr, jboolean forceMouseAsTouch) {
+    NativeInputManager* im = reinterpret_cast<NativeInputManager*>(ptr);
+
+    im->setForceMouseAsTouch(forceMouseAsTouch);
+}
+
 static void nativeSetShowTouches(JNIEnv* /* env */,
         jclass /* clazz */, jlong ptr, jboolean enabled) {
     NativeInputManager* im = reinterpret_cast<NativeInputManager*>(ptr);
@@ -1837,7 +1868,8 @@ static const JNINativeMethod gInputManagerMethods[] = {
         {"nativeTransferTouchFocus", "(JLandroid/os/IBinder;Landroid/os/IBinder;)Z",
          (void*)nativeTransferTouchFocus},
         {"nativeSetPointerSpeed", "(JI)V", (void*)nativeSetPointerSpeed},
-        {"nativesetPreventPointerAcceleration", "(JI)V", (void*)nativeSetPreventPointerAcceleration},
+        {"nativeSetPreventPointerAcceleration", "(JI)V", (void*)nativeSetPreventPointerAcceleration},
+        {"nativeSetForceMouseAsTouch", "(JZ)V", (void*)nativeSetForceMouseAsTouch},        
         {"nativeSetShowTouches", "(JZ)V", (void*)nativeSetShowTouches},
         {"nativeSetInteractive", "(JZ)V", (void*)nativeSetInteractive},
         {"nativeReloadCalibration", "(J)V", (void*)nativeReloadCalibration},
