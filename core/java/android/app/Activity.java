@@ -106,7 +106,6 @@ import android.view.DragEvent;
 import android.view.KeyEvent;
 import android.view.KeyboardShortcutGroup;
 import android.view.KeyboardShortcutInfo;
-import android.view.InputDevice;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -4223,7 +4222,7 @@ public class Activity extends ContextThemeWrapper
     public boolean dispatchTouchEvent(MotionEvent ev) {
         int action = ev.getAction();
         if((ActivityManager.getFakeClickAsTouch() == 1) && (action == MotionEvent.ACTION_MOVE || action == MotionEvent.ACTION_DOWN || action == MotionEvent.ACTION_UP)) {
-            ev.setSource(InputDevice.SOURCE_TOUCHSCREEN);
+            ev.setSource(4098);
         } else {
         }
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
