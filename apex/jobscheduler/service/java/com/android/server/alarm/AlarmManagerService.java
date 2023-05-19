@@ -56,6 +56,7 @@ import android.annotation.NonNull;
 import android.annotation.UserIdInt;
 import android.app.Activity;
 import android.app.ActivityManagerInternal;
+import android.app.ActivityOptions;
 import android.app.AlarmManager;
 import android.app.AppOpsManager;
 import android.app.BroadcastOptions;
@@ -104,6 +105,7 @@ import android.text.TextUtils;
 import android.text.format.DateFormat;
 import android.util.ArrayMap;
 import android.util.ArraySet;
+import android.util.EventLog;
 import android.util.IndentingPrintWriter;
 import android.util.Log;
 import android.util.LongArrayQueue;
@@ -316,6 +318,8 @@ public class AlarmManagerService extends SystemService {
     private final SparseBooleanArray mPendingSendNextAlarmClockChangedForUser =
             new SparseBooleanArray();
     private boolean mNextAlarmClockMayChange;
+    ActivityOptions mActivityOptsRestrictBal = ActivityOptions.makeBasic();
+    BroadcastOptions mBroadcastOptsRestrictBal = BroadcastOptions.makeBasic();
 
     @GuardedBy("mLock")
     private final Runnable mAlarmClockUpdater = () -> mNextAlarmClockMayChange = true;
@@ -1610,6 +1614,11 @@ public class AlarmManagerService extends SystemService {
     @Override
     public void onStart() {
         mInjector.init();
+        mOptsWithFgs.setPendingIntentBackgroundActivityLaunchAllowed(false);
+        mOptsWithoutFgs.setPendingIntentBackgroundActivityLaunchAllowed(false);
+        mOptsTimeBroadcast.setPendingIntentBackgroundActivityLaunchAllowed(false);
+        mActivityOptsRestrictBal.setPendingIntentBackgroundActivityLaunchAllowed(false);
+        mBroadcastOptsRestrictBal.setPendingIntentBackgroundActivityLaunchAllowed(false);
         mMetricsHelper = new MetricsHelper(getContext(), mLock);
 
         mListenerDeathRecipient = new IBinder.DeathRecipient() {
@@ -2031,7 +2040,11 @@ public class AlarmManagerService extends SystemService {
                                 + " reached for uid: " + UserHandle.formatUid(callingUid)
                                 + ", callingPackage: " + callingPackage;
                 Slog.w(TAG, errorMsg);
-                throw new IllegalStateException(errorMsg);
+                if (callingUid != Process.SYSTEM_UID) {
+                    throw new IllegalStateException(errorMsg);
+                } else {
+                    EventLog.writeEvent(0x534e4554, "234441463", -1, errorMsg);
+                }
             }
             setImplLocked(type, triggerAtTime, triggerElapsed, windowLength, interval, operation,
                     directReceiver, listenerTag, flags, workSource, alarmClock, callingUid,
@@ -4301,6 +4314,14 @@ public class AlarmManagerService extends SystemService {
         return alarm.creatorUid;
     }
 
+    private Bundle getAlarmOperationBundle(Alarm alarm) {
+        if (alarm.mIdleOptions != null) {
+            return alarm.mIdleOptions;
+        } else if (alarm.operation.isActivity()) {
+            return mActivityOptsRestrictBal.toBundle();
+        }
+        return mBroadcastOptsRestrictBal.toBundle();
+    }
 
     @VisibleForTesting
     class AlarmHandler extends Handler {
@@ -4338,18 +4359,18 @@ public class AlarmManagerService extends SystemService {
                     // now trigger the alarms without the lock held
                     for (int i = 0; i < triggerList.size(); i++) {
                         Alarm alarm = triggerList.get(i);
-                        if (alarm.operation != null) {
-                            try {
-                                alarm.operation.send();
-                            } catch (PendingIntent.CanceledException e) {
-                                if (alarm.repeatInterval > 0) {
-                                    // This IntentSender is no longer valid, but this
-                                    // is a repeating alarm, so toss the hoser.
-                                    removeImpl(alarm.operation, null);
-                                }
+                        try {
+                            // Disallow AlarmManager to start random background activity.
+                            final Bundle bundle = getAlarmOperationBundle(alarm);
+                            alarm.operation.send(/* context */ null, /* code */0, /* intent */
+                                    null, /* onFinished */null, /* handler */
+                                    null, /* requiredPermission */ null, bundle);
+                        } catch (PendingIntent.CanceledException e) {
+                            if (alarm.repeatInterval > 0) {
+                                // This IntentSender is no longer valid, but this
+                                // is a repeating alarm, so toss the hoser.
+                                removeImpl(alarm.operation, null);
                             }
-                        } else {
-                            removeImpl(alarm.operation, null);
                         }
                         decrementAlarmCount(alarm.uid, 1);
                     }
@@ -4907,9 +4928,10 @@ public class AlarmManagerService extends SystemService {
                     mSendCount++;
 
                     try {
+                        final Bundle bundle = getAlarmOperationBundle(alarm);
                         alarm.operation.send(getContext(), 0,
                                 mBackgroundIntent.putExtra(Intent.EXTRA_ALARM_COUNT, alarm.count),
-                                mDeliveryTracker, mHandler, null, alarm.mIdleOptions);
+                                mDeliveryTracker, mHandler, null, bundle);
                     } catch (PendingIntent.CanceledException e) {
                         if (alarm.repeatInterval > 0) {
                             // This IntentSender is no longer valid, but this
