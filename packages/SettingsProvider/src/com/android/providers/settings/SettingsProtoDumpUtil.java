@@ -2742,6 +2742,9 @@ class SettingsProtoDumpUtil {
                 Settings.System.END_BUTTON_BEHAVIOR,
                 SystemSettingsProto.END_BUTTON_BEHAVIOR);
         dumpSetting(s, p,
+                Settings.System.POWERMENU_ADVANCED,
+                SystemSettingsProto.POWERMENU_ADVANCED);
+        dumpSetting(s, p,
                 Settings.System.FONT_SCALE,
                 SystemSettingsProto.FONT_SCALE);
 
