@@ -259,7 +259,7 @@ public final class ShutdownThread extends Thread {
         mAdvancedReboot = false;
         mRebootSafeMode = false;
         mReason = reason;
-        mAdvancedReboot = true;
+        mAdvancedReboot = false;
         shutdownInner(context, confirm);
     }
 
