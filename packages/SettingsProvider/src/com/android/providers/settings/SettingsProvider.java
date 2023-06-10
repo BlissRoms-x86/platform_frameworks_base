@@ -5222,6 +5222,18 @@ public class SettingsProvider extends ContentProvider {
                                 currentValue, null /* tag */, false /* makeDefault */,
                                 SettingsState.SYSTEM_PACKAGE_NAME);
                     }
+
+                    // Add default advanced power menu behavior
+                    final SettingsState systemSettings = getSystemSettingsLocked(userId);
+                    final Setting currentSetting = systemSettings.getSettingLocked(
+                            Settings.System.POWERMENU_ADVANCED);
+                    if (currentSetting.isNull()) {
+                        systemSettings.insertSettingOverrideableByRestoreLocked(
+                                Settings.System.POWERMENU_ADVANCED,
+                                getContext().getResources().getBoolean(
+                                        R.bool.def_powermenu_advanced) ? "1" : "0",
+                                null, true, SettingsState.SYSTEM_PACKAGE_NAME);
+                    }
                     currentVersion = 203;
                 }
 
