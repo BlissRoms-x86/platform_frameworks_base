@@ -190,7 +190,7 @@
     <integer name="def_end_button_behavior">0x2</integer>
 
     <!-- default setting for Settings.System.POWERMENU_ADVANCED -->
-    <bool name="def_powermenu_advanced">false</bool>
+    <bool name="def_powermenu_advanced">true</bool>
 
     <!-- default setting for Settings.Global.DEFAULT_RESTRICT_BACKGROUND_DATA -->
     <bool name="def_restrict_background_data">false</bool>
