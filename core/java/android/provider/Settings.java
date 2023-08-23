@@ -5310,6 +5310,11 @@ public final class Settings {
         public static final String FORCE_MOUSE_AS_TOUCH = "force_mouse_as_touch";
 
         /**
+         * @hide
+         */
+        public static final String ALERT_WINDOW_BYPASS_LOW_RAM = "alert_window_bypass_low_ram";
+
+        /**
          * Statusbar Battery %
          * 0: Hide the battery percentage
          * 1: Display the battery percentage inside the icon
