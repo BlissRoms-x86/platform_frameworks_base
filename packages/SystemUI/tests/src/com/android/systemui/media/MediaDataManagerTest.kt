@@ -286,8 +286,6 @@ class MediaDataManagerTest : SysuiTestCase() {
     @Test
     fun testOnNotificationAdded_emptyTitle_hasPlaceholder() {
         // When the manager has a notification with an empty title
-        val listener = mock(MediaDataManager.Listener::class.java)
-        mediaDataManager.addListener(listener)
         whenever(controller.metadata)
             .thenReturn(
                 metadataBuilder
@@ -303,7 +301,10 @@ class MediaDataManagerTest : SysuiTestCase() {
             .onMediaDataLoaded(
                 eq(KEY),
                 eq(null),
-                capture(mediaDataCaptor)
+                capture(mediaDataCaptor),
+                eq(true),
+                eq(0),
+                eq(false)
             )
         val placeholderTitle = context.getString(R.string.controls_media_empty_title, APP_NAME)
         assertThat(mediaDataCaptor.value.song).isEqualTo(placeholderTitle)
@@ -312,8 +313,6 @@ class MediaDataManagerTest : SysuiTestCase() {
     @Test
     fun testOnNotificationAdded_blankTitle_hasPlaceholder() {
         // GIVEN that the manager has a notification with a blank title
-        val listener = mock(MediaDataManager.Listener::class.java)
-        mediaDataManager.addListener(listener)
         whenever(controller.metadata)
             .thenReturn(
                 metadataBuilder
@@ -329,7 +328,10 @@ class MediaDataManagerTest : SysuiTestCase() {
             .onMediaDataLoaded(
                 eq(KEY),
                 eq(null),
-                capture(mediaDataCaptor)
+                capture(mediaDataCaptor),
+                eq(true),
+                eq(0),
+                eq(false)
             )
         val placeholderTitle = context.getString(R.string.controls_media_empty_title, APP_NAME)
         assertThat(mediaDataCaptor.value.song).isEqualTo(placeholderTitle)
@@ -339,8 +341,6 @@ class MediaDataManagerTest : SysuiTestCase() {
     fun testOnNotificationAdded_emptyMetadata_usesNotificationTitle() {
         // When the app sets the metadata title fields to empty strings, but does include a
         // non-blank notification title
-        val listener = mock(MediaDataManager.Listener::class.java)
-        mediaDataManager.addListener(listener)
         whenever(controller.metadata)
             .thenReturn(
                 metadataBuilder
@@ -367,7 +367,10 @@ class MediaDataManagerTest : SysuiTestCase() {
             .onMediaDataLoaded(
                 eq(KEY),
                 eq(null),
-                capture(mediaDataCaptor)
+                capture(mediaDataCaptor),
+                eq(true),
+                eq(0),
+                eq(false)
             )
         assertThat(mediaDataCaptor.value.song).isEqualTo(SESSION_TITLE)
     }
