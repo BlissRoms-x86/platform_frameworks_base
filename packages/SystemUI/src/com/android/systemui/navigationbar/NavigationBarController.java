@@ -31,6 +31,7 @@ import android.hardware.display.DisplayManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.RemoteException;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.Log;
@@ -300,22 +301,28 @@ public class NavigationBarController implements
      */
     @VisibleForTesting
     void createNavigationBar(Display display, Bundle savedState, RegisterStatusBarResult result) {
+        // Check if the property persist.bliss.disable_navigation_bar is true
+        boolean disableNavigationBar = SystemProperties.getBoolean("persist.bliss.disable_navigation_bar", false);
+        if (disableNavigationBar) {
+            return;
+        }
+        
         if (display == null) {
             return;
         }
-
+    
         final int displayId = display.getDisplayId();
         final boolean isOnDefaultDisplay = displayId == DEFAULT_DISPLAY;
-
+    
         // We may show TaskBar on the default display for large screen device. Don't need to create
         // navigation bar for this case.
         if (shouldShowTaskbar() && isOnDefaultDisplay) {
             return;
         }
-
+    
         final WindowManagerWrapper wm = WindowManagerWrapper.getInstance();
         final IWindowManager wms = WindowManagerGlobal.getWindowManagerService();
-
+    
         final Context context = isOnDefaultDisplay
                 ? mContext
                 : mContext.createDisplayContext(display);
@@ -323,9 +330,9 @@ public class NavigationBarController implements
             return;
         }
         NavigationBar navBar = mNavigationBarFactory.create(context);
-
+    
         mNavigationBars.put(displayId, navBar);
-
+    
         View navigationBarView = navBar.createView(savedState);
         navigationBarView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override
@@ -336,7 +343,7 @@ public class NavigationBarController implements
                             result.mShowImeSwitcher);
                 }
             }
-
+    
             @Override
             public void onViewDetachedFromWindow(View v) {
                 v.removeOnAttachStateChangeListener(this);
