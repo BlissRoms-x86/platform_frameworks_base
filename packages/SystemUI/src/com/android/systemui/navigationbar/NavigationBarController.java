@@ -439,7 +439,13 @@ public class NavigationBarController implements
     }
 
     private boolean shouldShowTaskbar() {
-        return mIsTablet || mTaskbarShowing;
+        // Check if the property persist.bliss.disable_taskbar is true
+        boolean disableNavigationTaskbar = SystemProperties.getBoolean("persist.bliss.disable_taskbar", false);
+        if (disableNavigationTaskbar) {
+            return false;
+        } else {
+            return mIsTablet || mTaskbarShowing;
+        }
     }
 
     /** @return {@link NavigationBar} on the default display. */
