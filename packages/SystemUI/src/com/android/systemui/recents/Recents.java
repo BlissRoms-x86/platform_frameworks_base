@@ -19,6 +19,7 @@ package com.android.systemui.recents;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.res.Configuration;
+import android.os.SystemProperties;
 import android.provider.Settings;
 
 import com.android.systemui.SystemUI;
@@ -68,7 +69,7 @@ public class Recents extends SystemUI implements CommandQueue.Callbacks {
     public void showRecentApps(boolean triggeredFromAltTab) {
         // Ensure the device has been provisioned before allowing the user to interact with
         // recents
-        if (!isUserSetup()) {
+        if (!isUserSetup() || disableRecents()) {
             return;
         }
 
@@ -79,7 +80,7 @@ public class Recents extends SystemUI implements CommandQueue.Callbacks {
     public void hideRecentApps(boolean triggeredFromAltTab, boolean triggeredFromHomeKey) {
         // Ensure the device has been provisioned before allowing the user to interact with
         // recents
-        if (!isUserSetup()) {
+        if (!isUserSetup() || disableRecents()) {
             return;
         }
 
@@ -90,7 +91,7 @@ public class Recents extends SystemUI implements CommandQueue.Callbacks {
     public void toggleRecentApps() {
         // Ensure the device has been provisioned before allowing the user to interact with
         // recents
-        if (!isUserSetup()) {
+        if (!isUserSetup() || disableRecents()) {
             return;
         }
 
@@ -101,7 +102,7 @@ public class Recents extends SystemUI implements CommandQueue.Callbacks {
     public void preloadRecentApps() {
         // Ensure the device has been provisioned before allowing the user to interact with
         // recents
-        if (!isUserSetup()) {
+        if (!isUserSetup() || disableRecents()) {
             return;
         }
 
@@ -112,7 +113,7 @@ public class Recents extends SystemUI implements CommandQueue.Callbacks {
     public void cancelPreloadRecentApps() {
         // Ensure the device has been provisioned before allowing the user to interact with
         // recents
-        if (!isUserSetup()) {
+        if (!isUserSetup() || disableRecents()) {
             return;
         }
 
@@ -127,6 +128,10 @@ public class Recents extends SystemUI implements CommandQueue.Callbacks {
         return (Settings.Global.getInt(cr, Settings.Global.DEVICE_PROVISIONED, 0) != 0) &&
                 (Settings.Secure.getInt(cr, Settings.Secure.USER_SETUP_COMPLETE, 0) != 0);
     }
+
+    private boolean disableRecents() {
+        return SystemProperties.getBoolean("persist.bliss.disable_recents", false);
+    } 
 
     @Override
     public void dump(FileDescriptor fd, PrintWriter pw, String[] args) {
