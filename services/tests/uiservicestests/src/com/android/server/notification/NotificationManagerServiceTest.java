@@ -3167,6 +3167,34 @@ public class NotificationManagerServiceTest extends UiServiceTestCase {
     }
 
     @Test
+    public void testSetListenerAccessForUser_grantWithNameTooLong_throws() throws Exception {
+        UserHandle user = UserHandle.of(mContext.getUserId() + 10);
+        ComponentName c = new ComponentName("com.example.package",
+                com.google.common.base.Strings.repeat("Blah", 150));
+
+        try {
+            mBinderService.setNotificationListenerAccessGrantedForUser(c, user.getIdentifier(),
+                    /* enabled= */ true);
+            fail("Should've thrown IllegalArgumentException");
+        } catch (IllegalArgumentException e) {
+            // Good!
+        }
+    }
+
+    @Test
+    public void testSetListenerAccessForUser_revokeWithNameTooLong_okay() throws Exception {
+        UserHandle user = UserHandle.of(mContext.getUserId() + 10);
+        ComponentName c = new ComponentName("com.example.package",
+                com.google.common.base.Strings.repeat("Blah", 150));
+
+        mBinderService.setNotificationListenerAccessGrantedForUser(
+                c, user.getIdentifier(), /* enabled= */ false);
+
+        verify(mListeners).setPackageOrComponentEnabled(
+                c.flattenToString(), user.getIdentifier(), true, /* enabled= */ false);
+    }
+
+    @Test
     public void testSetAssistantAccessForUser() throws Exception {
         UserHandle user = UserHandle.of(10);
         List<UserInfo> uis = new ArrayList<>();
@@ -4307,6 +4335,13 @@ public class NotificationManagerServiceTest extends UiServiceTestCase {
                 .setLargeIcon(largeIcon)
                 .addExtras(extras)
                 .build();
+
+        // Serialize and deserialize the notification to make sure nothing breaks in the process,
+        // since that's what will usually happen before we get to call visitUris.
+        Parcel parcel = Parcel.obtain();
+        n.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        n = new Notification(parcel);
 
         Consumer<Uri> visitor = (Consumer<Uri>) spy(Consumer.class);
         n.visitUris(visitor);

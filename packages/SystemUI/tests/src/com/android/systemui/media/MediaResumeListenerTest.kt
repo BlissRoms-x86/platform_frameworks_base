@@ -37,7 +37,6 @@ import com.android.systemui.tuner.TunerService
 import com.android.systemui.util.concurrency.FakeExecutor
 import com.android.systemui.util.time.FakeSystemClock
 import org.junit.After
-import com.google.common.truth.Truth.assertThat
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -87,6 +86,7 @@ class MediaResumeListenerTest : SysuiTestCase() {
     @Mock private lateinit var pendingIntent: PendingIntent
 
     @Captor lateinit var callbackCaptor: ArgumentCaptor<ResumeMediaBrowser.Callback>
+    @Captor lateinit var userIdCaptor: ArgumentCaptor<Int>
 
     private lateinit var executor: FakeExecutor
     private lateinit var data: MediaData
@@ -104,9 +104,9 @@ class MediaResumeListenerTest : SysuiTestCase() {
         Settings.Global.putInt(context.contentResolver,
             Settings.Global.SHOW_MEDIA_ON_QUICK_SETTINGS, 1)
         Settings.Secure.putInt(context.contentResolver,
-            Settings.Secure.MEDIA_CONTROLS_RESUME, 0)
+            Settings.Secure.MEDIA_CONTROLS_RESUME, 1)
 
-        whenever(resumeBrowserFactory.create(capture(callbackCaptor), any()))
+        whenever(resumeBrowserFactory.create(capture(callbackCaptor), any(), capture(userIdCaptor)))
                 .thenReturn(resumeBrowser)
 
         // resume components are stored in sharedpreferences
@@ -117,6 +117,7 @@ class MediaResumeListenerTest : SysuiTestCase() {
         whenever(sharedPrefsEditor.putString(any(), any())).thenReturn(sharedPrefsEditor)
         whenever(mockContext.packageManager).thenReturn(context.packageManager)
         whenever(mockContext.contentResolver).thenReturn(context.contentResolver)
+        whenever(mockContext.userId).thenReturn(context.userId)
 
         executor = FakeExecutor(FakeSystemClock())
         resumeListener = MediaResumeListener(mockContext, broadcastDispatcher, executor,
@@ -153,35 +154,69 @@ class MediaResumeListenerTest : SysuiTestCase() {
     }
 
     @Test
-    fun testWhenNoResumption_doesNothing() {
-        Settings.Secure.putInt(context.contentResolver,
-            Settings.Secure.MEDIA_CONTROLS_RESUME, 0)
+    fun testUserUnlocked_userChangeWhileQuerying() {
+        val firstUserId = context.userId
+        val secondUserId = firstUserId + 1
+        val description = MediaDescription.Builder().setTitle(TITLE).build()
+        val component = ComponentName(PACKAGE_NAME, CLASS_NAME)
 
-        // When listener is created, we do NOT register a user change listener
-        val listener = MediaResumeListener(context, broadcastDispatcher, executor, tunerService,
-                resumeBrowserFactory)
-        listener.setManager(mediaDataManager)
-        verify(broadcastDispatcher, never()).registerReceiver(eq(listener.userChangeReceiver),
-            any(), any(), any())
+        setUpMbsWithValidResolveInfo()
+        whenever(resumeBrowser.token).thenReturn(token)
+        whenever(resumeBrowser.appIntent).thenReturn(pendingIntent)
 
-        // When data is loaded, we do NOT execute or update anything
-        listener.onMediaDataLoaded(KEY, OLD_KEY, data)
-        assertThat(executor.numPending()).isEqualTo(0)
-        verify(mediaDataManager, never()).setResumeAction(any(), any())
+        val unlockIntent =
+            Intent(Intent.ACTION_USER_UNLOCKED).apply {
+                putExtra(Intent.EXTRA_USER_HANDLE, firstUserId)
+            }
+
+        // When the first user unlocks and we query their recent media
+        resumeListener.userChangeReceiver.onReceive(context, unlockIntent)
+        whenever(resumeBrowser.userId).thenReturn(userIdCaptor.value)
+        verify(resumeBrowser, times(3)).findRecentMedia()
+
+        // And the user changes before the MBS response is received
+        val changeIntent =
+            Intent(Intent.ACTION_USER_SWITCHED).apply {
+                putExtra(Intent.EXTRA_USER_HANDLE, secondUserId)
+            }
+        resumeListener.userChangeReceiver.onReceive(context, changeIntent)
+        callbackCaptor.value.addTrack(description, component, resumeBrowser)
+
+        // Then the loaded media is correctly associated with the first user
+        verify(mediaDataManager)
+            .addResumptionControls(
+                eq(firstUserId),
+                eq(description),
+                any(),
+                eq(token),
+                eq(PACKAGE_NAME),
+                eq(pendingIntent),
+                eq(PACKAGE_NAME)
+            )
     }
 
     @Test
-    fun testOnLoad_checksForResume_noService() {
-        // When media data is loaded that has not been checked yet, and does not have a MBS
-        resumeListener.onMediaDataLoaded(KEY, null, data)
+    fun testUserUnlocked_noComponent_doesNotQuery() {
+        // Set up a valid MBS, but user does not have the service available
+        setUpMbsWithValidResolveInfo()
+        val pm = mock(PackageManager::class.java)
+        whenever(mockContext.packageManager).thenReturn(pm)
+        whenever(pm.resolveServiceAsUser(any(), anyInt(), anyInt())).thenReturn(null)
 
-        // Then we report back to the manager
-        verify(mediaDataManager).setResumeAction(KEY, null)
+        val unlockIntent =
+            Intent(Intent.ACTION_USER_UNLOCKED).apply {
+                putExtra(Intent.EXTRA_USER_HANDLE, context.userId)
+            }
+
+        // When the user is unlocked, but does not have the component installed
+        resumeListener.userChangeReceiver.onReceive(context, unlockIntent)
+
+        // Then we never attempt to connect to it
+        verify(resumeBrowser, never()).findRecentMedia()
     }
 
-    @Test
-    fun testOnLoad_checksForResume_hasService() {
-        // Set up mocks to successfully find a MBS that returns valid media
+    /** Sets up mocks to successfully find a MBS that returns valid media. */
+    private fun setUpMbsWithValidResolveInfo() {
         val pm = mock(PackageManager::class.java)
         whenever(mockContext.packageManager).thenReturn(pm)
         val resolveInfo = ResolveInfo()
@@ -190,69 +225,8 @@ class MediaResumeListenerTest : SysuiTestCase() {
         resolveInfo.serviceInfo = serviceInfo
         resolveInfo.serviceInfo.name = CLASS_NAME
         val resumeInfo = listOf(resolveInfo)
-        whenever(pm.queryIntentServices(any(), anyInt())).thenReturn(resumeInfo)
-
-        val description = MediaDescription.Builder().setTitle(TITLE).build()
-        val component = ComponentName(PACKAGE_NAME, CLASS_NAME)
-        whenever(resumeBrowser.testConnection()).thenAnswer {
-            callbackCaptor.value.addTrack(description, component, resumeBrowser)
-        }
-
-        // When media data is loaded that has not been checked yet, and does have a MBS
-        val dataCopy = data.copy(resumeAction = null, hasCheckedForResume = false)
-        resumeListener.onMediaDataLoaded(KEY, null, dataCopy)
-
-        // Then we test whether the service is valid
-        executor.runAllReady()
-        verify(resumeBrowser).testConnection()
-
-        // And since it is, we report back to the manager
-        verify(mediaDataManager).setResumeAction(eq(KEY), any())
-
-        // But we do not tell it to add new controls
-        verify(mediaDataManager, never())
-                .addResumptionControls(anyInt(), any(), any(), any(), any(), any(), any())
-
-        // Finally, make sure the resume browser disconnected
-        verify(resumeBrowser).disconnect()
-    }
-
-    @Test
-    fun testOnLoad_doesNotCheckAgain() {
-        // When a media data is loaded that has been checked already
-        var dataCopy = data.copy(hasCheckedForResume = true)
-        resumeListener.onMediaDataLoaded(KEY, null, dataCopy)
-
-        // Then we should not check it again
-        verify(resumeBrowser, never()).testConnection()
-        verify(mediaDataManager, never()).setResumeAction(KEY, null)
-    }
-
-    @Test
-    fun testOnUserUnlock_loadsTracks() {
-        // Set up mock service to successfully find valid media
-        val description = MediaDescription.Builder().setTitle(TITLE).build()
-        val component = ComponentName(PACKAGE_NAME, CLASS_NAME)
-        whenever(resumeBrowser.token).thenReturn(token)
-        whenever(resumeBrowser.appIntent).thenReturn(pendingIntent)
-        whenever(resumeBrowser.findRecentMedia()).thenAnswer {
-            callbackCaptor.value.addTrack(description, component, resumeBrowser)
-        }
-
-        // Make sure broadcast receiver is registered
-        resumeListener.setManager(mediaDataManager)
-        verify(broadcastDispatcher).registerReceiver(eq(resumeListener.userChangeReceiver),
-                any(), any(), any())
-
-        // When we get an unlock event
-        val intent = Intent(Intent.ACTION_USER_UNLOCKED)
-        resumeListener.userChangeReceiver.onReceive(context, intent)
-
-        // Then we should attempt to find recent media for each saved component
-        verify(resumeBrowser, times(3)).findRecentMedia()
-
-        // Then since the mock service found media, the manager should be informed
-        verify(mediaDataManager, times(3)).addResumptionControls(anyInt(),
-                any(), any(), any(), any(), any(), eq(PACKAGE_NAME))
+        whenever(pm.queryIntentServicesAsUser(any(), anyInt(), anyInt())).thenReturn(resumeInfo)
+        whenever(pm.resolveServiceAsUser(any(), anyInt(), anyInt())).thenReturn(resolveInfo)
+        whenever(pm.getApplicationLabel(any())).thenReturn(PACKAGE_NAME)
     }
 }
