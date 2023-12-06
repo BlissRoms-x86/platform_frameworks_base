@@ -76,6 +76,7 @@ import static junit.framework.Assert.assertNull;
 import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.fail;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyLong;
@@ -3170,6 +3171,30 @@ public class NotificationManagerServiceTest extends UiServiceTestCase {
     }
 
     @Test
+    public void testSetListenerAccessForUser_grantWithNameTooLong_throws() {
+        UserHandle user = UserHandle.of(mContext.getUserId() + 10);
+        ComponentName c = new ComponentName("com.example.package",
+                com.google.common.base.Strings.repeat("Blah", 150));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> mBinderService.setNotificationListenerAccessGrantedForUser(
+                        c, user.getIdentifier(), /* enabled= */ true, true));
+    }
+
+    @Test
+    public void testSetListenerAccessForUser_revokeWithNameTooLong_okay() throws Exception {
+        UserHandle user = UserHandle.of(mContext.getUserId() + 10);
+        ComponentName c = new ComponentName("com.example.package",
+                com.google.common.base.Strings.repeat("Blah", 150));
+
+        mBinderService.setNotificationListenerAccessGrantedForUser(
+                c, user.getIdentifier(), /* enabled= */ false, true);
+
+        verify(mListeners).setPackageOrComponentEnabled(
+                c.flattenToString(), user.getIdentifier(), true, /* enabled= */ false, true);
+    }
+
+    @Test
     public void testSetAssistantAccessForUser() throws Exception {
         UserInfo ui = new UserInfo();
         ui.id = mContext.getUserId() + 10;
@@ -4488,6 +4513,13 @@ public class NotificationManagerServiceTest extends UiServiceTestCase {
                 .setLargeIcon(largeIcon)
                 .addExtras(extras)
                 .build();
+
+        // Serialize and deserialize the notification to make sure nothing breaks in the process,
+        // since that's what will usually happen before we get to call visitUris.
+        Parcel parcel = Parcel.obtain();
+        n.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        n = new Notification(parcel);
 
         Consumer<Uri> visitor = (Consumer<Uri>) spy(Consumer.class);
         n.visitUris(visitor);
