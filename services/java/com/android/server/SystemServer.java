@@ -231,6 +231,8 @@ import com.android.server.custom.LineageHardwareService;
 // LiveDisplay
 import com.android.server.custom.display.LiveDisplayService;
 
+import org.blissos.server.ethernet.BlissEthernetService;
+
 /**
  * Entry point to {@code system_server}.
  */
@@ -2705,6 +2707,10 @@ public final class SystemServer implements Dumpable {
 
         t.traceBegin("AppCompatOverridesService");
         mSystemServiceManager.startService(APP_COMPAT_OVERRIDES_SERVICE_CLASS);
+        t.traceEnd();
+
+        t.traceBegin("BlissEthernetService");
+        mSystemServiceManager.startService(BlissEthernetService.class);
         t.traceEnd();
 
         // These are needed to propagate to the runnable below.
