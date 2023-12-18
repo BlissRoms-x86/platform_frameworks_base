@@ -132,7 +132,7 @@ public class BlissEthernetService extends SystemService {
         public void setInterfaceDown(String iface) throws RemoteException {
             long token = clearCallingIdentity();
 
-            NetdUtils.setInterfaceUp(mNetd, iface);
+            NetdUtils.setInterfaceDown(mNetd, iface);
             restoreCallingIdentity(token);
         }
 
