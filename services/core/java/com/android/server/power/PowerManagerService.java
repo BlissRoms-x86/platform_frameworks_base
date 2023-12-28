@@ -2091,13 +2091,6 @@ public final class PowerManagerService extends SystemService
             if ((flags & PowerManager.GO_TO_SLEEP_FLAG_NO_DOZE) != 0) {
                 reallySleepDisplayGroupNoUpdateLocked(groupId, eventTime, uid);
             }
-
-            // Adding force suspend code to enter S3 after pressing sleep button
-			try {
-				FileUtils.stringToFile("/sys/power/state", "mem");
-			} catch (IOException e) {
-				Slog.v(TAG, "IOException: " + e);
-			}
         } finally {
             Trace.traceEnd(Trace.TRACE_TAG_POWER);
         }
