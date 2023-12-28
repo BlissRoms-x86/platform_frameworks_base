@@ -5582,6 +5582,13 @@ public final class PowerManagerService extends SystemService
          */
         public void wakeUp(long eventTime, @WakeReason int reason, String details,
                 String opPackageName, boolean checkProximity) {
+
+            final boolean isWakeMotionBlocked = SystemProperties.getBoolean("persist.power.block_wake_motion", true);
+
+            if (isWakeMotionBlocked && reason == PowerManager.WAKE_REASON_WAKE_MOTION) {
+                Slog.i(TAG, "WAKE_MOTION detected, skipping because user might use a mouse");
+                return;
+            }
             if (eventTime > mClock.uptimeMillis()) {
                 throw new IllegalArgumentException("event time must not be in the future");
             }
