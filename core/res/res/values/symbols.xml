@@ -3349,6 +3349,7 @@
 
   <!-- Global actions icons -->
   <java-symbol type="drawable" name="ic_restart" />
+  <java-symbol type="drawable" name="ic_sleep" />
   <java-symbol type="drawable" name="ic_screenshot" />
   <java-symbol type="drawable" name="ic_faster_emergency" />
   <java-symbol type="drawable" name="ic_media_seamless" />

@@ -942,7 +942,7 @@ public class GlobalActionsDialogLite implements DialogInterface.OnDismissListene
     
     private final class SleepAction extends SinglePressAction implements LongPressAction { 
         private SleepAction() { 
-            super(R.drawable.ic_restart, R.string.global_action_sleep); 
+            super(R.drawable.ic_sleep, R.string.global_action_sleep); 
         } 
  
         @Override 
