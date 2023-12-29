@@ -5463,6 +5463,13 @@ public final class Settings {
         public static final String POWERMENU_DEVICECONTROLS = "powermenu_devicecontrols";
 
         /**
+         * Whether to display the sleep option in the power menu
+         *
+         * @hide
+         */
+        public static final String POWERMENU_SLEEP = "powermenu_sleep";
+
+        /**
          * Whether to hide navbar pill and keyboard space.
          * Default 0.
          * @hide

@@ -85,7 +85,8 @@
         <item>power</item>
         <item>sleep</item>
         <item>restart</item>
-        <item>advanced</item>
+        <item>sleep</item>
+	   <item>advanced</item>
         <item>logout</item>
         <item>users</item>
         <item>silent</item>

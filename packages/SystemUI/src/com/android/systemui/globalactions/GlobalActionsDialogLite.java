@@ -713,7 +713,9 @@ public class GlobalActionsDialogLite implements DialogInterface.OnDismissListene
                     addIfShouldShowAction(tempActions, restartAction);
                 }
             } else if (GLOBAL_ACTION_KEY_SLEEP.equals(actionKey)) {
-				addIfShouldShowAction(tempActions, new SleepAction());
+                if (Settings.System.getInt(mContext.getContentResolver(),
+                        Settings.System.POWERMENU_SLEEP, 1) == 1) {
+				addIfShouldShowAction(tempActions, new SleepAction()); }
             } else if (GLOBAL_ACTION_KEY_ADVANCED_RESTART.equals(actionKey)) {
                 if (Settings.System.getInt(mContext.getContentResolver(),
                         Settings.System.POWERMENU_ADVANCED, 1) == 1) {
