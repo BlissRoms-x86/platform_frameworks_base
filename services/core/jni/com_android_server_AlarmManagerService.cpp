@@ -362,6 +362,13 @@ static jlong android_server_AlarmManagerService_init(JNIEnv*, jobject)
         return 0;
     }
 
+    // turn off wake alarms on x86 platforms, unless the user wants it on
+    if(property_get_bool("persist.alarm_manager_service.no_wake_alarms", true)){
+        clockid_t *rw_cast = (clockid_t *) android_alarm_to_clockid;
+        rw_cast[0] = CLOCK_REALTIME;
+        rw_cast[2] = CLOCK_BOOTTIME;
+    }
+
     for (size_t i = 0; i < fds.size(); i++) {
         fds[i] = timerfd_create(android_alarm_to_clockid[i], TFD_NONBLOCK);
         if (fds[i] < 0) {
