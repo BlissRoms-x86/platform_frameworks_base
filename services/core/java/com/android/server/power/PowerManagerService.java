@@ -140,7 +140,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import android.os.FileUtils;
 
 /**
  * The power manager service is responsible for coordinating power management
@@ -2084,12 +2083,6 @@ public final class PowerManagerService extends SystemService
             Slog.i(TAG, "Powering off display group due to "
                     + PowerManager.sleepReasonToString(reason) + " (groupId= " + groupId
                     + ", uid= " + uid + ")...");
-            // Adding force suspend code to enter S3 after pressing sleep button
-			try {
-				FileUtils.stringToFile("/sys/power/state", "mem");
-			} catch (IOException e) {
-				Slog.v(TAG, "IOException: " + e);
-			}
 
             mDisplayGroupPowerStateMapper.setSandmanSummoned(groupId, true);
             setWakefulnessLocked(groupId, WAKEFULNESS_DOZING, eventTime, uid, reason,
