@@ -525,7 +525,7 @@ public class NotificationManagerService extends SystemService {
 
     private static final int MY_UID = Process.myUid();
     private static final int MY_PID = Process.myPid();
-    private static final IBinder WHITELIST_TOKEN = new Binder();
+    static final IBinder WHITELIST_TOKEN = new Binder();
     protected RankingHandler mRankingHandler;
     private long mLastOverRateLogTime;
     private float mMaxPackageEnqueueRate = DEFAULT_MAX_NOTIFICATION_ENQUEUE_RATE;
@@ -3974,7 +3974,7 @@ public class NotificationManagerService extends SystemService {
             }
         }
 
-        /** Notifications returned here will have allowlistToken stripped from them. */
+        /** Notifications returned here will have whitelistToken stripped from them. */
         private StatusBarNotification sanitizeSbn(String pkg, int userId,
                 StatusBarNotification sbn) {
             if (sbn.getUserId() == userId) {
@@ -3986,7 +3986,7 @@ public class NotificationManagerService extends SystemService {
                     // Remove background token before returning notification to untrusted app, this
                     // ensures the app isn't able to perform background operations that are
                     // associated with notification interactions.
-                    notification.clearAllowlistToken();
+                    notification.overrideWhitelistToken(null);
                     return new StatusBarNotification(
                             sbn.getPackageName(),
                             sbn.getOpPkg(),
@@ -5901,6 +5901,15 @@ public class NotificationManagerService extends SystemService {
                     + " trying to post for invalid pkg " + pkg + " in user " + incomingUserId);
         }
 
+        IBinder whitelistToken = notification.getWhitelistToken();
+        if (whitelistToken != null && whitelistToken != WHITELIST_TOKEN) {
+            throw new SecurityException(
+                    "Unexpected whitelist token received from " + callingUid);
+        }
+        // whitelistToken is populated by unparceling, so it can be null if the notification was
+        // posted from inside system_server. Ensure it's the expected value.
+        notification.overrideWhitelistToken(WHITELIST_TOKEN);
+
         checkRestrictedCategories(pkg, notification);
 
         // Fix the notification as best we can.
@@ -6590,6 +6599,11 @@ public class NotificationManagerService extends SystemService {
         @Override
         public void run() {
             synchronized (mNotificationLock) {
+                // whitelistToken is populated by unparceling, so it will be absent if the
+                // EnqueueNotificationRunnable is created directly by NMS (as we do for group
+                // summaries) instead of via notify(). Fix that.
+                r.getNotification().overrideWhitelistToken(WHITELIST_TOKEN);
+
                 final Long snoozeAt =
                         mSnoozeHelper.getSnoozeTimeForUnpostedNotification(
                                 r.getUser().getIdentifier(),

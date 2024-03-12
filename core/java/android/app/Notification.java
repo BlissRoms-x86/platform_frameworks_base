@@ -2263,8 +2263,11 @@ public class Notification implements Parcelable
         if (mWhitelistToken == null) {
             mWhitelistToken = processWhitelistToken;
         }
-        // Propagate this token to all pending intents that are unmarshalled from the parcel.
-        parcel.setClassCookie(PendingIntent.class, mWhitelistToken);
+        // Propagate this token to all pending intents that are unmarshalled from the parcel,
+        // or keep the one we're already propagating, if that's the case.
+        if (!parcel.hasClassCookie(PendingIntent.class)) {
+            parcel.setClassCookie(PendingIntent.class, mWhitelistToken);
+        }
 
         when = parcel.readLong();
         creationTime = parcel.readLong();
@@ -2712,9 +2715,24 @@ public class Notification implements Parcelable
             });
         }
         try {
-            // IMPORTANT: Add marshaling code in writeToParcelImpl as we
-            // want to intercept all pending events written to the parcel.
-            writeToParcelImpl(parcel, flags);
+            boolean mustClearCookie = false;
+            if (!parcel.hasClassCookie(Notification.class)) {
+                // This is the "root" notification, and not an "inner" notification (including
+                // publicVersion or anything else that might be embedded in extras). So we want
+                // to use its token for every inner notification (might be null).
+                parcel.setClassCookie(Notification.class, mWhitelistToken);
+                mustClearCookie = true;
+            }
+            try {
+                // IMPORTANT: Add marshaling code in writeToParcelImpl as we
+                // want to intercept all pending events written to the parcel.
+                writeToParcelImpl(parcel, flags);
+            } finally {
+                if (mustClearCookie) {
+                    parcel.removeClassCookie(Notification.class, mWhitelistToken);
+                }
+            }
+
             synchronized (this) {
                 // Must be written last!
                 parcel.writeArraySet(allPendingIntents);
@@ -2729,7 +2747,10 @@ public class Notification implements Parcelable
     private void writeToParcelImpl(Parcel parcel, int flags) {
         parcel.writeInt(1);
 
-        parcel.writeStrongBinder(mWhitelistToken);
+        // Always use the same token as the root notification (might be null).
+        IBinder rootNotificationToken = (IBinder) parcel.getClassCookie(Notification.class);
+        parcel.writeStrongBinder(rootNotificationToken);
+
         parcel.writeLong(when);
         parcel.writeLong(creationTime);
         if (mSmallIcon == null && icon != 0) {
@@ -3083,16 +3104,21 @@ public class Notification implements Parcelable
      * Sets the token used for background operations for the pending intents associated with this
      * notification.
      *
-     * This token is automatically set during deserialization for you, you usually won't need to
-     * call this unless you want to change the existing token, if any.
+     * Note: Should <em>only</em> be invoked by NotificationManagerService, since this is normally
+     * populated by unparceling (and also used there). Any other usage is suspect.
      *
      * @hide
      */
-    public void clearAllowlistToken() {
-        mWhitelistToken = null;
+    public void overrideWhitelistToken(IBinder token) {
+        mWhitelistToken = token;
         if (publicVersion != null) {
-            publicVersion.clearAllowlistToken();
+            publicVersion.overrideWhitelistToken(token);
         }
+    }
+
+    /** @hide */
+    public IBinder getWhitelistToken() {
+        return mWhitelistToken;
     }
 
     /**
