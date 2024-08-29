@@ -239,6 +239,11 @@ public class RemoteViewsAdapter extends BaseAdapter implements Handler.Callback 
         }
 
         @Override
+        public void onNullBinding(ComponentName name) {
+            enqueueDeferredUnbindServiceMessage();
+        }
+
+        @Override
         public void handleMessage(Message msg) {
             RemoteViewsAdapter adapter = mAdapter.get();
 
