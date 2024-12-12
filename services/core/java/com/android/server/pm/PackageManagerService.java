@@ -4462,6 +4462,21 @@ public class PackageManagerService extends IPackageManager.Stub
                 return null;
             }
 
+            if (requestsFakeSignature(p)) {
+                try {
+                    packageInfo.signingInfo = new SigningInfo(
+                            new SigningDetails(
+                                    packageInfo.signatures,
+                                    SigningDetails.SignatureSchemeVersion.SIGNING_BLOCK_V3,
+                                    PackageParser.toSigningKeys(packageInfo.signatures),
+                                    null
+                            )
+                    );
+                } catch (CertificateException | NullPointerException e) {
+                    Slog.e(TAG, "Caught an exception when creating signing keys: ", e);
+                }
+            }
+
             packageInfo.packageName = packageInfo.applicationInfo.packageName =
                     resolveExternalPackageNameLPr(p);
 
@@ -4490,6 +4505,11 @@ public class PackageManagerService extends IPackageManager.Stub
         } else {
             return null;
         }
+    }
+
+    private boolean requestsFakeSignature(AndroidPackage p) {
+        return p.getMetaData() != null &&
+                p.getMetaData().getString("fake-signature") != null;
     }
 
     private PackageInfo mayFakeSignature(AndroidPackage p, PackageInfo pi,
