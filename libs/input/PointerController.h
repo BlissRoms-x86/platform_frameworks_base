@@ -72,6 +72,13 @@ public:
     void reloadPointerResources();
     void onDisplayViewportsUpdated(std::vector<DisplayViewport>& viewports);
 
+    void setDisplayId(int32_t id);
+    int32_t getDisplayId();
+
+    const DisplayViewport& getViewportLocked() {
+                       return mCursorController.getViewportLocked();
+                            }
+
 private:
     friend PointerControllerContext::LooperCallback;
     friend PointerControllerContext::MessageHandler;

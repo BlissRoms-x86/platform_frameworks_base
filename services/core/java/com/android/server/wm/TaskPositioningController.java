@@ -88,6 +88,7 @@ class TaskPositioningController {
                     .setContainerLayer()
                     .setName("Drag and Drop Input Consumer")
                     .setCallsite("TaskPositioningController.showInputSurface")
+                    .setParent(dc.getOverlayLayer())
                     .build();
         }
 
@@ -214,6 +215,11 @@ class TaskPositioningController {
             synchronized (mService.mGlobalLock) {
                 cleanUpTaskPositioner();
                 mPositioningDisplay = null;
+                // Clear the internal variables.
+                if (mInputSurface != null) {
+                    mTransaction.remove(mInputSurface).apply();
+                    mInputSurface = null;
+                }
             }
         });
     }

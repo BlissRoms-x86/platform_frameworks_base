@@ -292,7 +292,7 @@ public:
     void requestPointerCapture(const sp<IBinder>& windowToken, bool enabled);
     void setCustomPointerIcon(const SpriteIcon& icon);
     void setMotionClassifierEnabled(bool enabled);
-
+    virtual int32_t notifyDisplayIdChanged();
     /* --- InputReaderPolicyInterface implementation --- */
 
     void getReaderConfiguration(InputReaderConfiguration* outConfig) override;
@@ -1228,6 +1228,59 @@ TouchAffineTransformation NativeInputManager::getTouchAffineTransformation(
     env->DeleteLocalRef(cal);
 
     return transform;
+}
+
+int32_t NativeInputManager::notifyDisplayIdChanged() REQUIRES(mLock) {
+    //sp<PointerController> controller = mLocked.pointerController.promote();
+    std::shared_ptr<PointerController> controller = mLocked.pointerController.lock();
+    int32_t mDisplayId=controller->getDisplayId();
+    uint8_t physicalPortSize=0;
+    DisplayViewport mViewport=controller->getViewportLocked();
+    //uint8_t mPhysicalPort=mViewport.physicalPort.value();
+    ALOGV("====all viewports size=%d current viewport=%s ",(int32_t)mLocked.viewports.size(),mViewport.toString().c_str());
+    for (const DisplayViewport& v : mLocked.viewports) {
+        if (v.physicalPort!=std::nullopt) {
+           physicalPortSize++;
+        }
+    }
+    ALOGV("physical port size=%d",physicalPortSize);
+    if(physicalPortSize==1){
+       ALOGV("physicalPort size =1,return display id %d",mDisplayId);
+       return mDisplayId;
+    }
+    std::vector<DisplayViewport> viewports;
+
+    for (const DisplayViewport& v : mLocked.viewports) {
+       ALOGV("viewport=%s",v.toString().c_str());
+       if(mViewport.displayId!=v.displayId){
+         viewports.push_back(v);
+       }
+    }
+    if(viewports.size()==0){
+      return mDisplayId;
+    }
+    if(viewports.size()==1){
+      controller->setDisplayId(viewports.front().displayId);
+      controller->setDisplayViewport(viewports.front());
+      mDisplayId=viewports.front().displayId;																     return mDisplayId;
+    }
+    if(viewports.back().displayId<=mViewport.displayId){
+      controller->setDisplayId(viewports.front().displayId);
+      controller->setDisplayViewport(viewports.front());
+      mDisplayId=viewports.front().displayId;
+      return mDisplayId;
+    }
+    for (const DisplayViewport& v : viewports) {
+       ALOGV("viewport=%s",v.toString().c_str());
+       if(v.displayId>mViewport.displayId){
+	  controller->setDisplayId(v.displayId);
+	  controller->setDisplayViewport(v);
+	  mDisplayId=v.displayId;
+	  break;
+       }
+
+    }
+    return mDisplayId; 
 }
 
 bool NativeInputManager::filterInputEvent(const InputEvent* inputEvent, uint32_t policyFlags) {
