@@ -2968,6 +2968,20 @@ public class InputManagerService extends IInputManager.Stub
                 Slog.e(TAG, "Could not parse '" + confFile.getAbsolutePath() + "'", e);
             }
         }
+
+        // Read custom user-prvodided list of excluded input devices
+        File customConfFile = new File("/data/system/custom-excluded-input-devices.xml");
+        try (InputStream stream = new FileInputStream(customConfFile)) {
+            names.addAll(ConfigurationProcessor.processExcludedDeviceNames(stream));
+            if (DEBUG) {
+                Slog.d(TAG, "Successfully loaded custom excluded devices from /data/system");
+            }
+        } catch (FileNotFoundException e) {
+                // It's ok if the file does not exist.
+        } catch (Exception e) {
+            Slog.e(TAG, "Could not parse '" + customConfFile.getAbsolutePath() + "'", e);
+        }
+
         return names.toArray(new String[0]);
     }
 
