@@ -144,4 +144,7 @@ interface IInputManager {
     void openLightSession(int deviceId, String opPkg, in IBinder token);
 
     void closeLightSession(int deviceId, in IBinder token);
+
+    // Required by BlissLabs' Inputctl
+    int getSwitchState(int deviceId, int sourceMask, int switchCode);
 }

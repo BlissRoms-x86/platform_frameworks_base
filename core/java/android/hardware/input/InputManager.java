@@ -1761,4 +1761,15 @@ public final class InputManager {
             }
         }
     }
+
+    /**
+     * @hide
+     */
+    public int getSwitchState(int deviceId, int sourceMask, int switchCode) {
+        try {
+            return mIm.getSwitchState(deviceId, sourceMask, switchCode);
+        } catch (RemoteException ex) {
+            throw ex.rethrowFromSystemServer();
+        }
+    }
 }
