@@ -28,6 +28,7 @@ import android.content.Context;
 import android.graphics.drawable.Drawable;
 import android.media.MediaRoute2Info;
 import android.media.MediaRouter2Manager;
+import android.text.TextUtils;
 
 import androidx.annotation.VisibleForTesting;
 
@@ -45,6 +46,7 @@ public class PhoneMediaDevice extends MediaDevice {
     // For 3.5 mm wired headset
     public static final String WIRED_HEADSET_ID = "wired_headset_media_device_id";
     public static final String USB_HEADSET_ID = "usb_headset_media_device_id";
+    public static final String HDMI_ID = "hdmi_media_device_id";
 
     private String mSummary = "";
 
@@ -57,22 +59,30 @@ public class PhoneMediaDevice extends MediaDevice {
 
     @Override
     public String getName() {
-        CharSequence name;
+        CharSequence name = null;
         switch (mRouteInfo.getType()) {
             case TYPE_WIRED_HEADSET:
             case TYPE_WIRED_HEADPHONES:
             case TYPE_USB_DEVICE:
             case TYPE_USB_HEADSET:
             case TYPE_USB_ACCESSORY:
-                name = mContext.getString(R.string.media_transfer_wired_usb_device_name);
-                break;
             case TYPE_DOCK:
             case TYPE_HDMI:
                 name = mRouteInfo.getName();
+                if (TextUtils.isEmpty(name)) {
+                    if (mRouteInfo.getType() == TYPE_HDMI || mRouteInfo.getType() == TYPE_DOCK) {
+                        name = "HDMI / DisplayPort";
+                    } else {
+                        name = mContext.getString(R.string.media_transfer_wired_usb_device_name);
+                    }
+                }
                 break;
             case TYPE_BUILTIN_SPEAKER:
             default:
-                name = mContext.getString(R.string.media_transfer_this_device_name);
+                name = mRouteInfo.getName();
+                if (TextUtils.isEmpty(name)) {
+                    name = mContext.getString(R.string.media_transfer_this_device_name);
+                }
                 break;
         }
         return name.toString();
@@ -102,15 +112,17 @@ public class PhoneMediaDevice extends MediaDevice {
             case TYPE_USB_DEVICE:
             case TYPE_USB_HEADSET:
             case TYPE_USB_ACCESSORY:
-            case TYPE_DOCK:
-            case TYPE_HDMI:
             case TYPE_WIRED_HEADSET:
             case TYPE_WIRED_HEADPHONES:
                 resId = R.drawable.ic_headphone;
                 break;
+            case TYPE_DOCK:
+            case TYPE_HDMI:
+                resId = R.drawable.ic_media_display_device;
+                break;
             case TYPE_BUILTIN_SPEAKER:
             default:
-                resId = R.drawable.ic_smartphone;
+                resId = R.drawable.ic_media_speaker_device;
                 break;
         }
         return resId;
@@ -127,14 +139,19 @@ public class PhoneMediaDevice extends MediaDevice {
             case TYPE_USB_DEVICE:
             case TYPE_USB_HEADSET:
             case TYPE_USB_ACCESSORY:
+                id = USB_HEADSET_ID;
+                break;
             case TYPE_DOCK:
             case TYPE_HDMI:
-                id = USB_HEADSET_ID;
+                id = HDMI_ID;
                 break;
             case TYPE_BUILTIN_SPEAKER:
             default:
                 id = PHONE_ID;
                 break;
+        }
+        if (mRouteInfo != null && !TextUtils.isEmpty(mRouteInfo.getId())) {
+            return id + "_" + mRouteInfo.getId();
         }
         return id;
     }

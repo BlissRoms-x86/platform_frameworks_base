@@ -33,6 +33,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.media.AudioRoutesInfo;
+import android.media.AudioSystem;
 import android.media.IAudioRoutesObserver;
 import android.media.IAudioService;
 import android.media.MediaRoute2Info;
@@ -45,6 +46,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -65,6 +67,8 @@ class SystemMediaRoute2Provider extends MediaRoute2Provider {
 
     static final String DEFAULT_ROUTE_ID = "DEFAULT_ROUTE";
     static final String DEVICE_ROUTE_ID = "DEVICE_ROUTE";
+    static final String HDMI_ROUTE_ID = "HDMI_ROUTE";
+    static final String USB_ROUTE_ID = "USB_ROUTE";
     static final String SYSTEM_SESSION_ID = "SYSTEM_SESSION";
 
     private final AudioManager mAudioManager;
@@ -82,6 +86,8 @@ class SystemMediaRoute2Provider extends MediaRoute2Provider {
     // This should be the currently selected route.
     MediaRoute2Info mDefaultRoute;
     MediaRoute2Info mDeviceRoute;
+    MediaRoute2Info mHdmiRoute;
+    MediaRoute2Info mUsbRoute;
     RoutingSessionInfo mDefaultSessionInfo;
     final AudioRoutesInfo mCurAudioRoutesInfo = new AudioRoutesInfo();
     int mDeviceVolume;
@@ -116,6 +122,20 @@ class SystemMediaRoute2Provider extends MediaRoute2Provider {
         } catch (RemoteException e) {
         }
         updateDeviceRoute(newAudioRoutes);
+
+        // Restore user's audio route preference from persist property.
+        // If user previously forced speaker, re-apply FORCE_SPEAKER so
+        // AudioPolicyManager doesn't auto-route to HDMI on boot.
+        String savedRoute = SystemProperties.get("persist.audio.output.route", "auto");
+        if ("speaker".equals(savedRoute)) {
+            AudioSystem.setForceUse(AudioSystem.FOR_MEDIA, AudioSystem.FORCE_SPEAKER);
+            mSelectedRouteId = DEVICE_ROUTE_ID;
+            Log.i(TAG, "Restored audio route preference: speaker (FORCE_SPEAKER)");
+        } else {
+            // "hdmi", "usb", or "auto" — let AudioPolicyManager decide
+            AudioSystem.setForceUse(AudioSystem.FOR_MEDIA, AudioSystem.FORCE_NONE);
+            Log.i(TAG, "Restored audio route preference: " + savedRoute + " (FORCE_NONE)");
+        }
 
         // .getInstance returns null if there is no bt adapter available
         mBtRouteProvider = BluetoothRouteProvider.createInstance(context, (routes) -> {
@@ -202,12 +222,51 @@ class SystemMediaRoute2Provider extends MediaRoute2Provider {
             // The currently selected route is the default route.
             return;
         }
-        if (mBtRouteProvider != null) {
-            if (TextUtils.equals(routeId, mDeviceRoute.getId())) {
+        if (TextUtils.equals(routeId, DEVICE_ROUTE_ID)
+                || TextUtils.equals(routeId, HDMI_ROUTE_ID)
+                || TextUtils.equals(routeId, USB_ROUTE_ID)) {
+            if (mBtRouteProvider != null) {
                 mBtRouteProvider.transferTo(null);
-            } else {
-                mBtRouteProvider.transferTo(routeId);
             }
+            mSelectedRouteId = routeId;
+            String routeTarget = "speaker";
+            if (TextUtils.equals(routeId, HDMI_ROUTE_ID)) {
+                routeTarget = "hdmi";
+            } else if (TextUtils.equals(routeId, USB_ROUTE_ID)) {
+                routeTarget = "usb";
+            }
+            try {
+                SystemProperties.set("persist.audio.output.route", routeTarget);
+            } catch (Exception e) {
+                Log.w(TAG, "Failed to set audio route property", e);
+            }
+
+            // Use AudioSystem.setForceUse() to actually control AudioPolicyManager
+            // routing. This is the proper mechanism — setParameters() only sends
+            // passthrough strings to HAL modules without affecting APM routing.
+            if ("speaker".equals(routeTarget)) {
+                // FORCE_SPEAKER tells AudioPolicyManager to route media audio
+                // to the built-in speaker, ignoring connected HDMI/USB devices.
+                AudioSystem.setForceUse(AudioSystem.FOR_MEDIA, AudioSystem.FORCE_SPEAKER);
+                Log.i(TAG, "Audio route: forcing SPEAKER");
+            } else {
+                // FORCE_NONE lets AudioPolicyManager auto-route to the highest
+                // priority connected device. Priority order:
+                //   USB > HDMI > Wired Headphones > Speaker
+                // So if HDMI is connected, audio goes to HDMI.
+                // If USB is connected (higher priority), audio goes to USB.
+                AudioSystem.setForceUse(AudioSystem.FOR_MEDIA, AudioSystem.FORCE_NONE);
+                Log.i(TAG, "Audio route: FORCE_NONE (auto-route to " + routeTarget + ")");
+            }
+
+            boolean sessionInfoChanged = updateSessionInfosIfNeeded();
+            if (sessionInfoChanged) {
+                notifySessionInfoUpdated();
+            }
+            return;
+        }
+        if (mBtRouteProvider != null) {
+            mBtRouteProvider.transferTo(routeId);
         }
     }
 
@@ -251,34 +310,64 @@ class SystemMediaRoute2Provider extends MediaRoute2Provider {
             } else if ((newRoutes.mainType & AudioRoutesInfo.MAIN_DOCK_SPEAKERS) != 0) {
                 type = TYPE_DOCK;
                 name = com.android.internal.R.string.default_audio_route_name_dock_speakers;
-            } else if ((newRoutes.mainType & AudioRoutesInfo.MAIN_HDMI) != 0) {
-                type = TYPE_HDMI;
-                name = com.android.internal.R.string.default_audio_route_name_hdmi;
-            } else if ((newRoutes.mainType & AudioRoutesInfo.MAIN_USB) != 0) {
-                type = TYPE_USB_DEVICE;
-                name = com.android.internal.R.string.default_audio_route_name_usb;
             }
         }
 
+        int volumeHandling = mAudioManager.isVolumeFixed()
+                ? MediaRoute2Info.PLAYBACK_VOLUME_FIXED
+                : MediaRoute2Info.PLAYBACK_VOLUME_VARIABLE;
+        int maxVolume = mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+
         mDeviceRoute = new MediaRoute2Info.Builder(
                 DEVICE_ROUTE_ID, mContext.getResources().getText(name).toString())
-                .setVolumeHandling(mAudioManager.isVolumeFixed()
-                        ? MediaRoute2Info.PLAYBACK_VOLUME_FIXED
-                        : MediaRoute2Info.PLAYBACK_VOLUME_VARIABLE)
+                .setVolumeHandling(volumeHandling)
                 .setVolume(mDeviceVolume)
-                .setVolumeMax(mAudioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC))
+                .setVolumeMax(maxVolume)
                 .setType(type)
                 .addFeature(FEATURE_LIVE_AUDIO)
                 .addFeature(FEATURE_LIVE_VIDEO)
                 .addFeature(FEATURE_LOCAL_PLAYBACK)
                 .setConnectionState(MediaRoute2Info.CONNECTION_STATE_CONNECTED)
                 .build();
+
+        mHdmiRoute = new MediaRoute2Info.Builder(
+                HDMI_ROUTE_ID, mContext.getResources().getText(
+                        com.android.internal.R.string.default_audio_route_name_hdmi).toString())
+                .setVolumeHandling(volumeHandling)
+                .setVolume(mDeviceVolume)
+                .setVolumeMax(maxVolume)
+                .setType(TYPE_HDMI)
+                .addFeature(FEATURE_LIVE_AUDIO)
+                .addFeature(FEATURE_LIVE_VIDEO)
+                .addFeature(FEATURE_LOCAL_PLAYBACK)
+                .setConnectionState(MediaRoute2Info.CONNECTION_STATE_CONNECTED)
+                .build();
+
+        mUsbRoute = new MediaRoute2Info.Builder(
+                USB_ROUTE_ID, mContext.getResources().getText(
+                        com.android.internal.R.string.default_audio_route_name_usb).toString())
+                .setVolumeHandling(volumeHandling)
+                .setVolume(mDeviceVolume)
+                .setVolumeMax(maxVolume)
+                .setType(TYPE_USB_DEVICE)
+                .addFeature(FEATURE_LIVE_AUDIO)
+                .addFeature(FEATURE_LIVE_VIDEO)
+                .addFeature(FEATURE_LOCAL_PLAYBACK)
+                .setConnectionState(MediaRoute2Info.CONNECTION_STATE_CONNECTED)
+                .build();
+
         updateProviderState();
     }
 
     private void updateProviderState() {
         MediaRoute2ProviderInfo.Builder builder = new MediaRoute2ProviderInfo.Builder();
         builder.addRoute(mDeviceRoute);
+        if (mHdmiRoute != null) {
+            builder.addRoute(mHdmiRoute);
+        }
+        if (mUsbRoute != null) {
+            builder.addRoute(mUsbRoute);
+        }
         if (mBtRouteProvider != null) {
             for (MediaRoute2Info route : mBtRouteProvider.getAllBluetoothRoutes()) {
                 builder.addRoute(route);
@@ -304,11 +393,15 @@ class SystemMediaRoute2Provider extends MediaRoute2Provider {
                     .setSystemSession(true);
 
             MediaRoute2Info selectedRoute = mDeviceRoute;
+            if (TextUtils.equals(mSelectedRouteId, HDMI_ROUTE_ID) && mHdmiRoute != null) {
+                selectedRoute = mHdmiRoute;
+            } else if (TextUtils.equals(mSelectedRouteId, USB_ROUTE_ID) && mUsbRoute != null) {
+                selectedRoute = mUsbRoute;
+            }
             if (mBtRouteProvider != null) {
                 MediaRoute2Info selectedBtRoute = mBtRouteProvider.getSelectedRoute();
                 if (selectedBtRoute != null) {
                     selectedRoute = selectedBtRoute;
-                    builder.addTransferableRoute(mDeviceRoute.getId());
                 }
             }
             mSelectedRouteId = selectedRoute.getId();
@@ -317,6 +410,16 @@ class SystemMediaRoute2Provider extends MediaRoute2Provider {
                     .setProviderId(mUniqueId)
                     .build();
             builder.addSelectedRoute(mSelectedRouteId);
+
+            if (!TextUtils.equals(mSelectedRouteId, DEVICE_ROUTE_ID)) {
+                builder.addTransferableRoute(DEVICE_ROUTE_ID);
+            }
+            if (mHdmiRoute != null && !TextUtils.equals(mSelectedRouteId, HDMI_ROUTE_ID)) {
+                builder.addTransferableRoute(HDMI_ROUTE_ID);
+            }
+            if (mUsbRoute != null && !TextUtils.equals(mSelectedRouteId, USB_ROUTE_ID)) {
+                builder.addTransferableRoute(USB_ROUTE_ID);
+            }
 
             if (mBtRouteProvider != null) {
                 for (MediaRoute2Info route : mBtRouteProvider.getTransferableRoutes()) {
@@ -408,6 +511,16 @@ class SystemMediaRoute2Provider extends MediaRoute2Provider {
             mDeviceRoute = new MediaRoute2Info.Builder(mDeviceRoute)
                     .setVolume(volume)
                     .build();
+            if (mHdmiRoute != null) {
+                mHdmiRoute = new MediaRoute2Info.Builder(mHdmiRoute)
+                        .setVolume(volume)
+                        .build();
+            }
+            if (mUsbRoute != null) {
+                mUsbRoute = new MediaRoute2Info.Builder(mUsbRoute)
+                        .setVolume(volume)
+                        .build();
+            }
         }
         publishProviderState();
     }
